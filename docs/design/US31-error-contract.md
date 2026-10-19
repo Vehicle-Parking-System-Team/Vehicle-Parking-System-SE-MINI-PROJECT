@@ -53,7 +53,15 @@ if expected_business_conflict:
 
 Use DRF serializers for domain-specific missing/format/boundary checks. Raise `Http404`/DRF `NotFound` for unknown resources and the existing permission exceptions for denied access. Raise exceptions rather than returning ad hoc `Response(..., status=400)` bodies, which bypass the exception handler.
 
-Only supply public-safe validation and conflict messages. Never interpolate passwords, tokens, raw SQL or internal exception text. Other exception messages are replaced with generic text. Unexpected failures log an exception class through `common.exceptions` at ERROR level, without traceback, exception text, request body, URL or credentials. Raw database integrity failures remain internal errors; owners must recognize expected conflicts in their own services rather than relabel every database failure as 409.
+Only supply public-safe validation and conflict messages. Never interpolate passwords, tokens, raw SQL or internal exception text. Other exception messages are replaced with generic text. Raw database integrity failures remain internal errors; owners must recognize expected conflicts in their own services rather than relabel every database failure as 409.
+
+### Server-side debugging policy
+
+Unexpected failures log a sanitized traceback through `common.exceptions` at ERROR level. It retains the originating view, exception and cause/context types, and each stack frame's module, function, filename and line number. This provides failure locations and call-chain context while the API continues to return the generic `INTERNAL_ERROR` envelope with empty `details`, including when DEBUG is enabled.
+
+Exception messages, source-code lines, local variables, request bodies, headers, URLs and query parameters are excluded from these diagnostic records. The logger receives only the sanitized text, not raw `exc_info` or exception objects that another formatter/collector might serialize. Exception chains respect suppressed context and terminate on cycles. This is an allowlist of diagnostic metadata, not a regex-based attempt to identify every possible secret.
+
+Treat backend log destinations as operational data: production handlers/collectors must restrict access to authorized maintainers and apply the deployment's retention policy. This repository does not provision or verify a production log store. Do not expose these logs through application endpoints or enable raw exception/request capture in a collector without an independently reviewed redaction policy. Other application logging remains the responsibility of its owner.
 
 The handler preserves DRF's rollback marking for handled exceptions and also marks unexpected failures for rollback under `ATOMIC_REQUESTS`. Domain owners still own transaction boundaries, database constraints and concurrent-operation correctness. A shared error handler does not make non-transactional writes atomic.
 

@@ -82,6 +82,12 @@ class SessionStyleView(ProtectedView):
 
 class FailureView(PublicView):
     def get(self, request, kind):
+        if kind == "chained":
+            private_local = "local-secret"
+            try:
+                raise ValueError(f"token=cause-secret {private_local}")
+            except ValueError as cause:
+                raise RuntimeError("password=outer-secret") from cause
         failures = {
             "missing": Http404("private lookup details"),
             "denied": PermissionDenied("private policy details"),
@@ -257,6 +263,27 @@ class ErrorContractTests(SimpleTestCase):
                         self.assertNotIn(secret, str(data))
                         self.assertNotIn(secret, " ".join(logs.output))
                     self.assertIsNone(logs.records[0].exc_info)
+                    self.assertIn("FailureView", logs.output[0])
+                    self.assertRegex(logs.output[0], r"test_exceptions\.py:\d+")
+
+    def test_chained_traceback_excludes_sensitive_context(self):
+        with self.assertLogs("common.exceptions", level="ERROR") as logs:
+            data = self.assert_error(
+                self.client.get(
+                    "/failure/chained/", {"password": "query-secret"},
+                    HTTP_AUTHORIZATION="Bearer header-secret",
+                ),
+                500, "INTERNAL_ERROR",
+            )
+        output = logs.output[0]
+        for diagnostic in ("RuntimeError", "ValueError", "Caused by:", "FailureView"):
+            self.assertIn(diagnostic, output)
+        self.assertRegex(output, r"test_exceptions\.get \(test_exceptions\.py:\d+\)")
+        for secret in ("local-secret", "cause-secret", "outer-secret", "query-secret", "header-secret"):
+            self.assertNotIn(secret, output)
+            self.assertNotIn(secret, str(data))
+            self.assertNotIn(secret, str(logs.records[0].__dict__))
+        self.assertIsNone(logs.records[0].exc_info)
 
     def test_success_and_valid_boundaries_are_unchanged(self):
         for count in (1, 5):

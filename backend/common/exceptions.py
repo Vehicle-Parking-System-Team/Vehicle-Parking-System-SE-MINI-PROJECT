@@ -1,6 +1,8 @@
 """The US-31 error contract for DRF views and services."""
 
 import logging
+import traceback
+from pathlib import Path
 
 from rest_framework import exceptions
 from rest_framework.response import Response
@@ -31,6 +33,28 @@ _ERRORS = {
 }
 
 
+def _safe_traceback(exc):
+    """Keep diagnostic locations and chain types, never exception/request data."""
+    lines = []
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        seen.add(id(exc))
+        lines.append(type(exc).__name__)
+        for frame, lineno in traceback.walk_tb(exc.__traceback__):
+            module = frame.f_globals.get("__name__", "<unknown>")
+            filename = Path(frame.f_code.co_filename).name
+            lines.append(f"  {module}.{frame.f_code.co_name} ({filename}:{lineno})")
+        if exc.__cause__ is not None:
+            lines.append("Caused by:")
+            exc = exc.__cause__
+        elif exc.__context__ is not None and not exc.__suppress_context__:
+            lines.append("During handling of:")
+            exc = exc.__context__
+        else:
+            break
+    return "\n".join(lines)
+
+
 def exception_handler(exc, context):
     """Preserve DRF status/headers/rollback and return error, code and details."""
     response = drf_exception_handler(exc, context)
@@ -42,8 +66,12 @@ def exception_handler(exc, context):
     details = {}
     if response.status_code >= 500:
         code, message = "INTERNAL_ERROR", "An unexpected error occurred."
-        # Exception text, tracebacks, request data and URLs may contain secrets.
-        logger.error("API failure (%s).", type(exc).__name__)
+        view_type = type(context.get("view"))
+        # Do not attach raw exc_info: formatters/collectors may expose its data.
+        logger.error(
+            "API failure in %s.%s. Traceback (data omitted):\n%s",
+            view_type.__module__, view_type.__qualname__, _safe_traceback(exc),
+        )
     elif isinstance(exc, exceptions.ValidationError):
         code, message = "VALIDATION_ERROR", "Please correct the highlighted fields."
         details = response.data

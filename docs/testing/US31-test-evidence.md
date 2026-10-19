@@ -2,15 +2,15 @@
 
 Story: [#51](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/51). Requirements: FR-13/FR-14, UC-10. Contract: [shared API errors](../design/US31-error-contract.md).
 
-Executed on 19 October 2026 for Member 4's implementation at `c2ce42f`. Commands below use the repository's virtual environment; CI runs the same suites on its checked-out revision.
+Initially executed on 19 October 2026 for Member 4's implementation at `c2ce42f`. The backend results below include the logging review follow-up executed on the same date. Commands use the repository's virtual environment; CI records its exact checked-out revision.
 
 ## Environment and results
 
 | Check | Environment | Observed result |
 | --- | --- | --- |
 | Django system check | Windows, Python 3.12.12, Django 5.2.18, DRF 3.18.3 | Pass; no issues |
-| Backend suite | Same environment; temporary in-memory SQLite 3.51.1 | Pass; 21 tests, including debug-mode and transaction subcases |
-| Backend compatibility suite | Python 3.12.12, Django 5.1.15, DRF 3.15.2; temporary SQLite | Pass; same 21 tests and system check |
+| Backend suite | Same environment; temporary in-memory SQLite 3.51.1 | Pass; 22 tests, including debug-mode, diagnostic logging and transaction subcases |
+| Backend compatibility suite | Python 3.12.12, Django 5.1.15, DRF 3.15.2; temporary SQLite | Pass; same 22 tests and system check |
 | Frontend helper suite | Node 22.19.0, npm 10.9.3 | Pass; 12 tests |
 | Frontend lint | Existing oxlint configuration | Pass |
 | Frontend production build | Vite 8.3.1 | Pass |
@@ -44,6 +44,7 @@ All rows below passed in the local execution. Backend methods are in `backend/co
 | TC-UC10-API-018 | API integration | `test_throttle_preserves_retry_after`: 429 and retry interval |
 | TC-UC10-API-019 | API/security | `test_unexpected_failures_are_safe_in_both_debug_modes`: runtime/database/API failures masked and safely logged |
 | TC-UC10-API-020 | API regression | `test_success_and_valid_boundaries_are_unchanged`: original 201 payload |
+| TC-UC10-API-021 | API/security | `test_chained_traceback_excludes_sensitive_context`: view, stack locations and chain types logged; exception/local/query/header secrets excluded from response and raw log record |
 | TC-UC10-INT-001 | Database integration | `test_failed_requests_roll_back_writes`: no persisted user after validation/conflict/unexpected failure under ATOMIC_REQUESTS |
 
 | Stable test ID | Level | Frontend case / expected behavior |
