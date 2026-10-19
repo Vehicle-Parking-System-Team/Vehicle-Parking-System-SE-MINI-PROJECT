@@ -35,6 +35,9 @@ jobs:
       - name: Run Django system check
         run: python manage.py check
 
+      - name: Run backend tests
+        run: python manage.py test --verbosity 2
+
   frontend-ci:
     name: Frontend CI (React)
     runs-on: ubuntu-latest
@@ -55,6 +58,12 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm ci
+
+      - name: Run frontend helper tests
+        run: npm test
+
+      - name: Run frontend lint
+        run: npm run lint
 
       - name: Run React production build
         run: npm run build

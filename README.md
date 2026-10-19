@@ -31,3 +31,26 @@ A comprehensive software engineering solution for automated vehicle parking mana
 ## Current Project Status
 
 **Initial project setup**: Project structure, backend baseline, frontend baseline, documentation hierarchy, and environment configurations have been established. Application business modules will be introduced in subsequent agile sprints.
+
+The shared US-31 API error handler and frontend error helper are available for domain modules to reuse. See the [error contract and usage](docs/design/US31-error-contract.md) and [test cases and execution evidence](docs/testing/US31-test-evidence.md).
+
+## Development checks
+
+Create and activate a Python virtual environment (Python 3.12+ locally; CI uses 3.13). From `backend/`:
+
+```sh
+python -m pip install -r requirements.txt
+python manage.py check
+python manage.py test --verbosity 2
+```
+
+From `frontend/` with Node.js 22:
+
+```sh
+npm ci
+npm test
+npm run lint
+npm run build
+```
+
+Without a local `.env`, backend tests use the existing SQLite fallback and a temporary test database. PostgreSQL remains the application target; these tests do not establish PostgreSQL concurrency acceptance. No additional runtime or test dependency is required for US-31.
