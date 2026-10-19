@@ -40,3 +40,26 @@ Authoritative specifications, architectural models, and traceability registers a
 ## Current Project Status
 
 **Baseline Ready for Development**: Repository structure, Django/DRF backend baseline (`backend/config/`), React Vite frontend baseline (`frontend/src/`), documentation hierarchy, and environment configurations have been established. All 30 Functional Requirements (`FR-01` to `FR-30`), 15 architectural/business decisions (`DEC-01` to `DEC-15`), and 32 canonical user stories across 8 epics are fully aligned across the SRS, RTM, SAD, and Test Plan. Application domain modules (`backend/<domain>/`, `frontend/src/pages/`) will be introduced in subsequent agile sprints according to the sprint backlog.
+
+The shared US-31 API error handler and frontend error helper are available for domain modules to reuse. See the [error contract and usage](docs/design/US31-error-contract.md) and [test cases and execution evidence](docs/testing/US31-test-evidence.md).
+
+## Development checks
+
+Create and activate a Python virtual environment (Python 3.12+ locally; CI uses 3.13). From `backend/`:
+
+```sh
+python -m pip install -r requirements.txt
+python manage.py check
+python manage.py test --verbosity 2
+```
+
+From `frontend/` with Node.js 22:
+
+```sh
+npm ci
+npm test
+npm run lint
+npm run build
+```
+
+Without a local `.env`, backend tests use the existing SQLite fallback and a temporary test database. PostgreSQL remains the application target; these tests do not establish PostgreSQL concurrency acceptance. No additional runtime or test dependency is required for US-31.
