@@ -32,6 +32,14 @@ _ERRORS = {
     429: ("THROTTLED", "Too many requests. Please try again later."),
 }
 
+_SAFE_AUTH_MESSAGES = {
+    "Invalid username or password.",
+    "User account is inactive or suspended.",
+    "Token has been revoked.",
+    "Token is invalid or expired.",
+    "Invalid or already revoked token.",
+}
+
 
 def _safe_traceback(exc):
     """Keep diagnostic locations and chain types, never exception/request data."""
@@ -79,6 +87,8 @@ def exception_handler(exc, context):
         code, message = "PARSE_ERROR", "The request body is malformed."
     elif isinstance(exc, exceptions.AuthenticationFailed):
         code, message = "AUTHENTICATION_FAILED", "Authentication failed."
+        if isinstance(exc.detail, str) and str(exc.detail) in _SAFE_AUTH_MESSAGES:
+            message = str(exc.detail)
     elif isinstance(exc, exceptions.NotAuthenticated):
         code, message = "AUTHENTICATION_REQUIRED", "Authentication is required."
     else:
