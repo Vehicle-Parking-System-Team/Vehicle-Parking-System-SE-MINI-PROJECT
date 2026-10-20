@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate
 from rest_framework import exceptions, serializers
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User
@@ -76,12 +78,12 @@ class CustomTokenRefreshSerializer(serializers.Serializer):
 
         try:
             refresh = RefreshToken(refresh_str)
-        except Exception:
+        except TokenError:
             raise exceptions.AuthenticationFailed('Token is invalid or expired.')
 
-        user_id = refresh.payload.get('user_id')
+        user_id = refresh.payload.get(api_settings.USER_ID_CLAIM)
         try:
-            user = User.objects.get(id=user_id)
+            user = User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
         except User.DoesNotExist:
             raise exceptions.AuthenticationFailed('User not found.')
 
@@ -93,7 +95,10 @@ class CustomTokenRefreshSerializer(serializers.Serializer):
             raise exceptions.AuthenticationFailed('Token has been revoked.')
 
         # Blacklist old refresh token and rotate to a new one
-        refresh.blacklist()
+        try:
+            refresh.blacklist()
+        except TokenError:
+            raise exceptions.AuthenticationFailed('Token is invalid or expired.')
 
         new_refresh = RefreshToken.for_user(user)
         new_refresh['token_version'] = user.token_version

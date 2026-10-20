@@ -2,6 +2,8 @@ from rest_framework import exceptions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.serializers import (
@@ -42,8 +44,22 @@ class LogoutView(APIView):
 
         try:
             token = RefreshToken(refresh_token_str)
+        except TokenError:
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+        # Verify token ownership: the token must belong to request.user
+        token_user_id = token.get(api_settings.USER_ID_CLAIM)
+        if str(token_user_id) != str(request.user.pk):
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+        # Verify token version: token must not be from a superseded token_version
+        token_version = token.get('token_version')
+        if token_version is not None and token_version != request.user.token_version:
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+        try:
             token.blacklist()
-        except Exception:
+        except TokenError:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
         # Revoke existing access tokens immediately by incrementing token_version

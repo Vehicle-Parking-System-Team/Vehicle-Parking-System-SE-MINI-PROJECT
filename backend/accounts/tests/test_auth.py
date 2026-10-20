@@ -3,6 +3,8 @@ Automated backend tests for US-01: Authenticate and logout.
 Traceability: FR-15, FR-16, FR-17 | UC-01 (TC-UC01-UNIT-001, TC-UC01-API-001)
 """
 
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -243,3 +245,247 @@ class AuthenticationTests(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
         response = self.client.post('/api/auth/logout/', {}, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_logout_cross_user_token_rejected_without_state_change(self):
+        """
+        Cross-user logout security: User A cannot blacklist User B's refresh token.
+        User B's token remains valid, B's state is untouched, and A's session is unaffected.
+        """
+        user_b = User.objects.create_user(
+            username='user_b',
+            email='user_b@parking.local',
+            password='PasswordB123!',
+            role='Customer',
+            status='active',
+        )
+
+        login_a = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_a = login_a.json()['access']
+        refresh_a = login_a.json()['refresh']
+
+        login_b = self.client.post(
+            '/api/auth/login/',
+            {'username': 'user_b', 'password': 'PasswordB123!'},
+            format='json',
+        )
+        refresh_b = login_b.json()['refresh']
+        access_b = login_b.json()['access']
+
+        initial_b_version = user_b.token_version
+        initial_a_version = self.user.token_version
+
+        # User A attempts to log out with User B's refresh token
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_a}')
+        cross_logout_resp = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_b},
+            format='json',
+        )
+        self.assertEqual(cross_logout_resp.status_code, 401)
+        data = cross_logout_resp.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # Verify User B's state was NOT modified
+        user_b.refresh_from_db()
+        self.assertEqual(user_b.token_version, initial_b_version)
+        self.assertEqual(user_b.status, 'active')
+
+        # Verify User B's refresh token was NOT blacklisted (can still be refreshed)
+        self.client.credentials()  # clear credentials
+        refresh_resp = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': refresh_b},
+            format='json',
+        )
+        self.assertEqual(refresh_resp.status_code, 200)
+
+        # Verify User B's access token is still valid
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_b}')
+        me_resp_b = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp_b.status_code, 200)
+
+        # Verify User A's session and state were NOT revoked or changed
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_a_version)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_a}')
+        me_resp_a = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp_a.status_code, 200)
+
+    def test_logout_with_malformed_token_returns_401(self):
+        """Malformed refresh token in logout returns 401 and leaves state unchanged."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': 'malformed.garbage.token'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # State unchanged, access token still valid
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+        me_resp = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp.status_code, 200)
+
+    def test_logout_with_already_blacklisted_token_returns_401(self):
+        """Supplying an already blacklisted refresh token returns 401."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        # First legitimate logout
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        logout1 = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(logout1.status_code, 200)
+
+        # Clear credentials and login again to get new session
+        self.client.credentials()
+        login_resp2 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(login_resp2.status_code, 200)
+        access_token2 = login_resp2.json()['access']
+        self.user.refresh_from_db()
+        version_before = self.user.token_version
+
+        # Attempt to reuse old blacklisted refresh token
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token2}')
+        logout2 = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(logout2.status_code, 401)
+        data = logout2.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # State untouched, second session still active
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, version_before)
+        me_resp = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp.status_code, 200)
+
+    def test_logout_with_superseded_token_version_rejected(self):
+        """A refresh token from an older token_version is rejected even if not yet blacklisted."""
+        # Create token with old token_version
+        old_refresh = RefreshToken.for_user(self.user)
+        old_refresh['token_version'] = self.user.token_version
+
+        # Increment token_version on user
+        self.user.token_version += 1
+        self.user.save(update_fields=['token_version'])
+
+        # Issue new valid access token for current version
+        new_refresh = RefreshToken.for_user(self.user)
+        new_refresh['token_version'] = self.user.token_version
+        current_access = str(new_refresh.access_token)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {current_access}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': str(old_refresh)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_logout_unexpected_server_failure_returns_sanitized_500(self):
+        """
+        Unexpected server exceptions during blacklist/revocation are NOT converted
+        into 401 auth errors. They propagate to produce a sanitized 500 INTERNAL_ERROR
+        without leaking secrets or tokens into responses or logs.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+        secret_leak = 'RAW_DB_PASSWORD_LEAK_SECRET_98765'
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        initial_version = self.user.token_version
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=RuntimeError(secret_leak)):
+            with self.assertLogs('common.exceptions', level='ERROR') as captured_logs:
+                response = self.client.post(
+                    '/api/auth/logout/',
+                    {'refresh': refresh_token},
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+        self.assertEqual(data['error'], 'An unexpected error occurred.')
+        self.assertEqual(data['details'], {})
+
+        # Assert secret value does NOT appear in response body
+        self.assertNotIn(secret_leak, response.content.decode())
+
+        # Assert diagnostic log does NOT contain the secret string (safe traceback policy)
+        full_log = '\n'.join(captured_logs.output)
+        self.assertNotIn(secret_leak, full_log)
+        self.assertIn('LogoutView', full_log)
+
+        # Assert user token_version was NOT incremented on failed logout
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+
+    def test_token_refresh_unexpected_server_failure_returns_sanitized_500(self):
+        """
+        Unexpected server exceptions during token refresh are NOT converted into
+        401 auth errors.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        refresh_token = login_resp.json()['refresh']
+        secret_leak = 'REFRESH_DB_DISASTER_SECRET_54321'
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=RuntimeError(secret_leak)):
+            with self.assertLogs('common.exceptions', level='ERROR') as captured_logs:
+                response = self.client.post(
+                    '/api/auth/token/refresh/',
+                    {'refresh': refresh_token},
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+        self.assertEqual(data['error'], 'An unexpected error occurred.')
+        self.assertNotIn(secret_leak, response.content.decode())
+        self.assertNotIn(secret_leak, '\n'.join(captured_logs.output))
