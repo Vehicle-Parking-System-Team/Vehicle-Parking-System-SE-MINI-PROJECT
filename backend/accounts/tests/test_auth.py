@@ -57,7 +57,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 401)
         data = response.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertEqual(data['error'], 'Invalid username or password.')
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_login_unknown_user_returns_401_with_identical_generic_message(self):
         """Non-existent username returns the exact same 401 message (anti-enumeration)."""
@@ -69,7 +69,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 401)
         data = response.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertEqual(data['error'], 'Invalid username or password.')
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_login_missing_credentials_returns_400(self):
         """Missing username or password returns 400 validation error."""
@@ -229,7 +229,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(post_logout_resp.status_code, 401)
         data = post_logout_resp.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertIn('revoked', data['error'].lower())
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_logout_missing_refresh_token_returns_400(self):
         """Logout request without refresh token returns 400."""
