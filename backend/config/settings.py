@@ -148,7 +148,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
-    'EXCEPTION_HANDLER': 'accounts.exceptions.exception_handler',
 }
 
 # SimpleJWT Configuration (US-01 / DEC-09)
