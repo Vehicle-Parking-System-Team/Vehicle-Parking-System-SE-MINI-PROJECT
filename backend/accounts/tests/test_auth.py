@@ -5,9 +5,11 @@ Traceability: FR-15, FR-16, FR-17 | UC-01 (TC-UC01-UNIT-001, TC-UC01-API-001)
 
 from unittest.mock import patch
 
+import django.db
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 User = get_user_model()
@@ -489,3 +491,235 @@ class AuthenticationTests(TestCase):
         self.assertEqual(data['error'], 'An unexpected error occurred.')
         self.assertNotIn(secret_leak, response.content.decode())
         self.assertNotIn(secret_leak, '\n'.join(captured_logs.output))
+
+    def test_logout_with_missing_token_version_rejected(self):
+        """Logout rejects refresh tokens missing the required token_version claim."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+
+        # Craft a refresh token missing token_version
+        token = RefreshToken.for_user(self.user)
+        token.payload.pop('token_version', None)
+        jti = token.payload['jti']
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': str(token)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # Ensure state unchanged
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+    def test_refresh_with_missing_token_version_rejected(self):
+        """Token refresh rejects refresh tokens missing the required token_version claim."""
+        token = RefreshToken.for_user(self.user)
+        token.payload.pop('token_version', None)
+
+        response = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': str(token)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_logout_with_malformed_token_version_claims_rejected(self):
+        """Logout rejects tokens with null, string, boolean, or mismatched token_version claims."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        malformed_values = [None, 'invalid_str', True, 999]
+        for val in malformed_values:
+            with self.subTest(token_version=val):
+                token = RefreshToken.for_user(self.user)
+                token['token_version'] = val
+
+                response = self.client.post(
+                    '/api/auth/logout/',
+                    {'refresh': str(token)},
+                    format='json',
+                )
+                self.assertEqual(response.status_code, 401)
+                data = response.json()
+                self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+                self.assertEqual(data['error'], 'Authentication failed.')
+
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.token_version, initial_version)
+
+    def test_refresh_with_malformed_token_version_claims_rejected(self):
+        """Token refresh rejects tokens with null, string, boolean, or mismatched token_version claims."""
+        malformed_values = [None, 'invalid_str', True, 999]
+        for val in malformed_values:
+            with self.subTest(token_version=val):
+                token = RefreshToken.for_user(self.user)
+                token['token_version'] = val
+
+                response = self.client.post(
+                    '/api/auth/token/refresh/',
+                    {'refresh': str(token)},
+                    format='json',
+                )
+                self.assertEqual(response.status_code, 401)
+                data = response.json()
+                self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+                self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_protected_route_with_missing_or_malformed_token_version_rejected(self):
+        """Access token authentication rejects tokens missing or carrying malformed token_version."""
+        # 1. Missing token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access.payload.pop('token_version', None)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 2. String token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = 'bad_version'
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 3. Boolean token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = True
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 4. Mismatched token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = 999
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+
+class LogoutAtomicityTests(TransactionTestCase):
+    """
+    TransactionTestCase suite to verify genuine database rollback behavior
+    for atomic logout and error scenarios.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.password = 'SecurePass123!'
+        self.user = User.objects.create_user(
+            username='atomicoperator',
+            email='atomic@parking.local',
+            password=self.password,
+            role='Operator',
+            status='active',
+        )
+
+    def test_logout_atomic_rollback_when_user_save_fails(self):
+        """
+        Verify atomicity: If user.save fails after token.blacklist() in LogoutView,
+        the transaction rolls back completely. Neither the blacklist record nor
+        the token_version update persists in the actual database.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'atomicoperator', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(login_resp.status_code, 200)
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        jti = RefreshToken(refresh_token).payload['jti']
+        initial_version = self.user.token_version
+
+        # Verify not yet blacklisted
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        with patch.object(User, 'save', side_effect=django.db.DatabaseError('SIMULATED_DB_WRITE_FAILURE')):
+            response = self.client.post(
+                '/api/auth/logout/',
+                {'refresh': refresh_token},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+
+        # CRITICAL ATOMICITY ASSERTIONS:
+        # 1. token_version in the database was NOT incremented
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+
+        # 2. BlacklistedToken record was rolled back from the database
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+        # 3. Refresh token can still be used because blacklist was rolled back
+        self.client.credentials()
+        refresh_resp = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(refresh_resp.status_code, 200)
+        self.assertIn('access', refresh_resp.json())
+
+    def test_logout_atomic_rollback_when_blacklisting_fails(self):
+        """
+        Verify atomicity: If blacklisting fails, user.save is never reached,
+        and user state is unaffected.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'atomicoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        initial_version = self.user.token_version
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=django.db.DatabaseError('SIMULATED_BLACKLIST_FAILURE')):
+            response = self.client.post(
+                '/api/auth/logout/',
+                {'refresh': refresh_token},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()['code'], 'INTERNAL_ERROR')
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)

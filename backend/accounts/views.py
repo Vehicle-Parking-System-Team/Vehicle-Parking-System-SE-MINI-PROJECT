@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import exceptions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -52,20 +53,21 @@ class LogoutView(APIView):
         if str(token_user_id) != str(request.user.pk):
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        # Verify token version: token must not be from a superseded token_version
+        # Verify token version: token must have a valid int token_version matching user.token_version
         token_version = token.get('token_version')
-        if token_version is not None and token_version != request.user.token_version:
+        if type(token_version) is not int or token_version != request.user.token_version:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        try:
-            token.blacklist()
-        except TokenError:
-            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+        with transaction.atomic():
+            try:
+                token.blacklist()
+            except TokenError:
+                raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        # Revoke existing access tokens immediately by incrementing token_version
-        user = request.user
-        user.token_version += 1
-        user.save(update_fields=['token_version'])
+            # Revoke existing access tokens immediately by incrementing token_version
+            user = request.user
+            user.token_version += 1
+            user.save(update_fields=['token_version'])
 
         return Response(
             {'message': 'Successfully logged out.'},

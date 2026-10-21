@@ -18,7 +18,7 @@ class RevocableJWTAuthentication(JWTAuthentication):
             )
 
         token_version = validated_token.get('token_version')
-        if token_version is not None and token_version != user.token_version:
+        if type(token_version) is not int or token_version != user.token_version:
             raise exceptions.AuthenticationFailed(
                 detail='Token has been revoked.',
                 code='token_revoked',
