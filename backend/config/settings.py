@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
     # Local domain apps
     'accounts',
+    'vehicles',
 ]
 
 # Custom User Model

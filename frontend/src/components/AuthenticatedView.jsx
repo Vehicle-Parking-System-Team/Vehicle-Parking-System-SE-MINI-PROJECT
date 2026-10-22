@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
+import { VehicleRegistrationForm } from './VehicleRegistrationForm'
 
 export function AuthenticatedView() {
   const { user, logout, fetchWithAuth, isLoading } = useAuth()
@@ -104,6 +105,8 @@ export function AuthenticatedView() {
           <span className="alert-text">{testResult.message}</span>
         </div>
       )}
+
+      <VehicleRegistrationForm />
 
       <div className="auth-actions">
         <button
