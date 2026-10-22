@@ -26,7 +26,7 @@ class ParkingRate(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0)],
     )
-    grace_period_minutes = models.PositiveIntegerField(default=0)
+    grace_period_minutes = models.PositiveIntegerField(default=15)
     penalty_fee = models.DecimalField(
         max_digits=10,
         decimal_places=2,

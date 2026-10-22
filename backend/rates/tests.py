@@ -1,4 +1,3 @@
-
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework import status
@@ -32,14 +31,12 @@ class ParkingRateAPITests(TestCase):
             penalty_fee='100.00',
         )
 
-         
     def authenticate_as(self, user):
         token = AccessToken.for_user(user)
         token['token_version'] = user.token_version
         self.client.credentials(
             HTTP_AUTHORIZATION=f'Bearer {token}'
         )
-
 
     def test_admin_can_update_rate(self):
         self.authenticate_as(self.admin)
@@ -63,7 +60,10 @@ class ParkingRateAPITests(TestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
 
     def test_negative_hourly_rate_is_rejected(self):
         self.authenticate_as(self.admin)
@@ -74,7 +74,10 @@ class ParkingRateAPITests(TestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
         self.rate.refresh_from_db()
         self.assertEqual(str(self.rate.hourly_rate), '30.00')
 
@@ -87,7 +90,10 @@ class ParkingRateAPITests(TestCase):
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
 
     def test_admin_can_list_rates(self):
         self.authenticate_as(self.admin)
@@ -96,3 +102,56 @@ class ParkingRateAPITests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
+
+    def test_default_grace_period_is_15_minutes(self):
+        rate = ParkingRate.objects.create(
+            vehicle_type='SUV',
+            hourly_rate='50.00',
+        )
+
+        self.assertEqual(rate.grace_period_minutes, 15)
+
+    def test_suspended_customer_cannot_read_rates(self):
+        self.customer.status = 'suspended'
+        self.customer.save(update_fields=['status'])
+        self.authenticate_as(self.customer)
+
+        response = self.client.get('/api/v1/rates/')
+
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ],
+        )
+
+    def test_deactivated_customer_cannot_read_rates(self):
+        self.customer.status = 'deactivated'
+        self.customer.save(update_fields=['status'])
+        self.authenticate_as(self.customer)
+
+        response = self.client.get('/api/v1/rates/')
+
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ],
+        )
+
+    def test_inactive_django_user_cannot_read_rates(self):
+        self.customer.is_active = False
+        self.customer.save(update_fields=['is_active'])
+        self.authenticate_as(self.customer)
+
+        response = self.client.get('/api/v1/rates/')
+
+        self.assertIn(
+            response.status_code,
+            [
+                status.HTTP_401_UNAUTHORIZED,
+                status.HTTP_403_FORBIDDEN,
+            ],
+        )

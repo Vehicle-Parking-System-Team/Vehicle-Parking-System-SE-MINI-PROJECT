@@ -1,18 +1,22 @@
-
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsAdminOrReadOnly(BasePermission):
-    """Allow authenticated users to read rates; only Admin can modify them."""
+    """
+    Active accounts may read parking rates.
+    Only active administrators may create or update rates.
+    """
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return False
+
+        if not user.is_account_active:
             return False
 
         if request.method in SAFE_METHODS:
             return True
 
-        return (
-            getattr(request.user, 'role', None) == 'Admin'
-            and getattr(request.user, 'is_account_active', True)
-        )
+        return user.role == 'Admin'
