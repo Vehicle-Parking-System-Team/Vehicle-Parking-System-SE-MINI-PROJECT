@@ -289,6 +289,30 @@ class VehicleAPITests(TestCase):
         self.assertEqual(data['code'], 'CONFLICT')
         self.assertIn('already exists', data['error'].lower())
 
+    def test_exact_canonical_duplicate_registration_returns_409_conflict(self):
+        """
+        Submitting an exact canonical duplicate registration number (identical casing,
+        no surrounding whitespace) must return HTTP 409 Conflict with the US-31 error
+        envelope, not HTTP 400 Validation Error.
+        """
+        canonical_plate = 'KA-01-ABC-1234'
+        Vehicle.objects.create(
+            registration_number=canonical_plate,
+            vehicle_type='Compact',
+            owner=self.user,
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+        response = self.client.post(self.endpoint_v1, {
+            'registration_number': canonical_plate,
+            'vehicle_type': 'SUV',
+        })
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        data = response.json()
+        self.assertIn('error', data)
+        self.assertEqual(data.get('code'), 'CONFLICT')
+        self.assertEqual(data.get('details'), {})
+        self.assertEqual(Vehicle.objects.filter(registration_number=canonical_plate).count(), 1)
+
     def test_ownership_cannot_be_spoofed_via_request_payload(self):
         victim = User.objects.create_user(
             username='victim_user',

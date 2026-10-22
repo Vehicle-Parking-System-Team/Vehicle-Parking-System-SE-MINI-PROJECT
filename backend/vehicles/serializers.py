@@ -36,7 +36,10 @@ class VehicleSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'owner', 'owner_username', 'created_at', 'updated_at']
         extra_kwargs = {
-            'registration_number': {'required': False},
+            'registration_number': {
+                'required': False,
+                'validators': [],
+            },
         }
 
     def validate(self, attrs):
