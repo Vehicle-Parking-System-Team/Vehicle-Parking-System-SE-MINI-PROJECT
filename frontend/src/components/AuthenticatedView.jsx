@@ -50,7 +50,7 @@ export function AuthenticatedView() {
         </div>
         <h2>Welcome, {user?.username}</h2>
         <p className="auth-subtitle">
-          Identity verified with JWT bearer authorization.
+          Identity verified with JWT bearer authorization & Role-Based Access Control (US-02 / FR-16).
         </p>
       </div>
 
@@ -84,8 +84,9 @@ export function AuthenticatedView() {
       </div>
 
       <div className="session-info-box">
-        <h4>Session & Security Policies</h4>
+        <h4>Role & Security Policies (SRS §9.2 / DEC-01)</h4>
         <ul>
+          <li><strong>Role Authority:</strong> Enforced by server-side RBAC permissions (Administrator, Operator, Customer).</li>
           <li><strong>Access Token:</strong> 15-minute stateless JWT lifetime (NFR-SEC-05).</li>
           <li><strong>Refresh Token:</strong> 7-day persistent rotation.</li>
           <li><strong>Instant Revocation:</strong> Logout terminates active tokens server-side.</li>
@@ -99,7 +100,7 @@ export function AuthenticatedView() {
           id="api-test-result"
         >
           <span className="alert-icon" aria-hidden="true">
-            {testResult.status === 'success' ? '✅' : '❌'}
+            {testResult.status === 'success' ? '✓' : '✗'}
           </span>
           <span className="alert-text">{testResult.message}</span>
         </div>

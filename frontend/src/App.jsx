@@ -2,6 +2,7 @@ import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
 import { LoginForm } from './components/LoginForm'
 import { AuthenticatedView } from './components/AuthenticatedView'
+import { ProtectedRoute } from './routes/ProtectedRoute'
 import './App.css'
 
 function AuthMain() {
@@ -9,7 +10,13 @@ function AuthMain() {
 
   return (
     <main className="app-content">
-      {isAuthenticated ? <AuthenticatedView /> : <LoginForm />}
+      {isAuthenticated ? (
+        <ProtectedRoute>
+          <AuthenticatedView />
+        </ProtectedRoute>
+      ) : (
+        <LoginForm />
+      )}
     </main>
   )
 }
@@ -20,10 +27,10 @@ function App() {
       <div className="app-layout">
         <header className="app-header">
           <div className="header-brand">
-            <span className="brand-icon">🅿️</span>
+            <span className="brand-icon">🚗</span>
             <h1>Vehicle Parking System</h1>
           </div>
-          <span className="sprint-tag">Sprint 1 • US-01 Auth Baseline</span>
+          <span className="sprint-tag">Sprint 2 • US-02 Role-Based Access Control</span>
         </header>
 
         <AuthMain />

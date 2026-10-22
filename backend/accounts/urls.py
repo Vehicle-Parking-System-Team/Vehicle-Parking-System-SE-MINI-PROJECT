@@ -5,8 +5,10 @@ from accounts.views import CurrentUserView, LoginView, LogoutView, TokenRefreshV
 app_name = 'accounts'
 
 urlpatterns = [
+    # US-01 Authentication and Session Management
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # US-02 Protected Identity Context
     path('me/', CurrentUserView.as_view(), name='current_user'),
 ]
