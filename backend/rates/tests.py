@@ -155,3 +155,22 @@ class ParkingRateAPITests(TestCase):
                 status.HTTP_403_FORBIDDEN,
             ],
         )
+
+        
+    def test_suspended_customer_using_session_login_cannot_read_rates(self):
+        self.customer.status = 'suspended'
+        self.customer.save(update_fields=['status'])
+
+        logged_in = self.client.login(
+            username='rate_customer',
+            password='TestPassword123!',
+        )
+        self.assertTrue(logged_in, 'Session login should succeed for this test.')
+
+        response = self.client.get('/api/v1/rates/')
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
