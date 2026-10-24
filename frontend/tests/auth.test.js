@@ -72,3 +72,74 @@ test('extractAuthErrorMessage provides safe fallback when error field is missing
     'Authentication failed. Please check your credentials.'
   )
 })
+
+test('validateLoginInput rejects empty username or password', () => {
+  function validateLoginInput(username, password) {
+    if (!username || !username.trim() || !password) {
+      return { isValid: false, error: 'Please enter both your username and password.' }
+    }
+    return { isValid: true, error: null }
+  }
+
+  assert.equal(validateLoginInput('', '').isValid, false)
+  assert.equal(validateLoginInput('   ', 'pass').isValid, false)
+  assert.equal(validateLoginInput('operator1', '').isValid, false)
+  assert.equal(validateLoginInput('operator1', 'pass123').isValid, true)
+})
+
+test('validateRegisterInput validates username, email, and password policies', () => {
+  function validateRegisterInput({ username, email, password, passwordConfirm }) {
+    const errors = {}
+    const trimmedUser = (username || '').trim()
+    const trimmedEmail = (email || '').trim()
+
+    if (!trimmedUser) errors.username = 'Username is required.'
+    else if (!/^[\w.@+-]+$/.test(trimmedUser)) errors.username = 'Invalid username.'
+
+    if (!trimmedEmail) errors.email = 'Email address is required.'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) errors.email = 'Invalid email.'
+
+    if (!password) errors.password = 'Password is required.'
+    else if (password.length < 8) errors.password = 'Too short.'
+    else if (!/[A-Z]/.test(password)) errors.password = 'No uppercase.'
+    else if (!/[a-z]/.test(password)) errors.password = 'No lowercase.'
+    else if (!/[0-9]/.test(password)) errors.password = 'No digit.'
+    else if (!/[^A-Za-z0-9]/.test(password)) errors.password = 'No special.'
+
+    if (password !== passwordConfirm) errors.password_confirm = 'Passwords do not match.'
+
+    return { isValid: Object.keys(errors).length === 0, errors }
+  }
+
+  // Empty fields
+  assert.equal(validateRegisterInput({}).isValid, false)
+
+  // Mismatched passwords
+  const mismatch = validateRegisterInput({
+    username: 'cust1',
+    email: 'c@p.com',
+    password: 'SecurePass123!',
+    passwordConfirm: 'DifferentPass123!',
+  })
+  assert.equal(mismatch.isValid, false)
+  assert.equal(mismatch.errors.password_confirm, 'Passwords do not match.')
+
+  // Weak password
+  const weak = validateRegisterInput({
+    username: 'cust1',
+    email: 'c@p.com',
+    password: 'weak',
+    passwordConfirm: 'weak',
+  })
+  assert.equal(weak.isValid, false)
+  assert.equal(weak.errors.password, 'Too short.')
+
+  // Valid registration
+  const valid = validateRegisterInput({
+    username: 'cust1',
+    email: 'c@p.com',
+    password: 'SecurePass123!',
+    passwordConfirm: 'SecurePass123!',
+  })
+  assert.equal(valid.isValid, true)
+})

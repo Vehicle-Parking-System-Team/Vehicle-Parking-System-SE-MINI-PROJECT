@@ -37,3 +37,77 @@ class VehicleRegistrationView(APIView):
 
         output_serializer = VehicleSerializer(vehicle)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
+
+
+class VehicleDetailView(APIView):
+    """
+    Vehicle Profile and Detail Update Endpoint (US-06 / FR-02 / TC-UC02-API-002).
+    Allows an authorized user to inspect and update vehicle profile and registration details.
+    Enforces ownership isolation, duplicate prevention, and US-31 error contract.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_vehicle(self, request, pk=None, plate=None):
+        from rest_framework.exceptions import NotFound, PermissionDenied
+        from vehicles.services import get_vehicle_by_id, get_vehicle_by_plate
+
+        if pk is not None:
+            vehicle = get_vehicle_by_id(pk)
+        elif plate is not None:
+            vehicle = get_vehicle_by_plate(plate)
+        else:
+            raise NotFound('Vehicle record not found.')
+
+        if not vehicle:
+            raise NotFound('Vehicle record not found.')
+
+        # Ownership authorization check
+        if vehicle.owner != request.user:
+            raise PermissionDenied('You do not have permission to access this vehicle record.')
+
+        return vehicle
+
+    def get(self, request, pk=None, plate=None):
+        """Retrieve vehicle details by ID or normalized license plate."""
+        vehicle = self._get_vehicle(request, pk=pk, plate=plate)
+        serializer = VehicleSerializer(vehicle)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk=None, plate=None):
+        """Full update of vehicle profile details."""
+        vehicle = self._get_vehicle(request, pk=pk, plate=plate)
+        serializer = VehicleSerializer(
+            vehicle,
+            data=request.data,
+            partial=False,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            with transaction.atomic():
+                updated = serializer.save()
+        except IntegrityError:
+            raise Conflict('A vehicle with this registration number already exists.')
+
+        return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk=None, plate=None):
+        """Partial update of vehicle profile details."""
+        vehicle = self._get_vehicle(request, pk=pk, plate=plate)
+        serializer = VehicleSerializer(
+            vehicle,
+            data=request.data,
+            partial=True,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            with transaction.atomic():
+                updated = serializer.save()
+        except IntegrityError:
+            raise Conflict('A vehicle with this registration number already exists.')
+
+        return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
