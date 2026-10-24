@@ -47,10 +47,10 @@ INSTALLED_APPS = [
 
     # Local domain apps
     'accounts',
-    'vehicles', 
+    'vehicles',
     'rates',
+    'parking_slots',
 ]
-
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
