@@ -17,9 +17,12 @@
   --bay-midnight-light: #374E6B;     /* Slate midnight: subheadings, metadata & focused borders */
   --bay-midnight-subtle: #EDF2F7;    /* Subtle midnight tint for secondary containers */
 
-  --bay-rose: #D99BA8;              /* Muted rose: restrained secondary accent, highlights, micro-details */
-  --bay-rose-dark: #8F4C5C;         /* Deep rose: high-contrast text on rose tints */
-  --bay-rose-subtle: #FBF4F5;        /* Soft rose blush: badge backgrounds & subtle alert cards */
+  --bay-rose: #D99BA8;              /* Muted rose: recognizable brand accent, pills, micro-details */
+  --bay-rose-deep: #A95F73;         /* Deep rose: high-contrast text, icons, hover accents */
+  --bay-rose-dark: #843E51;         /* Dark rose: accessible text on blush surfaces */
+  --bay-rose-blush: #F5E3E7;        /* Soft blush: visible panel surfaces, callout cards, sections */
+  --bay-rose-subtle: #FAF0F2;       /* Ultra-soft blush: subtle badge backgrounds & tint layers */
+  --bay-rose-border: #E8C1CB;       /* Rose-tinted border: perimeter for blush cards and callouts */
 
   --bay-ivory: #F6F3EC;             /* Warm ivory: primary application canvas background */
   --bay-ivory-dark: #EBE6DC;        /* Grounded ivory: secondary canvas & table headers */

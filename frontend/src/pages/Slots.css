@@ -1,6 +1,6 @@
 /* ==========================================================================
    BAY — PARKING FACILITY & SPATIAL DECK MANAGEMENT DESIGN SYSTEM
-   Styles for 3D/2D Deck Viewport, Telemetry, Metrics, and Slot Administration
+   Palette Harmony: Olive Green (#687653) + Muted Rose/Blush (#D99BA8 / #F5E3E7) + Midnight Blue (#23364D)
    ========================================================================== */
 
 /* --- Source & Telemetry Bar --- */
@@ -52,9 +52,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--bay-champagne-light);
-  color: var(--bay-midnight);
-  border: 1px solid var(--bay-champagne);
+  background: var(--bay-rose-blush);
+  color: var(--bay-rose-deep);
+  border: 1px solid var(--bay-rose-border);
   border-radius: var(--radius-xs);
   padding: 6px 12px;
   font-size: 12px;
@@ -63,22 +63,22 @@
 }
 
 .bay-source-bar button:hover {
-  background: var(--bay-olive);
+  background: var(--bay-rose-deep);
   color: var(--bay-white);
-  border-color: var(--bay-olive);
+  border-color: var(--bay-rose-deep);
 }
 
 .bay-source-demo {
-  border-color: var(--bay-champagne);
-  background: var(--bay-champagne-light);
+  border-color: var(--bay-rose-border);
+  background: var(--bay-rose-blush);
 }
 
 .bay-source-demo .bay-live-dot {
-  background: var(--bay-status-pending);
-  box-shadow: 0 0 0 3px rgba(163, 111, 34, 0.2);
+  background: var(--bay-rose-deep);
+  box-shadow: 0 0 0 3px rgba(169, 95, 115, 0.2);
 }
 
-/* --- Facility Metric Cards --- */
+/* --- Facility Metric Cards (Olive + Pink + Midnight Blue Balance) --- */
 .bay-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -96,7 +96,7 @@
 }
 
 .bay-metric:hover {
-  border-color: var(--bay-champagne);
+  border-color: var(--bay-rose-border);
   box-shadow: var(--bay-shadow-md);
   transform: translateY(-2px);
 }
@@ -134,6 +134,7 @@
   line-height: 1.5;
 }
 
+/* Card 1: Active Olive Accent */
 .bay-metric-1 {
   background: var(--bay-olive-subtle);
   border-color: rgba(104, 118, 83, 0.3);
@@ -150,6 +151,34 @@
   padding: 4px;
   width: 22px;
   height: 22px;
+}
+
+/* Card 4 (Reserved / Other): Prominent Soft Blush + Rose Surface (25% visual balance) */
+.bay-metric:nth-child(4) {
+  background: var(--bay-rose-blush);
+  border-color: var(--bay-rose-border);
+}
+
+.bay-metric:nth-child(4) > div {
+  color: var(--bay-rose-dark);
+}
+
+.bay-metric:nth-child(4) > strong {
+  color: var(--bay-rose-deep);
+}
+
+.bay-metric:nth-child(4) > div > svg {
+  color: var(--bay-rose-deep);
+  background: var(--bay-white);
+  border: 1px solid var(--bay-rose-border);
+  border-radius: 50%;
+  padding: 4px;
+  width: 22px;
+  height: 22px;
+}
+
+.bay-metric:nth-child(4) p {
+  color: var(--bay-rose-dark);
 }
 
 /* --- Spatial Workspace Layout Grid --- */
@@ -202,8 +231,9 @@
 }
 
 .bay-floor-switch > button:hover {
-  background: var(--bay-olive-subtle);
-  border-color: var(--bay-olive);
+  background: var(--bay-rose-blush);
+  border-color: var(--bay-rose-border);
+  color: var(--bay-rose-deep);
 }
 
 .bay-floor-switch > button.is-active {
@@ -291,7 +321,11 @@
 .bay-scene-heading > .bay-eyebrow {
   font-size: 10px;
   letter-spacing: 1.8px;
-  color: var(--bay-olive-dark);
+  color: var(--bay-rose-deep);
+  background: var(--bay-rose-blush);
+  border: 1px solid var(--bay-rose-border);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
 }
 
 .bay-scene-heading h2 {
@@ -342,12 +376,12 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border: 1px solid var(--bay-line);
+  border: 1px solid var(--bay-rose-border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(6px);
   box-shadow: var(--bay-shadow-xs);
-  font-weight: 500;
+  font-weight: 550;
 }
 
 .bay-scene-bottom > div {
@@ -364,16 +398,16 @@
   border: 1px solid var(--bay-line);
   border-radius: var(--radius-sm);
   color: var(--bay-midnight);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   backdrop-filter: blur(6px);
   box-shadow: var(--bay-shadow-xs);
   transition: all var(--transition-fast);
 }
 
 .bay-scene-bottom button:hover {
-  background: var(--bay-white);
-  border-color: var(--bay-olive);
-  color: var(--bay-olive-dark);
+  background: var(--bay-rose-blush);
+  border-color: var(--bay-rose-border);
+  color: var(--bay-rose-deep);
 }
 
 .bay-map-footer {
@@ -461,14 +495,14 @@
   letter-spacing: -1px;
 }
 
-/* Donut Occupancy Ring */
+/* Donut Occupancy Ring (Olive + Rose Progression) */
 .bay-occupancy-ring {
   height: 170px;
   width: 170px;
   border-radius: 50%;
   padding: 6px;
   margin: 22px auto 20px;
-  background: conic-gradient(from -90deg, var(--bay-olive) var(--occupied), var(--bay-champagne) 0);
+  background: conic-gradient(from -90deg, var(--bay-olive) var(--occupied), var(--bay-rose) 0);
   transform: rotate(-6deg);
   box-shadow: var(--bay-shadow-sm);
 }
@@ -498,7 +532,7 @@
 .bay-occupancy-ring span {
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--bay-muted);
+  color: var(--bay-rose-deep);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -521,7 +555,7 @@
 
 .bay-progress {
   height: 5px;
-  background: var(--bay-line);
+  background: var(--bay-rose-blush);
   border-radius: var(--radius-pill);
   margin-top: 10px;
   overflow: hidden;
@@ -541,17 +575,27 @@
   margin: 18px 0;
 }
 
+/* Inspector Pro-Tip Callout: Soft Blush Panel */
 .bay-inspector-tip {
   display: flex;
   gap: 12px;
-  padding: 16px 0 0;
-  border-top: 1px solid var(--bay-line-subtle);
+  padding: 14px 16px;
+  background: var(--bay-rose-blush);
+  border: 1px solid var(--bay-rose-border);
+  border-radius: var(--radius-sm);
   color: var(--bay-midnight);
+  margin-top: 12px;
+}
+
+.bay-inspector-tip > svg {
+  color: var(--bay-rose-deep);
+  flex-shrink: 0;
 }
 
 .bay-inspector-tip strong {
   font-size: 12px;
   font-weight: 650;
+  color: var(--bay-rose-dark);
   display: block;
   margin-bottom: 4px;
 }
@@ -559,7 +603,7 @@
 .bay-inspector-tip small {
   font-size: 11.5px;
   line-height: 1.5;
-  color: var(--bay-muted);
+  color: var(--bay-graphite-muted);
 }
 
 /* Selected Slot Inspector Header */
@@ -758,16 +802,16 @@
 
 .bay-quick-card:hover,
 .bay-quick-card.is-selected {
-  border-color: var(--bay-olive);
-  background: var(--bay-olive-subtle);
+  border-color: var(--bay-rose-border);
+  background: var(--bay-rose-blush);
   transform: translateY(-2px);
   box-shadow: var(--bay-shadow-sm);
 }
 
 .bay-quick-icon {
-  color: var(--bay-olive);
-  border: 1px solid var(--bay-champagne);
-  background: var(--bay-champagne-light);
+  color: var(--bay-rose-deep);
+  border: 1px solid var(--bay-rose-border);
+  background: var(--bay-rose-blush);
   border-radius: var(--radius-xs);
   display: grid;
   place-items: center;
@@ -877,6 +921,7 @@
   color: var(--bay-midnight);
   padding: 32px;
   border: 1px solid var(--bay-line);
+  border-top: 3px solid var(--bay-rose);
   border-radius: var(--radius-lg);
   width: min(560px, calc(100% - 32px));
   max-height: 90svh;
