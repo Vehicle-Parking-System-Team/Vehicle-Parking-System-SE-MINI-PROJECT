@@ -1,321 +1,181 @@
-# Vehicle Parking System — Frontend Design System Specification
+# BAY — Architectural Mobility & Automotive Technology Design System
 
-**Target Scope:** Global Design Standards & Implementation Guide for Sprint 1 & Sprint 2 User Stories  
-**Lead Author / Scrum Master:** Member 1 (`Trisha-Vallamkonda-Prathap`)  
-**Applicable User Stories:** US-01 (Authentication), US-05 (Vehicle Registration), US-06 (Vehicle Profile & Update), and all downstream modules (US-02..US-04, US-07..US-32)  
-**Status:** Active Canonical Specification  
-**Version:** 1.0.0 (Automotive Telemetry Baseline)  
+**Target Scope:** Global Design Standards & Implementation Guide across All BAY Screens
+**Brand Identity:** BAY. (*Parking. In Perspective.*)
+**Visual Direction:** Architectural Elegance + Premium Automotive Technology + Warm Editorial Minimalism
+**Document Status:** Active Canonical Design System Specification
+**Version:** 2.0.0 (Spatial Mobility Redesign)
 
 ---
 
 ## 1. Design Philosophy & Product Personality
 
-The Vehicle Parking System user interface is modeled on **high-precision automotive technology, telemetry dashboards, and modern industrial SaaS platforms**. It communicates:
-- **Trust & Operational Reliability:** Mission-critical clarity for facility operators and drivers.
-- **Automotive Craftsmanship:** High-contrast, clean typography, license-plate-inspired data badges, and restrained visual structure.
-- **Confident Modern Technology:** Crisp 1px borders, purposeful elevation, and deliberate accent colors rather than generic AI-dashboard gradients.
-- **Uncompromised Usability:** Immediate visual scanning, legible high-contrast states, and accessible touch targets.
+BAY is an enterprise mobility and intelligent parking management platform. Its visual identity bridges architectural discipline with automotive craftsmanship:
 
-### Explicit Anti-Patterns (What We Avoid)
-- **NO Purple/Violet Primaries:** Avoid default Vite/AI template purple (`#AA3BFF`, `#7C3AED`, `#C084FC`).
-- **NO Rainbow Gradients:** No purple-pink-blue mesh gradients or decorative blur blobs.
-- **NO Heavy Glassmorphism:** Avoid low-contrast translucent cards that degrade text legibility.
-- **NO Oversized Pill Shapes or Toy Aesthetics:** Corner radii are restrained and purposeful; inputs and cards feel engineered, not playful.
-- **NO Ad-Hoc Styling:** All views must consume the standard tokens defined in `:root`.
+- **Architectural Elegance:** Grounded, warm ivory and white canvas surfaces with crisp structural grid lines, champagne metallic dividers, and generous spatial composure.
+- **Premium Automotive Technology:** High-contrast typography, embossed license plate motifs, telemetry badges, and precision status indicators reminiscent of high-end vehicle cockpits and spatial facilities.
+- **Warm Editorial Minimalism:** Distinctive sans-serif typography (`DM Sans` + `Manrope`), purposeful editorial copy, restrained color hierarchy, and intentional whitespace.
 
----
-
-## 2. Canonical Color Palette & Tokens
-
-The palette is anchored by deep maritime navies, clean off-white canvas surfaces, and deliberate high-visibility warm accents.
-
-| Token Name | Hex Code | Intended Semantic Use |
-| :--- | :--- | :--- |
-| `--color-primary-navy` | `#14283F` | Primary brand tone, primary buttons, console headers, active headings |
-| `--color-deep-navy` | `#0C1828` | High-emphasis surfaces, button hover states, app header border |
-| `--color-slate-blue` | `#35546D` | Secondary emphasis, category badges, focus outlines, subtle icons |
-| `--color-warm-off-white` | `#F7F6F2` | Global application canvas background (`body`, page containers) |
-| `--color-pure-white` | `#FFFFFF` | Form surfaces, elevated content cards, input field backgrounds |
-| `--color-main-text` | `#172536` | High-contrast primary text, labels, inputs, strong headers |
-| `--color-muted-text` | `#687586` | Secondary labels, timestamps, explanatory notes, icons |
-| `--color-border` | `#E1E5E8` | Card perimeter borders, standard form input outlines, dividers |
-| `--color-border-subtle` | `#ECEFF1` | Table row dividers, secondary sub-card outlines, pill borders |
-| `--color-coral-red` | `#E65B52` | Primary warm accent, active indicator highlights, operational badges |
-| `--color-warm-orange` | `#F29A52` | Secondary accent, SUV/heavy class badges, pending states |
-| `--color-restrained-rose` | `#D96B83` | Micro-accent details, EV charging highlights, subtle telemetry tags |
-| `--color-success-green` | `#21845A` | Success alerts, active session dots, available slot badges |
-| `--color-warning-amber` | `#A96512` | Warning banners, approaching expiration, cautionary prompts |
-| `--color-error-red` | `#B93838` | Validation errors, conflict warnings (409), destructive actions |
+### Strict Anti-Patterns (What We Avoid)
+- **NO Generic Admin Gray:** Avoid sterile, unbranded `#E5E7EB` admin dashboard templates.
+- **NO Neon/Cyberpunk Excess:** No glowing cyan/magenta gradients, dark-mode-only neon grids, or decorative blur blobs.
+- **NO Rainbow Card Grids:** Colors are not decorative; every surface has a defined functional purpose.
+- **NO Color-Only Status:** Status indicators combine color, geometry, text labels, and ARIA roles for full accessibility.
+- **NO Ad-Hoc CSS Utilities:** All components strictly consume the centralized design tokens defined in `:root`.
 
 ---
 
-## 3. Semantic Action & Surface Color Mapping
+## 2. Cohesive Color System & Token Architecture
 
-Teammates must apply color tokens according to these strict functional roles:
+The BAY palette is built on warm ivory canvas surfaces, crisp elevated white panels, deep midnight blue text, olive green brand accents, champagne dividers, and restrained rose highlights.
 
-- **Primary Actions (Submit, Confirm, Register, Save):**
-  - Normal: Background `var(--color-primary-navy)` (`#14283F`), text `var(--color-pure-white)` (`#FFFFFF`).
-  - Hover: Background `var(--color-deep-navy)` (`#0C1828`).
-  - Disabled: Background `var(--color-slate-blue)` with opacity `0.6`, cursor `not-allowed`.
-- **Secondary Actions (Cancel, Secondary Nav, Test Routes):**
-  - Background `var(--color-pure-white)`, border `1px solid var(--color-border)`, text `var(--color-main-text)`.
-  - Hover: Background `var(--color-border-subtle)`, border `#CBD3D8`.
-- **Destructive Actions (Logout, Revoke, Delete, Terminate):**
-  - Border `1px solid rgba(185, 56, 56, 0.35)`, background `var(--color-pure-white)`, text `var(--color-error-red)`.
-  - Hover: Background `#FDF3F3`, border `var(--color-error-red)`.
-- **Surfaces & Cards:**
-  - Base Page: `var(--color-warm-off-white)` (`#F7F6F2`).
-  - Card Body: `var(--color-pure-white)` (`#FFFFFF`) with `1px solid var(--color-border)`.
-  - Telemetry Banners: `#F4F6F8` with subtle border.
+### Core Color Palette
+
+| Color Name | Hex Code | Token Name | Semantic Role & Usage |
+| :--- | :--- | :--- | :--- |
+| **Warm Ivory** | `#F6F3EC` | `--bay-ivory` / `--bay-bg` | Primary application canvas background across all views |
+| **White** | `#FFFFFF` | `--bay-white` / `--bay-panel` | Elevated cards, content containers, form input backgrounds |
+| **Deep Midnight Blue** | `#23364D` | `--bay-midnight` / `--bay-text-h` | Primary headings, console bars, brand typography, high contrast |
+| **Olive Green** | `#687653` | `--bay-olive` / `--bay-accent` | Primary brand accent, primary buttons, active navigation states |
+| **Deep Forest Olive** | `#46543D` | `--bay-olive-dark` | Primary button hover state, high-emphasis accent borders |
+| **Muted Rose** | `#D99BA8` | `--bay-rose` | Restrained secondary highlight, subtle badges, decorative accents |
+| **Champagne** | `#E8D8B8` | `--bay-champagne` | Subtle dividers, luxury metallic micro-borders, highlighted fills |
+| **Deep Graphite** | `#30372F` | `--bay-graphite` / `--bay-text` | Readable, warm body text and high-contrast form labels |
+| **Muted Graphite** | `#5E665D` | `--bay-graphite-muted` | Secondary helper labels, timestamps, explanatory copy |
+
+### Semantic Parking Status Palette (Explicit & Distinct from Brand)
+
+Brand colors (`#687653` olive) must never be confused with facility operational status:
+
+| Parking State | Base Color | Background Tint | Border Tint | Usage & Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **AVAILABLE** | `#2A7955` (Emerald) | `#EDF7F2` | `#A3D6BD` | Vacant bay ready for allocation; currently parked vehicle |
+| **OCCUPIED** | `#B5473A` (Warm Brick) | `#FDF1EF` | `#F1BBB4` | Active vehicle check-in session; validation conflict error |
+| **RESERVED** | `#2A5674` (Cobalt) | `#EEF5F9` | `#B4D1E3` | Pre-booked parking bay or active reservation lock |
+| **PENDING** | `#A36F22` (Honey) | `#FEF8ED` | `#ECD2A3` | Awaiting gate check-in or operator verification |
+| **INACTIVE** | `#6B6A67` (Slate) | `#F3F2EE` | `#D6D4CF` | Decommissioned, under maintenance, or offline bay |
 
 ---
 
-## 4. Typography & Font Hierarchy
+## 3. Typography & Brand Scale
 
-The interface utilizes the system's native modern font stack for crisp rendering without external font download latency:
+The typographic hierarchy combines **Manrope** for architectural headings and **DM Sans** for legible body text and telemetry data:
 
 ```css
---sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
---heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
---mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+--sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+--heading: 'Manrope', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+--mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 ```
 
-### Hierarchy Scale
+### Type Scale
 
-| Element | Size | Weight | Line Height | Color | Usage |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **H1** | `1.5rem` (24px) | 700 (Bold) | 1.25 | `#172536` | Top-level section / page titles |
-| **H2** | `1.25rem` (20px) | 600 (Semi-bold) | 1.25 | `#172536` | Card headers, form titles |
-| **H3** | `1.10rem` (17.6px) | 600 | 1.30 | `#14283F` | Sub-section headers (e.g., Fleet List) |
-| **H4** | `0.95rem` (15.2px) | 600 | 1.35 | `#14283F` | Widget headers, modal headers |
-| **Body Text** | `0.90rem` (14.4px) | 400 (Regular) | 1.50 | `#172536` | Standard descriptions, copy |
-| **Field Label** | `0.82rem` (13.1px) | 600 | 1.20 | `#172536` | Form input labels |
-| **Micro Caption** | `0.75rem` (12px) | 500 / 600 | 1.30 | `#687586` | Helper text, timestamps, tags |
-| **Monospace** | `0.88rem` (14px) | 700 | 1.20 | `#0C1828` | License plates, tokens, IDs |
-
----
-
-## 5. Spacing Scale & Layout Rules
-
-Layouts adhere to an 8-point baseline grid with a 4px half-step for micro-elements:
-
-```css
---space-2xs: 0.25rem; /* 4px */
---space-xs:  0.50rem; /* 8px */
---space-sm:  0.75rem; /* 12px */
---space-md:  1.00rem; /* 16px */
---space-lg:  1.50rem; /* 24px */
---space-xl:  2.00rem; /* 32px */
---space-2xl: 2.50rem; /* 40px */
-```
-
-### Layout Principles
-- **Page Container:** Centered with max-width `1140px` and responsive horizontal padding (`1rem` on mobile, `2rem` on desktop).
-- **Card Padding:** `2rem` for full auth/console cards; `1rem` to `1.25rem` for sub-cards and grid elements.
-- **Form Gaps:** `1.15rem` between form groups; `0.4rem` between label and input.
-- **Form Rows:** Side-by-side inputs on screens `> 640px` using `.form-row` and `.col-half`; stacks vertically on mobile.
+| Level | Size | Weight | Line Height | Letter Spacing | Font Family | Usage |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Display H1** | `34px–56px` | 600 Semi-Bold | 1.15 | `-2px` | `Manrope` | Login hero statement, spatial floor codes |
+| **Section H1** | `28px–38px` | 650 Semi-Bold | 1.20 | `-1.2px` | `Manrope` | Workspace view titles (`Room to move.`) |
+| **Card H2** | `22px–26px` | 700 Bold | 1.25 | `-0.8px` | `Manrope` | Card headings, profile view vehicle title |
+| **Subhead H3** | `18px–20px` | 650 Semi-Bold | 1.30 | `-0.5px` | `Manrope` | Form headers, modal titles, fleet groups |
+| **Body Regular** | `14px–15px` | 400 Regular | 1.55 | `-0.012em` | `DM Sans` | Default paragraphs, specs, explanations |
+| **Form Labels** | `12.5px` | 650 Semi-Bold | 1.20 | `0` | `DM Sans` | Form field labels |
+| **Micro Eyebrow**| `10px` | 700 Bold | 1.60 | `1.8px` | `DM Sans` | Uppercase category eyebrows |
+| **Telemetry Mono**| `14px–19px` | 800 Extra-Bold | 1.20 | `0.8px` | `JetBrains Mono` | License plates, slot codes (`KA-01-AB-1234`) |
 
 ---
 
-## 6. Border Radius & Shadow Rules
+## 4. Spacing, Elevation & Structural Tokens
 
-Avoid round pill buttons and cartoonish bubbly curves. Radius values are calibrated for industrial hardware:
+### Spacing Scale
+- `xxs`: 4px | `xs`: 8px | `sm`: 12px | `md`: 16px | `lg`: 24px | `xl`: 32px | `xxl`: 48px
 
-```css
---radius-sm: 4px;   /* Input fields, micro-badges, license plate boxes */
---radius-md: 6px;   /* Standard action buttons, alert banners */
---radius-lg: 10px;  /* Cards, modals, major elevation panels */
-```
+### Border Radius
+- `--radius-xs`: 4px (plate region flags, micro badges)
+- `--radius-sm`: 6px (buttons, form inputs, navigation pills)
+- `--radius-md`: 10px (content cards, telemetry badges)
+- `--radius-lg`: 16px (elevated cards, modal dialogs)
+- `--radius-pill`: 9999px (circular status dots, workspace pills)
 
-### Elevation & Shadows
-- **Card Ambient Elevation:**
-  ```css
-  --shadow-sm: 0 1px 2px rgba(12, 24, 40, 0.05);
-  --shadow:    0 2px 8px rgba(12, 24, 40, 0.06), 0 1px 2px rgba(12, 24, 40, 0.04);
-  --shadow-lg: 0 12px 28px rgba(12, 24, 40, 0.08), 0 2px 6px rgba(12, 24, 40, 0.04);
-  ```
-- **Active Card Indicator:** Cards may have a subtle top accent bar (`height: 4px`) gradient from Navy `#14283F` to Coral `#E65B52`.
-
----
-
-## 7. Button Variants & Interaction States
-
-All buttons share a base class (`.btn-primary`, `.btn-secondary`, `.btn-danger`):
-
-```html
-<!-- Primary Button -->
-<button type="submit" class="btn-primary" id="btn-save">
-  Save Record
-</button>
-
-<!-- Secondary / Cancel Button -->
-<button type="button" class="btn-secondary" id="btn-cancel">
-  Cancel
-</button>
-
-<!-- Destructive Action Button -->
-<button type="button" class="btn-danger" id="btn-delete">
-  Deactivate Record
-</button>
-```
-
-### Interactive State Requirements
-- **Hover:** Primary darkens to `#0C1828`. Secondary shifts background to `#ECEFF1`.
-- **Focus:** 3px ring using `rgba(53, 84, 109, 0.15)`. No default browser blue or purple outlines.
-- **Active:** Slight `1px` downward translation (`transform: translateY(1px)`).
-- **Loading:** Display inline `.spinner` or `.btn-spinner` (14px rotating circle) and text "Saving...". Set `disabled={true}` to prevent duplicate clicks.
+### Architectural Shadows
+- `--bay-shadow-xs`: `0 1px 2px rgba(35, 54, 77, 0.04)`
+- `--bay-shadow-card`: `0 2px 10px rgba(35, 54, 77, 0.035), 0 0 0 1px var(--bay-line)`
+- `--bay-shadow-card-hover`: `0 8px 24px rgba(35, 54, 77, 0.07), 0 0 0 1px var(--bay-champagne)`
+- `--bay-shadow-lg`: `0 14px 34px rgba(35, 54, 77, 0.08), 0 4px 10px rgba(35, 54, 77, 0.04)`
 
 ---
 
-## 8. Inputs, Forms & Validation Messaging
+## 5. Screen-by-Screen Component Specifications
 
-### Input Structure
-Form inputs must always pair with an explicit `<label htmlFor="field-id">` and display an asterisk for mandatory entries:
+### 5.1 Authentication (Login & Self-Registration)
+- **Split Layout (`.bay-login`):**
+  - Left panel (`.bay-login-intro`): Deep midnight blue (`#23364D`) canvas, champagne subtle highlights, warm ivory editorial typography, and isometric deck artwork.
+  - Right panel (`.bay-login-form`): Warm ivory background with elevated white card (`#FFFFFF`), champagne border accent, olive primary action button with deep forest hover (`#46543D`).
+- **Show/Hide Password:** Native eye toggle button with clear focus outline and hover states.
+- **Server Validation:** Accessible alert banner in warm brick red (`#B5473A` / `#FDF1EF`).
 
-```jsx
-<div className="form-group">
-  <label htmlFor="slot_number">
-    Slot Identifier <span className="required">*</span>
-  </label>
-  <input
-    id="slot_number"
-    name="slot_number"
-    type="text"
-    className={`form-input ${fieldErrors.slot_number ? 'input-error' : ''}`}
-    placeholder="e.g. A-101"
-    required
-  />
-  {fieldErrors.slot_number && (
-    <span className="field-error-text" id="slot-error">
-      {fieldErrors.slot_number.join(' ')}
-    </span>
-  )}
-</div>
-```
+### 5.2 Authenticated Workspace Shell (`AuthenticatedView.jsx`)
+- **Sidebar (`.bay-sidebar`):**
+  - Crisp white background with warm line separator (`#DFDAD0`).
+  - Brand mark in Midnight Blue with Olive brand dot.
+  - Spatial Workspace location pill in champagne subtle fill with layer icon.
+  - Navigation buttons with smooth olive subtle hover and active state in solid olive green with white text and champagne indicator dot.
+  - Isometric mini-deck graphic in olive and champagne tones.
+  - User footer with avatar monogram, role description, and secure exit button.
+- **Topbar (`.bay-topbar`):**
+  - White surface with warm border, breadcrumb navigation, and live workspace role badge.
+- **Footer (`.bay-footer`):**
+  - Minimalist architectural footer with copyright and timestamp.
 
-### Validation Styling
-- **Error State (`.input-error`):** Border switches to `var(--color-error-red)` (`#B93838`) with soft `#FFFDFD` tint.
-- **Inline Message (`.field-error-text`):** Small `0.75rem` text beneath the input in `#B93838`.
+### 5.3 Vehicle Registration & Fleet Cards (US-05)
+- **Registration Form (`.vehicle-reg-card`):**
+  - White card with champagne border.
+  - Custom embossed license plate input with yellow/ivory plate badge styling.
+  - Vehicle type selector chips (Two-Wheeler, Compact, SUV, EV Charging) with distinct icons and olive active state.
+- **Fleet Grid (`.vehicles-grid`):**
+  - White cards with embossed plate badge, vehicle type badge, registration date, and "View Profile" button.
 
----
+### 5.4 Vehicle Profile & Telemetry (US-06)
+- **Inspector Layout (`.profile-layout-grid`):**
+  - Vehicle selector pills on the left with active indicator.
+  - Specification grid with champagne dividers, owner details, and registration date.
+  - Edit form with inline validation, duplicate conflict prevention, and accessible primary/secondary buttons.
 
-## 9. Cards, Badges, Lists & Feedback States
+### 5.5 Vehicle Search & Live Status (US-07)
+- **Search Bar Card (`.search-bar-card`):**
+  - High-precision search bar with uppercase formatting, clear button, and olive search button.
+  - Quick-search pills for user's vehicles.
+- **Live Status Hero Banner (`.live-status-hero`):**
+  - **PARKED:** Emerald status (`#2A7955` / `#EDF7F2`) with pulsing radar animation, slot number, zone, floor level, check-in timestamp.
+  - **NOT PARKED:** Slate graphite (`#64748B` / `#F1F5F9`) status.
+  - Specification grid and full profile deep link.
 
-### 1. License Plate Badge Card (US-05, US-06 Pattern)
-Vehicle and parking slot records should present identifier plates with stamped monospace styling:
-
-```html
-<div class="vehicle-badge-card" id="card-1">
-  <div class="vehicle-card-top">
-    <div class="vehicle-plate font-mono">KA-01-AB-1234</div>
-    <button type="button" class="btn-edit-badge">✏️ Edit</button>
-  </div>
-  <div class="vehicle-meta">
-    <span class="badge-type">Compact</span>
-    <span class="owner-tag">👤 Jane Doe</span>
-  </div>
-</div>
-```
-
-### 2. Vehicle Class & Status Badges
-- **Two-Wheeler / Operator:** `background: rgba(53, 84, 109, 0.12)`, `color: #35546D`
-- **Compact / Admin:** `background: rgba(20, 40, 63, 0.12)`, `color: #14283F`
-- **SUV / Warning:** `background: rgba(242, 154, 82, 0.12)`, `color: #9C5A1A`
-- **EV Charging / Active Session:** `background: rgba(33, 132, 90, 0.12)`, `color: #21845A`
-
-### 3. Alert Banners (US-31 Standard)
-```html
-<div class="alert-banner alert-error" role="alert">
-  <span class="alert-icon">⚠️</span>
-  <span class="alert-text">A vehicle with this registration number already exists.</span>
-</div>
-```
+### 5.6 Parking Facility & 3D Spatial Deck (US-09 / US-10)
+- **Telemetry Bar (`.bay-source-bar`):**
+  - Warm ivory background, champagne border, live indicator dot in emerald.
+- **Metrics Grid (`.bay-metrics`):**
+  - White cards with champagne borders, midnight blue numbers, olive trend indicators.
+- **Interactive 3D Stage (`.bay-map-stage`):**
+  - Three.js WebGL spatial deck preserved in full functionality with smooth camera controls and floor switcher (B2..L3).
+- **2D Plan Grid (`.bay-flat-plan`):**
+  - Accessible status styling: Available (emerald), Occupied (warm brick), Reserved (cobalt), Inactive (slate).
+- **Slot Editor (`SlotEditor.jsx`):**
+  - White modal dialog with champagne line details, olive save button, accessible form controls.
 
 ---
 
-## 10. Responsive Breakpoints
+## 6. Accessibility & Contrast Compliance
 
-The application utilizes three standard responsive breakpoints:
-1. **Desktop / Widescreen (`>= 1024px`):** Full two-column dashboard layouts, multi-column form rows, wide fleet grids (`minmax(260px, 1fr)`).
-2. **Tablet (`640px` to `1023px`):** Single-column dashboard containers with side-by-side inputs preserved where legible.
-3. **Mobile (`< 640px`):**
-   - `.form-row` automatically wraps to full width column.
-   - Action buttons expand to `width: 100%`.
-   - Card padding reduces from `2.25rem` to `1.25rem`.
-   - Header title compresses to `1.15rem`.
-
----
-
-## 11. Accessibility & Contrast Compliance
-
-- **WCAG AA Compliance:** All text meets or exceeds a `4.5:1` contrast ratio against its background.
-  - Primary text `#172536` on `#F7F6F2` background achieves `12.3:1`.
-  - Coral accent `#E65B52` is used for iconography and badges, while interactive text uses `#FFFFFF` on Navy `#14283F` (`14.1:1`).
-- **Focus Rings:** All keyboard navigation (`Tab` key) triggers a visible, clean 3px focus ring with `rgba(53, 84, 109, 0.15)`.
-- **Screen Reader Support:** Interactive icons provide `aria-hidden="true"` or paired `aria-label` tags. Loading states indicate `aria-busy="true"` on parent forms.
+- **Text Contrast:**
+  - Midnight Blue (`#23364D`) on Warm Ivory (`#F6F3EC`): **9.8:1** (Exceeds WCAG AAA).
+  - Deep Graphite (`#30372F`) on White (`#FFFFFF`): **11.5:1** (Exceeds WCAG AAA).
+  - Olive Green (`#687653`) on White text: **4.52:1** (WCAG AA compliant).
+  - Deep Forest Olive (`#46543D`) on White text: **7.1:1** (Exceeds WCAG AAA).
+- **Focus Rings:** High-visibility 2px solid olive outline with 3px offset for all interactive controls.
+- **Motion Reduction:** Full `@media (prefers-reduced-motion: reduce)` support.
 
 ---
 
-## 12. Component & CSS Naming Conventions
+## 7. Guidelines for Future Contributors
 
-Teammates must adhere to structured, semantic CSS class naming:
-- `.btn-*` for buttons (`.btn-primary`, `.btn-secondary`, `.btn-danger`, `.btn-sm`).
-- `.form-group` for field label/input wrappers.
-- `.form-input` for text, email, password, and select elements.
-- `.alert-banner`, `.alert-error`, `.alert-success` for US-31 status banners.
-- `.badge-*` for categorized tags.
-- Avoid utility cascades or inline CSS style objects in React components.
-
----
-
-## 13. Examples of Correct vs. Incorrect Usage
-
-### Correct Examples
-```css
-/* ✅ DO: Consume semantic tokens */
-.slot-card {
-  background-color: var(--color-pure-white);
-  border: 1px solid var(--color-border);
-  color: var(--color-main-text);
-  border-radius: var(--radius-md);
-}
-
-.slot-action-btn {
-  background-color: var(--color-primary-navy);
-  color: var(--color-pure-white);
-}
-```
-
-### Incorrect Examples
-```css
-/* ❌ DO NOT: Use arbitrary purple or neon gradients */
-.slot-card {
-  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); /* NO purple/pink gradients */
-  border-radius: 9999px; /* NO oversized bubbly pills for cards */
-  box-shadow: 0 20px 50px rgba(168, 85, 247, 0.5); /* NO neon glows */
-}
-
-/* ❌ DO NOT: Hardcode ad-hoc hex values */
-.slot-action-btn {
-  background: #3b82f6; /* Use var(--color-primary-navy) instead */
-}
-```
-
----
-
-## 14. Professionalism & Visual Discipline
-
-- **Restraint Over Decoration:** Do not add decorative circles, floating gradient blobs, or 3D cards.
-- **Data-First Layout:** Prioritize clear data visibility (slot status, vehicle plates, timestamps).
-- **Purposeful Color:** Every color communicates meaning (Green = Active/Available, Amber = Warning, Red = Conflict/Error, Navy = Primary Identity).
-
----
-
-## 15. Teammate Implementation Checklist (Zero Breaking Changes)
-
-When implementing your story's UI:
-1. **Preserve Story Boundaries:** Style only your assigned pages and components (e.g. Member 2 styles `Slots.jsx`, Member 3 styles `Operations.jsx`, Member 4 styles `Dashboard.jsx`).
-2. **Import Shared CSS:** Ensure `import '../App.css'` is present in your page or main entry.
-3. **Use Standard Element Classes:** Wrap forms in `.auth-form` or `.vehicle-form`, wrap fields in `.form-group`, and style buttons with `.btn-primary` and `.btn-secondary`.
-4. **Preserve IDs for Testing:** Never remove or rename HTML `id` attributes that automated test suites rely upon.
-5. **Run Lint and Build:** Execute `npm test`, `npm run lint`, and `npm run build` to confirm your changes pass all checks.
+1. **Always Use Tokens:** Never hardcode hex values like `#333` or `#eee`. Use `var(--bay-midnight)`, `var(--bay-ivory)`, `var(--bay-olive)`, etc.
+2. **Preserve Operational Semantics:** Never color a parking slot or status indicator with brand colors (`#687653`). Use `--bay-status-available`, `--bay-status-occupied`, `--bay-status-reserved`.
+3. **Keep Responsive Breakpoints Intact:** Test all layouts at desktop (>1200px), tablet (820px–1150px), and mobile (<640px).
+4. **SVG Icons Only:** Use the centralized `BayIcon` component; do not use emojis as icons.
