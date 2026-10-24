@@ -2,243 +2,196 @@ import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { VehicleRegistrationForm } from './VehicleRegistrationForm'
 import { VehicleProfileView } from './VehicleProfileView'
+import BayIcon from './BayIcon'
+import SlotsPage from '../pages/Slots'
 
 export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
-  const [activeNav, setActiveNav] = useState('vehicles')
+  const canManage = ['Admin', 'Operator'].includes(user?.role)
+  const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  const roleBadgeClass = {
-    Admin: 'badge-admin',
-    Operator: 'badge-operator',
-    Customer: 'badge-customer',
-  }[user?.role] || 'badge-default'
+  const activePage = page === 'facility' && !canManage ? 'vehicles' : page
+  const navigation = [
+    ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
+    ['vehicles', 'My vehicles', 'car'],
+    ['profiles', 'Vehicle profiles', 'edit'],
+    ['account', 'Account', 'user'],
+  ]
 
-  const navigateTo = (navDestination, vehicleId = null) => {
-    setActiveNav(navDestination)
-    if (vehicleId) {
-      setSelectedVehicleId(vehicleId)
-    }
-    setIsMobileMenuOpen(false)
+  const handleNavigateToProfile = (vehicleId) => {
+    setSelectedVehicleId(vehicleId)
+    setPage('profiles')
   }
 
   return (
-    <div className="authenticated-shell" id="authenticated-shell">
-      {/* Top Application Bar */}
-      <header className="auth-topbar">
-        <div className="topbar-left">
-          <button
-            type="button"
-            className="mobile-nav-toggle"
-            id="btn-sidebar-toggle"
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMobileMenuOpen}
-            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-          >
-            {isMobileMenuOpen ? '✕' : '☰'}
-          </button>
-
-          <div className="header-brand">
-            <span className="brand-icon">🅿️</span>
-            <h1>Vehicle Parking System</h1>
+    <div className="bay-app">
+      <a className="bay-skip" href="#bay-main">
+        Skip to content
+      </a>
+      <aside className="bay-sidebar">
+        <a className="bay-brand" href="#bay-main" aria-label="BAY workspace">
+          <span className="bay-brand-mark">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <span>
+            BAY<span className="bay-brand-dot">.</span>
+          </span>
+        </a>
+        <p className="bay-sidebar-label">A BETTER WAY TO PARK</p>
+        <div className="bay-location">
+          <span className="bay-location-icon">
+            <BayIcon name="layers" size={19} />
+          </span>
+          <div>
+            <strong>Parking facility</strong>
+            <span>Your spatial workspace</span>
           </div>
-          <span className="console-tag">Facility Console</span>
         </div>
-
-        <div className="topbar-right">
-          <div className="user-capsule" id="user-header-capsule">
-            <span className="user-capsule-name font-mono">{user?.username}</span>
-            <span className={`profile-badge ${roleBadgeClass}`}>
-              {user?.role}
-            </span>
+        <span className="bay-nav-label">WORKSPACE</span>
+        <nav aria-label="Workspace">
+          {navigation.map(([key, title, icon]) => (
+            <button
+              key={key}
+              type="button"
+              id={`nav-${key}`}
+              className={activePage === key ? 'is-active' : ''}
+              aria-current={activePage === key ? 'page' : undefined}
+              onClick={() => setPage(key)}
+            >
+              <BayIcon name={icon} size={19} />
+              <span>{title}</span>
+              {activePage === key && <i />}
+            </button>
+          ))}
+        </nav>
+        <div className="bay-sidebar-note">
+          <div className="bay-mini-deck">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
           </div>
-
+          <span className="bay-eyebrow">SPATIAL WORKSPACE</span>
+          <p>
+            Every space.
+            <br />A new perspective.
+          </p>
+          <span className="bay-small">
+            Thoughtfully designed for
+            <br />
+            the way your facility moves.
+          </span>
+        </div>
+        <div className="bay-sidebar-bottom">
+          <span className="bay-avatar">
+            {user?.username?.slice(0, 2).toUpperCase()}
+          </span>
+          <div>
+            <strong id="user-display-username">{user?.username}</strong>
+            <small id="user-display-role">{user?.role} workspace</small>
+          </div>
           <button
             type="button"
-            className="btn btn-sm btn-logout-topbar"
-            id="btn-topbar-logout"
+            className="bay-icon-button"
+            id="btn-logout"
+            aria-label="Log out"
             onClick={logout}
             disabled={isLoading}
-            title="Sign out of facility session"
           >
-            {isLoading ? '...' : 'Sign Out'}
+            <BayIcon name="exit" size={18} />
           </button>
         </div>
-      </header>
-
-      {/* Main Authenticated Layout with Sidebar */}
-      <div className="authenticated-layout">
-        {/* Mobile Backdrop */}
-        {isMobileMenuOpen && (
-          <div
-            className="sidebar-backdrop"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-        )}
-
-        {/* Responsive Navigation Sidebar */}
-        <aside
-          className={`app-sidebar ${isMobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
-          id="app-sidebar"
-          aria-label="Console Navigation"
-        >
-          {/* User Status Card */}
-          <div className="sidebar-user-card">
-            <div className="user-avatar-circle">
-              {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="sidebar-user-info">
-              <span className="sidebar-username font-mono">{user?.username}</span>
-              <span className={`sidebar-role-badge ${roleBadgeClass}`}>{user?.role}</span>
-              <div className="sidebar-session-dot">
-                <span className="status-dot"></span>
-                <span>Active Session</span>
-              </div>
-            </div>
+      </aside>
+      <div className="bay-main-shell">
+        <header className="bay-topbar">
+          <div>
+            <span>Workspace</span>
+            <span>/</span>
+            <strong>
+              {navigation.find(([key]) => key === activePage)?.[1]}
+            </strong>
           </div>
-
-          {/* Navigation Links */}
-          <nav className="sidebar-nav" aria-label="Main Navigation">
-            <div className="nav-group-title">Facility Modules</div>
-
-            <button
-              type="button"
-              className={`sidebar-nav-item ${activeNav === 'vehicles' ? 'active' : ''}`}
-              id="nav-vehicles"
-              aria-current={activeNav === 'vehicles' ? 'page' : undefined}
-              onClick={() => navigateTo('vehicles')}
-            >
-              <span className="nav-item-icon">🚗</span>
-              <div className="nav-item-content">
-                <span className="nav-item-label">Vehicle Registration</span>
-                <span className="nav-item-hint">Register & view fleet</span>
+          <span className="bay-workspace-status">
+            <i />
+            {user?.role}
+            <span>workspace</span>
+          </span>
+        </header>
+        <main id="bay-main" className="bay-main" tabIndex={-1}>
+          {activePage === 'facility' ? (
+            <SlotsPage />
+          ) : activePage === 'vehicles' ? (
+            <section className="bay-legacy-page" id="authenticated-container">
+              <div className="bay-page-heading">
+                <div>
+                  <span className="bay-eyebrow">
+                    READY FOR THE NEXT ARRIVAL
+                  </span>
+                  <h1>
+                    Room to move<span>.</span>
+                  </h1>
+                  <p>Your vehicles. One place.</p>
+                </div>
               </div>
-            </button>
-
-            <button
-              type="button"
-              className={`sidebar-nav-item ${activeNav === 'profiles' ? 'active' : ''}`}
-              id="nav-profiles"
-              aria-current={activeNav === 'profiles' ? 'page' : undefined}
-              onClick={() => navigateTo('profiles')}
-            >
-              <span className="nav-item-icon">📋</span>
-              <div className="nav-item-content">
-                <span className="nav-item-label">Vehicle Profiles</span>
-                <span className="nav-item-hint">Inspect & update details</span>
-              </div>
-            </button>
-
-            <div className="nav-group-title">Session & Security</div>
-
-            <button
-              type="button"
-              className={`sidebar-nav-item ${activeNav === 'account' ? 'active' : ''}`}
-              id="nav-account"
-              aria-current={activeNav === 'account' ? 'page' : undefined}
-              onClick={() => navigateTo('account')}
-            >
-              <span className="nav-item-icon">👤</span>
-              <div className="nav-item-content">
-                <span className="nav-item-label">Account & Role</span>
-                <span className="nav-item-hint">Credentials & status</span>
-              </div>
-            </button>
-          </nav>
-
-          {/* Sidebar Footer */}
-          <div className="sidebar-footer">
-            <button
-              type="button"
-              className="btn-sidebar-logout"
-              id="btn-logout"
-              onClick={logout}
-              disabled={isLoading}
-            >
-              <span className="logout-icon">⏻</span>
-              {isLoading ? 'Signing Out...' : 'Sign Out'}
-            </button>
-          </div>
-        </aside>
-
-        {/* Viewport Content Area */}
-        <main className="authenticated-viewport" id="authenticated-viewport">
-          {activeNav === 'vehicles' && (
-            <div className="auth-card authenticated-card" id="authenticated-container">
               <VehicleRegistrationForm
-                onNavigateToProfile={(vehicleId) => navigateTo('profiles', vehicleId)}
+                onNavigateToProfile={handleNavigateToProfile}
               />
-            </div>
-          )}
-
-          {activeNav === 'profiles' && (
-            <VehicleProfileView
-              initialVehicleId={selectedVehicleId}
-              onBackToRegistration={() => navigateTo('vehicles')}
-            />
-          )}
-
-          {activeNav === 'account' && (
-            <div className="auth-card authenticated-card" id="authenticated-account-view">
-              <div className="auth-header">
-                <div className="status-indicator">
-                  <span className="status-dot"></span>
-                  Active Authenticated Session
-                </div>
-                <h2>Account & Credentials</h2>
-                <p className="auth-subtitle">
-                  Verified security credentials and role-based permissions for account{' '}
-                  <strong className="font-mono">{user?.username}</strong>.
-                </p>
-              </div>
-
-              <div className="user-profile-grid">
-                <div className="profile-row">
-                  <span className="profile-label">Username:</span>
-                  <span className="profile-value font-mono" id="user-display-username">
-                    {user?.username}
-                  </span>
-                </div>
-                <div className="profile-row">
-                  <span className="profile-label">Assigned Role:</span>
-                  <span className={`profile-badge ${roleBadgeClass}`} id="user-display-role">
-                    {user?.role}
-                  </span>
-                </div>
-                <div className="profile-row">
-                  <span className="profile-label">Account Status:</span>
-                  <span className="profile-badge badge-active" id="user-display-status">
-                    {user?.status || 'active'}
-                  </span>
-                </div>
-                <div className="profile-row">
-                  <span className="profile-label">User ID:</span>
-                  <span className="profile-value font-mono">#{user?.id}</span>
-                </div>
-                {user?.email && (
-                  <div className="profile-row">
-                    <span className="profile-label">Email:</span>
-                    <span className="profile-value">{user?.email}</span>
+            </section>
+          ) : activePage === 'profiles' ? (
+            <section className="bay-legacy-page" id="vehicle-profile-section">
+              <VehicleProfileView
+                initialVehicleId={selectedVehicleId}
+                onBackToRegistration={() => setPage('vehicles')}
+              />
+            </section>
+          ) : (
+            <section className="bay-account">
+              <span className="bay-eyebrow">YOUR WORKSPACE</span>
+              <h1>
+                A little about you<span>.</span>
+              </h1>
+              <div className="bay-account-card">
+                <span className="bay-avatar bay-avatar-large">
+                  {user?.username?.slice(0, 2).toUpperCase()}
+                </span>
+                <h2>{user?.username}</h2>
+                <p>{user?.email || 'No email provided'}</p>
+                <dl className="bay-slot-details">
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{user?.role}</dd>
                   </div>
-                )}
-              </div>
-
-              <div className="auth-actions" style={{ marginTop: '2rem' }}>
+                  <div>
+                    <dt>Account status</dt>
+                    <dd id="user-display-status">{user?.status || 'active'}</dd>
+                  </div>
+                </dl>
                 <button
-                  type="button"
-                  className="btn-danger"
+                  className="bay-button bay-button-primary"
                   onClick={logout}
                   disabled={isLoading}
-                  id="btn-account-logout"
                 >
-                  {isLoading ? 'Signing Out...' : 'Sign Out of Facility Console'}
+                  {isLoading ? 'Signing out...' : 'Sign out securely'}
+                  <BayIcon name="exit" size={17} />
                 </button>
               </div>
-            </div>
+            </section>
           )}
         </main>
+        <footer className="bay-footer">
+          <span>
+            BAY<span>.</span> Built around your space.
+          </span>
+          <span>
+            VEHICLE PARKING SYSTEM <i /> 2026
+          </span>
+        </footer>
       </div>
     </div>
   )
