@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
-import { VEHICLE_TYPES, normalizePlate } from '../utils/vehicles'
+import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput } from '../utils/vehicles'
 
-export function VehicleRegistrationForm({ onVehicleRegistered }) {
+export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfile }) {
   const { fetchWithAuth, user } = useAuth()
   const [formData, setFormData] = useState({
     registration_number: '',
@@ -17,6 +17,14 @@ export function VehicleRegistrationForm({ onVehicleRegistered }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [vehicles, setVehicles] = useState([])
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false)
+
+  // Edit vehicle profile state (US-06 / FR-02)
+  const [editingVehicleId, setEditingVehicleId] = useState(null)
+  const [editFormData, setEditFormData] = useState({})
+  const [editFieldErrors, setEditFieldErrors] = useState({})
+  const [editFormError, setEditFormError] = useState(null)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [editSuccessMessage, setEditSuccessMessage] = useState(null)
 
   // Fetch existing vehicles registered to the user
   const loadUserVehicles = useCallback(async () => {
@@ -127,12 +135,93 @@ export function VehicleRegistrationForm({ onVehicleRegistered }) {
     }
   }
 
+  const handleStartEdit = (vehicle) => {
+    setEditingVehicleId(vehicle.id)
+    setEditFormData({
+      registration_number: vehicle.registration_number || '',
+      vehicle_type: vehicle.vehicle_type || 'Compact',
+      owner_name: vehicle.owner_name || '',
+      owner_phone: vehicle.owner_phone || '',
+    })
+    setEditFieldErrors({})
+    setEditFormError(null)
+    setEditSuccessMessage(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingVehicleId(null)
+    setEditFormData({})
+    setEditFieldErrors({})
+    setEditFormError(null)
+  }
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData((prev) => ({ ...prev, [name]: value }))
+    if (editFieldErrors[name]) {
+      setEditFieldErrors((prev) => ({ ...prev, [name]: null }))
+    }
+    if (editFormError) setEditFormError(null)
+  }
+
+  const handleSaveEdit = async (e, vehicleId) => {
+    e.preventDefault()
+    setEditFieldErrors({})
+    setEditFormError(null)
+    setEditSuccessMessage(null)
+
+    const normalizedPlate = normalizePlate(editFormData.registration_number)
+    const validation = validateVehicleUpdateInput({
+      registration_number: normalizedPlate,
+      vehicle_type: editFormData.vehicle_type,
+    })
+
+    if (!validation.isValid) {
+      setEditFieldErrors(validation.errors)
+      return
+    }
+
+    setIsSavingEdit(true)
+    try {
+      const payload = {
+        registration_number: normalizedPlate,
+        vehicle_type: editFormData.vehicle_type,
+        owner_name: (editFormData.owner_name || '').trim(),
+        owner_phone: (editFormData.owner_phone || '').trim(),
+      }
+
+      const response = await fetchWithAuth(`/api/v1/vehicles/${vehicleId}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (response.ok) {
+        setEditSuccessMessage(`Vehicle ${data.registration_number} profile updated successfully.`)
+        setVehicles((prev) =>
+          prev.map((v) => (v.id === vehicleId ? { ...v, ...data } : v))
+        )
+        setEditingVehicleId(null)
+      } else {
+        const parsed = parseApiError(data)
+        setEditFormError(parsed.message || 'Update failed.')
+        setEditFieldErrors(parsed.fieldErrors || {})
+      }
+    } catch (err) {
+      setEditFormError(err.message || 'Network error occurred while updating vehicle profile.')
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
+
   return (
     <div className="vehicle-registration-container" id="vehicle-registration-section">
       <div className="section-header">
-        <h3>🚗 Vehicle Registration (US-05 / FR-01)</h3>
+        <h3>🚗 Vehicle Registration & Fleet Management</h3>
         <p className="section-subtitle">
-          Register a vehicle with license plate number, vehicle class, and owner information.
+          Register new vehicles and view or update existing vehicle profiles and contact details.
         </p>
       </div>
 
@@ -140,6 +229,13 @@ export function VehicleRegistrationForm({ onVehicleRegistered }) {
         <div className="alert alert-success" id="vehicle-registration-success" role="status">
           <span className="alert-icon">✓</span>
           <span className="alert-text">{successMessage}</span>
+        </div>
+      )}
+
+      {editSuccessMessage && (
+        <div className="alert alert-success" id="vehicle-edit-success" role="status">
+          <span className="alert-icon">✓</span>
+          <span className="alert-text">{editSuccessMessage}</span>
         </div>
       )}
 
@@ -255,15 +351,162 @@ export function VehicleRegistrationForm({ onVehicleRegistered }) {
           <p className="empty-hint">No vehicles registered yet. Use the form above to add one.</p>
         ) : (
           <div className="vehicles-grid">
-            {vehicles.map((v) => (
-              <div key={v.id || v.registration_number} className="vehicle-badge-card">
-                <div className="vehicle-plate font-mono">{v.registration_number}</div>
-                <div className="vehicle-meta">
-                  <span className="badge-type">{v.vehicle_type}</span>
-                  {v.owner_name && <span className="owner-tag">👤 {v.owner_name}</span>}
+            {vehicles.map((v) => {
+              const isEditing = editingVehicleId === v.id
+
+              if (isEditing) {
+                return (
+                  <div key={v.id} className="vehicle-badge-card vehicle-edit-card" id={`vehicle-edit-card-${v.id}`}>
+                    <div className="card-edit-header">
+                      <strong>Edit Vehicle #{v.id}</strong>
+                    </div>
+
+                    {editFormError && (
+                      <div className="alert alert-error edit-alert" role="alert">
+                        <span>{editFormError}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={(e) => handleSaveEdit(e, v.id)} noValidate className="inline-edit-form">
+                      <div className="form-group-sm">
+                        <label htmlFor={`edit-plate-${v.id}`}>Plate Number</label>
+                        <input
+                          type="text"
+                          id={`edit-plate-${v.id}`}
+                          name="registration_number"
+                          className={`form-input-sm ${editFieldErrors.registration_number ? 'input-error' : ''}`}
+                          value={editFormData.registration_number}
+                          onChange={handleEditChange}
+                          disabled={isSavingEdit}
+                          required
+                        />
+                        {editFieldErrors.registration_number && (
+                          <span className="field-error-text-sm">
+                            {editFieldErrors.registration_number.join(' ')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="form-group-sm">
+                        <label htmlFor={`edit-type-${v.id}`}>Vehicle Type</label>
+                        <select
+                          id={`edit-type-${v.id}`}
+                          name="vehicle_type"
+                          className={`form-input-sm ${editFieldErrors.vehicle_type ? 'input-error' : ''}`}
+                          value={editFormData.vehicle_type}
+                          onChange={handleEditChange}
+                          disabled={isSavingEdit}
+                          required
+                        >
+                          {VEHICLE_TYPES.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                        {editFieldErrors.vehicle_type && (
+                          <span className="field-error-text-sm">
+                            {editFieldErrors.vehicle_type.join(' ')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="form-group-sm">
+                        <label htmlFor={`edit-owner-${v.id}`}>Owner Name</label>
+                        <input
+                          type="text"
+                          id={`edit-owner-${v.id}`}
+                          name="owner_name"
+                          className="form-input-sm"
+                          value={editFormData.owner_name}
+                          onChange={handleEditChange}
+                          disabled={isSavingEdit}
+                        />
+                      </div>
+
+                      <div className="form-group-sm">
+                        <label htmlFor={`edit-phone-${v.id}`}>Owner Phone</label>
+                        <input
+                          type="tel"
+                          id={`edit-phone-${v.id}`}
+                          name="owner_phone"
+                          className="form-input-sm"
+                          value={editFormData.owner_phone}
+                          onChange={handleEditChange}
+                          disabled={isSavingEdit}
+                        />
+                      </div>
+
+                      <div className="edit-btn-group">
+                        <button
+                          type="submit"
+                          className="btn btn-sm btn-primary"
+                          id={`btn-save-vehicle-${v.id}`}
+                          disabled={isSavingEdit}
+                        >
+                          {isSavingEdit ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-secondary"
+                          id={`btn-cancel-vehicle-${v.id}`}
+                          onClick={handleCancelEdit}
+                          disabled={isSavingEdit}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={v.id || v.registration_number} className="vehicle-badge-card" id={`vehicle-card-${v.id}`}>
+                  <div className="vehicle-card-top">
+                    <div className="vehicle-plate font-mono">{v.registration_number}</div>
+                    <div className="card-action-group">
+                      {onNavigateToProfile && v.id && (
+                        <button
+                          type="button"
+                          className="btn-profile-badge"
+                          id={`btn-profile-vehicle-${v.id}`}
+                          onClick={() => onNavigateToProfile(v.id)}
+                          title="Open Vehicle Profile"
+                        >
+                          📋 Profile
+                        </button>
+                      )}
+                      {v.id && (
+                        <button
+                          type="button"
+                          className="btn-edit-badge"
+                          id={`btn-edit-vehicle-${v.id}`}
+                          onClick={() => handleStartEdit(v)}
+                          title="Edit Vehicle Inline"
+                        >
+                          ✏️ Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="vehicle-meta">
+                    <span className="badge-type">{v.vehicle_type}</span>
+                    {v.owner_name && <span className="owner-tag">👤 {v.owner_name}</span>}
+                  </div>
+                  {v.owner_phone && (
+                    <div className="vehicle-sub-meta">
+                      <span className="phone-tag">📞 {v.owner_phone}</span>
+                    </div>
+                  )}
+                  {v.updated_at && (
+                    <div className="vehicle-sub-meta text-muted">
+                      <small>Updated: {new Date(v.updated_at).toLocaleDateString()}</small>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

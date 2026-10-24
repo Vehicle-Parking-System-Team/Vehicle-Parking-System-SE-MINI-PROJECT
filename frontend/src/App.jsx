@@ -1,39 +1,50 @@
+import { useState } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
 import { LoginForm } from './components/LoginForm'
+import { RegisterForm } from './components/RegisterForm'
 import { AuthenticatedView } from './components/AuthenticatedView'
 import './App.css'
 
-function AuthMain() {
+function AppContent() {
   const { isAuthenticated } = useAuth()
+  const [authMode, setAuthMode] = useState('login')
+
+  if (isAuthenticated) {
+    return <AuthenticatedView />
+  }
 
   return (
-    <main className="app-content">
-      {isAuthenticated ? <AuthenticatedView /> : <LoginForm />}
-    </main>
+    <div className="app-layout">
+      <header className="app-header">
+        <div className="header-brand">
+          <span className="brand-icon">🅿️</span>
+          <h1>Vehicle Parking System</h1>
+        </div>
+        <span className="console-tag">Facility Console</span>
+      </header>
+
+      <main className="app-content">
+        {authMode === 'login' ? (
+          <LoginForm onSwitchToRegister={() => setAuthMode('register')} />
+        ) : (
+          <RegisterForm onSwitchToLogin={() => setAuthMode('login')} />
+        )}
+      </main>
+
+      <footer className="app-footer">
+        <p>
+          Vehicle Parking System &copy; 2026 • Enterprise Parking Operations
+        </p>
+      </footer>
+    </div>
   )
 }
 
 function App() {
   return (
     <AuthProvider>
-      <div className="app-layout">
-        <header className="app-header">
-          <div className="header-brand">
-            <span className="brand-icon">🅿️</span>
-            <h1>Vehicle Parking System</h1>
-          </div>
-          <span className="sprint-tag">Sprint 1 • US-01 Auth Baseline</span>
-        </header>
-
-        <AuthMain />
-
-        <footer className="app-footer">
-          <p>
-            Vehicle Parking System &copy; 2026 • Security & IAM Subsystem (FR-15, FR-16, FR-17)
-          </p>
-        </footer>
-      </div>
+      <AppContent />
     </AuthProvider>
   )
 }
