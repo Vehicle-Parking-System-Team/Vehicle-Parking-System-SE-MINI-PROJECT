@@ -1,133 +1,176 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { VehicleRegistrationForm } from './VehicleRegistrationForm'
+import BayIcon from './BayIcon'
+import SlotsPage from '../pages/Slots'
 
 export function AuthenticatedView() {
-  const { user, logout, fetchWithAuth, isLoading } = useAuth()
-  const [testResult, setTestResult] = useState(null)
-  const [isTesting, setIsTesting] = useState(false)
-
-  const handleTestProtectedEndpoint = async () => {
-    setIsTesting(true)
-    setTestResult(null)
-
-    try {
-      const response = await fetchWithAuth('/api/auth/me/')
-      const data = await response.json().catch(() => ({}))
-
-      if (response.ok) {
-        setTestResult({
-          status: 'success',
-          message: `HTTP ${response.status} OK — Access token verified. Authenticated as ${data.username} (${data.role}).`,
-        })
-      } else {
-        setTestResult({
-          status: 'error',
-          message: `HTTP ${response.status} — ${data.error || 'Protected endpoint rejected the request.'}`,
-        })
-      }
-    } catch (err) {
-      setTestResult({
-        status: 'error',
-        message: err.message || 'Failed to communicate with protected route.',
-      })
-    } finally {
-      setIsTesting(false)
-    }
-  }
-
-  const roleBadgeClass = {
-    Admin: 'badge-admin',
-    Operator: 'badge-operator',
-    Customer: 'badge-customer',
-  }[user?.role] || 'badge-default'
-
+  const { user, logout, isLoading } = useAuth()
+  const canManage = ['Admin', 'Operator'].includes(user?.role)
+  const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
+  const activePage = page === 'facility' && !canManage ? 'vehicles' : page
+  const navigation = [
+    ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
+    ['vehicles', 'My vehicles', 'car'],
+    ['account', 'Account', 'user'],
+  ]
   return (
-    <div className="auth-card authenticated-card" id="authenticated-container">
-      <div className="auth-header">
-        <div className="status-indicator">
-          <span className="status-dot"></span>
-          Active Authenticated Session
-        </div>
-        <h2>Welcome, {user?.username}</h2>
-        <p className="auth-subtitle">
-          Identity verified with JWT bearer authorization.
-        </p>
-      </div>
-
-      <div className="user-profile-grid">
-        <div className="profile-row">
-          <span className="profile-label">Username:</span>
-          <span className="profile-value font-mono" id="user-display-username">{user?.username}</span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Assigned Role:</span>
-          <span className={`profile-badge ${roleBadgeClass}`} id="user-display-role">
-            {user?.role}
+    <div className="bay-app">
+      <a className="bay-skip" href="#bay-main">
+        Skip to content
+      </a>
+      <aside className="bay-sidebar">
+        <a className="bay-brand" href="#bay-main" aria-label="BAY workspace">
+          <span className="bay-brand-mark">
+            <i />
+            <i />
+            <i />
+            <i />
           </span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Account Status:</span>
-          <span className="profile-badge badge-active" id="user-display-status">
-            {user?.status}
+          <span>
+            BAY<span className="bay-brand-dot">.</span>
           </span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">User ID:</span>
-          <span className="profile-value font-mono">#{user?.id}</span>
-        </div>
-        {user?.email && (
-          <div className="profile-row">
-            <span className="profile-label">Email:</span>
-            <span className="profile-value">{user?.email}</span>
+        </a>
+        <p className="bay-sidebar-label">A BETTER WAY TO PARK</p>
+        <div className="bay-location">
+          <span className="bay-location-icon">
+            <BayIcon name="layers" size={19} />
+          </span>
+          <div>
+            <strong>Parking facility</strong>
+            <span>Your spatial workspace</span>
           </div>
-        )}
-      </div>
-
-      <div className="session-info-box">
-        <h4>Session & Security Policies</h4>
-        <ul>
-          <li><strong>Access Token:</strong> 15-minute stateless JWT lifetime (NFR-SEC-05).</li>
-          <li><strong>Refresh Token:</strong> 7-day persistent rotation.</li>
-          <li><strong>Instant Revocation:</strong> Logout terminates active tokens server-side.</li>
-        </ul>
-      </div>
-
-      {testResult && (
-        <div
-          className={`alert-banner ${testResult.status === 'success' ? 'alert-success' : 'alert-error'}`}
-          role="status"
-          id="api-test-result"
-        >
-          <span className="alert-icon" aria-hidden="true">
-            {testResult.status === 'success' ? '✅' : '❌'}
-          </span>
-          <span className="alert-text">{testResult.message}</span>
         </div>
-      )}
-
-      <VehicleRegistrationForm />
-
-      <div className="auth-actions">
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={handleTestProtectedEndpoint}
-          disabled={isTesting || isLoading}
-          id="btn-test-auth"
-        >
-          {isTesting ? 'Verifying...' : 'Test Protected API Route (/api/auth/me/)'}
-        </button>
-
-        <button
-          type="button"
-          className="btn-danger"
-          onClick={logout}
-          disabled={isLoading}
-          id="btn-logout"
-        >
-          {isLoading ? 'Revoking Session...' : 'Log Out (Secure Invalidation)'}
-        </button>
+        <span className="bay-nav-label">WORKSPACE</span>
+        <nav aria-label="Workspace">
+          {navigation.map(([key, title, icon]) => (
+            <button
+              key={key}
+              type="button"
+              className={activePage === key ? 'is-active' : ''}
+              aria-current={activePage === key ? 'page' : undefined}
+              onClick={() => setPage(key)}
+            >
+              <BayIcon name={icon} size={19} />
+              <span>{title}</span>
+              {activePage === key && <i />}
+            </button>
+          ))}
+        </nav>
+        <div className="bay-sidebar-note">
+          <div className="bay-mini-deck">
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </div>
+          <span className="bay-eyebrow">SPATIAL WORKSPACE</span>
+          <p>
+            Every space.
+            <br />A new perspective.
+          </p>
+          <span className="bay-small">
+            Thoughtfully designed for
+            <br />
+            the way your facility moves.
+          </span>
+        </div>
+        <div className="bay-sidebar-bottom">
+          <span className="bay-avatar">
+            {user?.username?.slice(0, 2).toUpperCase()}
+          </span>
+          <div>
+            <strong>{user?.username}</strong>
+            <small>{user?.role} workspace</small>
+          </div>
+          <button
+            type="button"
+            className="bay-icon-button"
+            aria-label="Log out"
+            onClick={logout}
+            disabled={isLoading}
+          >
+            <BayIcon name="exit" size={18} />
+          </button>
+        </div>
+      </aside>
+      <div className="bay-main-shell">
+        <header className="bay-topbar">
+          <div>
+            <span>Workspace</span>
+            <span>/</span>
+            <strong>
+              {navigation.find(([key]) => key === activePage)?.[1]}
+            </strong>
+          </div>
+          <span className="bay-workspace-status">
+            <i />
+            {user?.role}
+            <span>workspace</span>
+          </span>
+        </header>
+        <main id="bay-main" className="bay-main" tabIndex={-1}>
+          {activePage === 'facility' ? (
+            <SlotsPage />
+          ) : activePage === 'vehicles' ? (
+            <section className="bay-legacy-page">
+              <div className="bay-page-heading">
+                <div>
+                  <span className="bay-eyebrow">
+                    READY FOR THE NEXT ARRIVAL
+                  </span>
+                  <h1>
+                    Room to move<span>.</span>
+                  </h1>
+                  <p>Your vehicles. One place.</p>
+                </div>
+              </div>
+              <VehicleRegistrationForm />
+            </section>
+          ) : (
+            <section className="bay-account">
+              <span className="bay-eyebrow">YOUR WORKSPACE</span>
+              <h1>
+                A little about you<span>.</span>
+              </h1>
+              <div className="bay-account-card">
+                <span className="bay-avatar bay-avatar-large">
+                  {user?.username?.slice(0, 2).toUpperCase()}
+                </span>
+                <h2>{user?.username}</h2>
+                <p>{user?.email || 'No email provided'}</p>
+                <dl className="bay-slot-details">
+                  <div>
+                    <dt>Role</dt>
+                    <dd>{user?.role}</dd>
+                  </div>
+                  <div>
+                    <dt>Account status</dt>
+                    <dd>{user?.status}</dd>
+                  </div>
+                </dl>
+                <button
+                  className="bay-button bay-button-primary"
+                  onClick={logout}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Signing out...' : 'Sign out securely'}
+                  <BayIcon name="exit" size={17} />
+                </button>
+              </div>
+            </section>
+          )}
+        </main>
+        <footer className="bay-footer">
+          <span>
+            BAY<span>.</span> Built around your space.
+          </span>
+          <span>
+            VEHICLE PARKING SYSTEM <i /> 2026
+          </span>
+        </footer>
       </div>
     </div>
   )

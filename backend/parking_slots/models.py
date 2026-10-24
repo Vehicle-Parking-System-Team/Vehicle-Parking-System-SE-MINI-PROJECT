@@ -28,6 +28,8 @@ class ParkingSlot(models.Model):
         related_name='slots',
     )
     slot_number = models.CharField(max_length=30)
+    # Historical PR #64 rows have no recorded floor; do not invent one.
+    floor = models.IntegerField(null=True, blank=True)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
