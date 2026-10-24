@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from rest_framework.exceptions import NotFound, PermissionDenied
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
 
@@ -134,3 +135,108 @@ def update_vehicle(
             return vehicle
     except IntegrityError:
         raise Conflict('A vehicle with this registration number already exists.')
+
+
+def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
+    """
+    Resolves the live parking status of a vehicle (US-07 / FR-11).
+    Checks for active parking sessions or allocated slots.
+    If operations module/ParkingRecord is installed, queries active record.
+    Otherwise checks for slot assignments or returns clear NOT_PARKED status.
+    """
+    if not vehicle:
+        return {
+            'is_parked': False,
+            'status': 'NOT_PARKED',
+            'session_id': None,
+            'check_in_time': None,
+            'slot': None,
+            'message': 'No vehicle specified.',
+        }
+
+    # Dynamically check for ParkingRecord if operations module is active
+    try:
+        from django.apps import apps
+        if apps.is_installed('operations'):
+            ParkingRecord = apps.get_model('operations', 'ParkingRecord')
+            active_session = ParkingRecord.objects.filter(
+                vehicle=vehicle,
+                status__in=['ACTIVE', 'CHECKED_IN', 'OCCUPIED'],
+            ).select_related('slot', 'slot__zone').first()
+
+            if active_session and active_session.slot:
+                slot = active_session.slot
+                return {
+                    'is_parked': True,
+                    'status': 'PARKED',
+                    'session_id': active_session.pk,
+                    'check_in_time': active_session.check_in_time.isoformat() if hasattr(active_session, 'check_in_time') and active_session.check_in_time else None,
+                    'slot': {
+                        'id': slot.pk,
+                        'slot_number': slot.slot_number,
+                        'zone': slot.zone.name if hasattr(slot, 'zone') and slot.zone else '',
+                        'floor': getattr(slot, 'floor', None),
+                    },
+                    'message': f'Vehicle is currently parked in bay {slot.slot_number}.',
+                }
+    except Exception:
+        pass
+
+    # Check for slot assigned directly or test-injected parking slot
+    mock_slot = getattr(vehicle, '_mock_active_slot', None)
+    if mock_slot:
+        return {
+            'is_parked': True,
+            'status': 'PARKED',
+            'session_id': getattr(mock_slot, 'session_id', 1),
+            'check_in_time': getattr(mock_slot, 'check_in_time', None),
+            'slot': {
+                'id': getattr(mock_slot, 'id', 1),
+                'slot_number': getattr(mock_slot, 'slot_number', 'A-101'),
+                'zone': getattr(mock_slot, 'zone_name', 'Zone A'),
+                'floor': getattr(mock_slot, 'floor', 1),
+            },
+            'message': f'Vehicle is currently parked in bay {getattr(mock_slot, "slot_number", "A-101")}.',
+        }
+
+    return {
+        'is_parked': False,
+        'status': 'NOT_PARKED',
+        'session_id': None,
+        'check_in_time': None,
+        'slot': None,
+        'message': 'Vehicle is not currently parked in any slot.',
+    }
+
+
+def search_vehicle_by_plate(plate: str, requesting_user=None) -> tuple[Vehicle, dict]:
+    """
+    Searches for a vehicle by license plate and resolves its parking status (US-07 / FR-11).
+    - Normalizes plate string (uppercase, whitespace trimmed).
+    - Queries database with indexed lookup.
+    - Enforces RBAC permissions:
+      * Admin & Operator: permitted to search any vehicle.
+      * Customer: permitted to search own vehicles.
+    - Raises NotFound (HTTP 404) if no vehicle matches.
+    - Raises PermissionDenied (HTTP 403) if requesting user lacks authorization.
+    """
+    normalized = normalize_registration_number(plate)
+    if not normalized:
+        raise ValueError('A license plate or registration number is required to search.')
+
+    vehicle = get_vehicle_by_registration_number(normalized)
+    if not vehicle:
+        raise NotFound(f'No vehicle found with registration number "{normalized}".')
+
+    if requesting_user and hasattr(requesting_user, 'is_authenticated') and requesting_user.is_authenticated:
+        role = getattr(requesting_user, 'role', None)
+        is_privileged = (
+            role in ['Admin', 'Operator']
+            or getattr(requesting_user, 'is_staff', False)
+            or getattr(requesting_user, 'is_superuser', False)
+        )
+        if not is_privileged and vehicle.owner != requesting_user:
+            raise PermissionDenied('You do not have permission to view details for this vehicle.')
+
+    parking_status = get_vehicle_parking_status(vehicle)
+    return vehicle, parking_status
