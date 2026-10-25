@@ -1,17 +1,18 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 from threading import Barrier
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.signing import Signer
-from django.db import close_old_connections, connections
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections, connections
 from django.test import (
     TestCase,
     TransactionTestCase,
     skipUnlessDBFeature,
 )
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from common.exceptions import Conflict
@@ -20,7 +21,7 @@ from parking_slots.services import occupy_slot as real_occupy_slot
 from vehicles.models import Vehicle
 
 from .models import ParkingRecord
-from .services import check_in_vehicle, TICKET_SIGNING_SALT
+from .services import TICKET_SIGNING_SALT, check_in_vehicle
 
 
 User = get_user_model()
@@ -37,9 +38,7 @@ class CheckInAPITests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.operator)
 
-        self.zone = ParkingZone.objects.create(
-            name="Zone A",
-        )
+        self.zone = ParkingZone.objects.create(name="Zone A")
 
         self.slot = ParkingSlot.objects.create(
             zone=self.zone,
@@ -60,6 +59,7 @@ class CheckInAPITests(TestCase):
         )
 
         self.url = "/api/parking/check-in/"
+        self.checkout_url = "/api/parking/check-out/"
 
     def check_in(self, **overrides):
         payload = {
@@ -69,6 +69,18 @@ class CheckInAPITests(TestCase):
 
         return self.client.post(
             self.url,
+            payload,
+            format="json",
+        )
+
+    def check_out(self, **overrides):
+        payload = {
+            "registration_number": self.vehicle.registration_number,
+        }
+        payload.update(overrides)
+
+        return self.client.post(
+            self.checkout_url,
             payload,
             format="json",
         )
@@ -87,6 +99,7 @@ class CheckInAPITests(TestCase):
         self.assertEqual(record.operator, self.operator)
         self.assertIsNotNone(record.check_in_time)
         self.assertIsNone(record.check_out_time)
+        self.assertIsNone(response.data["duration_seconds"])
 
         self.slot.refresh_from_db()
 
@@ -123,6 +136,7 @@ class CheckInAPITests(TestCase):
         response = self.check_in(slot_id=incompatible_slot.pk)
 
         self.assertEqual(response.status_code, 400)
+
         self.assertFalse(
             ParkingRecord.objects.filter(
                 vehicle=self.vehicle,
@@ -297,7 +311,6 @@ class CheckInAPITests(TestCase):
         self.slot.refresh_from_db()
         self.second_slot.refresh_from_db()
 
-        # The failed candidate's transaction must be rolled back.
         self.assertEqual(
             self.slot.status,
             ParkingSlot.Status.AVAILABLE,
@@ -306,8 +319,6 @@ class CheckInAPITests(TestCase):
             self.slot.vehicle_type,
             Vehicle.VEHICLE_TYPE_COMPACT,
         )
-
-        # Automatic allocation should continue to the second slot.
         self.assertEqual(
             self.second_slot.status,
             ParkingSlot.Status.OCCUPIED,
@@ -337,8 +348,6 @@ class CheckInAPITests(TestCase):
 
         self.slot.refresh_from_db()
 
-        # Failed manual allocation must not leave a slot occupied
-        # or retain the simulated compatibility change.
         self.assertEqual(
             self.slot.status,
             ParkingSlot.Status.AVAILABLE,
@@ -346,6 +355,156 @@ class CheckInAPITests(TestCase):
         self.assertEqual(
             self.slot.vehicle_type,
             Vehicle.VEHICLE_TYPE_COMPACT,
+        )
+
+    def test_checkout_records_exit_time_duration_and_releases_slot(self):
+        checkin_response = self.check_in(slot_id=self.slot.pk)
+        self.assertEqual(checkin_response.status_code, 201)
+
+        record = ParkingRecord.objects.get(pk=checkin_response.data["id"])
+
+        # Give the session a known duration of 1 hour and 5 seconds.
+        checkout_time = timezone.now()
+        expected_duration_seconds = 3605
+
+        record.check_in_time = checkout_time - timedelta(
+            seconds=expected_duration_seconds,
+        )
+        record.save(update_fields=["check_in_time"])
+
+        # Use a fixed checkout time so the duration assertion is deterministic.
+        with patch(
+            "operations.services.timezone.now",
+            return_value=checkout_time,
+        ):
+            response = self.check_out()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["status"],
+            ParkingRecord.Status.COMPLETED,
+        )
+        self.assertEqual(
+            response.data["duration_seconds"],
+            expected_duration_seconds,
+        )
+
+        record.refresh_from_db()
+        self.slot.refresh_from_db()
+
+        self.assertEqual(
+            record.status,
+            ParkingRecord.Status.COMPLETED,
+        )
+        self.assertEqual(record.check_out_time, checkout_time)
+        self.assertEqual(
+            int(
+                (record.check_out_time - record.check_in_time).total_seconds()
+            ),
+            expected_duration_seconds,
+        )
+        self.assertEqual(
+            self.slot.status,
+            ParkingSlot.Status.AVAILABLE,
+        )
+
+    def test_checkout_without_active_session_returns_404(self):
+        response = self.check_out()
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(ParkingRecord.objects.count(), 0)
+
+    def test_checkout_unknown_vehicle_returns_404(self):
+        response = self.check_out(
+            registration_number="KA-99-XX-9999",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(ParkingRecord.objects.count(), 0)
+
+    def test_repeated_checkout_returns_404(self):
+        checkin_response = self.check_in()
+        self.assertEqual(checkin_response.status_code, 201)
+
+        first_checkout = self.check_out()
+        self.assertEqual(first_checkout.status_code, 200)
+
+        second_checkout = self.check_out()
+
+        self.assertEqual(second_checkout.status_code, 404)
+
+        self.assertEqual(
+            ParkingRecord.objects.filter(
+                vehicle=self.vehicle,
+                status=ParkingRecord.Status.COMPLETED,
+            ).count(),
+            1,
+        )
+
+    def test_customer_cannot_check_out(self):
+        checkin_response = self.check_in()
+        self.assertEqual(checkin_response.status_code, 201)
+
+        self.operator.role = "Customer"
+        self.operator.save(update_fields=["role"])
+
+        response = self.check_out()
+
+        self.assertEqual(response.status_code, 403)
+
+        record = ParkingRecord.objects.get(pk=checkin_response.data["id"])
+        self.slot.refresh_from_db()
+
+        self.assertEqual(record.status, ParkingRecord.Status.ACTIVE)
+        self.assertIsNone(record.check_out_time)
+        self.assertEqual(
+            self.slot.status,
+            ParkingSlot.Status.OCCUPIED,
+        )
+
+    def test_unauthenticated_checkout_is_rejected(self):
+        checkin_response = self.check_in()
+        self.assertEqual(checkin_response.status_code, 201)
+
+        self.client.force_authenticate(user=None)
+
+        response = self.check_out()
+
+        self.assertEqual(response.status_code, 401)
+
+        record = ParkingRecord.objects.get(pk=checkin_response.data["id"])
+        self.slot.refresh_from_db()
+
+        self.assertEqual(record.status, ParkingRecord.Status.ACTIVE)
+        self.assertIsNone(record.check_out_time)
+        self.assertEqual(
+            self.slot.status,
+            ParkingSlot.Status.OCCUPIED,
+        )
+
+    def test_checkout_release_failure_rolls_back_completion(self):
+        checkin_response = self.check_in()
+        self.assertEqual(checkin_response.status_code, 201)
+
+        record_id = checkin_response.data["id"]
+
+        with patch(
+            "operations.services.release_slot",
+            side_effect=Conflict("Simulated slot release failure."),
+        ):
+            response = self.check_out()
+
+        self.assertEqual(response.status_code, 409)
+
+        record = ParkingRecord.objects.get(pk=record_id)
+        self.slot.refresh_from_db()
+
+        # The outer checkout transaction must roll back both changes.
+        self.assertEqual(record.status, ParkingRecord.Status.ACTIVE)
+        self.assertIsNone(record.check_out_time)
+        self.assertEqual(
+            self.slot.status,
+            ParkingSlot.Status.OCCUPIED,
         )
 
 
@@ -362,9 +521,7 @@ class CheckInConcurrencyTests(TransactionTestCase):
             role="Operator",
         )
 
-        self.zone = ParkingZone.objects.create(
-            name="Concurrency Zone",
-        )
+        self.zone = ParkingZone.objects.create(name="Concurrency Zone")
 
         self.slot = ParkingSlot.objects.create(
             zone=self.zone,
