@@ -4,6 +4,7 @@ import { VehicleRegistrationForm } from './VehicleRegistrationForm'
 import { VehicleProfileView } from './VehicleProfileView'
 import BayIcon from './BayIcon'
 import SlotsPage from '../pages/Slots'
+import SearchPage from '../pages/Search'
 
 export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
@@ -17,6 +18,7 @@ export function AuthenticatedView() {
     ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
     ['vehicles', 'My vehicles', 'car'],
     ['profiles', 'Vehicle profiles', 'edit'],
+    ['search', 'Vehicle search', 'search'],
     ['account', 'Account', 'user'],
   ]
 
@@ -151,6 +153,13 @@ export function AuthenticatedView() {
               <VehicleProfileView
                 initialVehicleId={selectedVehicleId}
                 onBackToRegistration={() => setPage('vehicles')}
+              />
+            </section>
+          ) : activePage === 'search' ? (
+            <section className="bay-legacy-page" id="vehicle-search-section">
+              <SearchPage
+                onNavigateToProfile={handleNavigateToProfile}
+                onNavigateToRegister={() => setPage('vehicles')}
               />
             </section>
           ) : (

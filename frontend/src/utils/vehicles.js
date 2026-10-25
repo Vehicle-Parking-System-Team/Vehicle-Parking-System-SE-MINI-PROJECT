@@ -38,3 +38,26 @@ export function validateVehicleUpdateInput({ registration_number, vehicle_type }
     errors,
   }
 }
+
+export function validateSearchPlateInput(plate) {
+  const trimmed = normalizePlate(plate)
+  if (!trimmed) {
+    return {
+      isValid: false,
+      error: 'Please enter a license plate number to search.',
+      normalized: '',
+    }
+  }
+  if (trimmed.length > 20) {
+    return {
+      isValid: false,
+      error: 'Registration number cannot exceed 20 characters.',
+      normalized: trimmed,
+    }
+  }
+  return {
+    isValid: true,
+    error: null,
+    normalized: trimmed,
+  }
+}

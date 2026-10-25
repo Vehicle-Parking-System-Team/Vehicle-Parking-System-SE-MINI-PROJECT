@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
-from vehicles.services import normalize_registration_number
+from vehicles.services import normalize_registration_number, is_valid_registration_number
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -62,6 +62,11 @@ class VehicleSerializer(serializers.ModelSerializer):
                     {'registration_number': ['Ensure this field has no more than 20 characters.']}
                 )
 
+            if not is_valid_registration_number(normalized):
+                raise serializers.ValidationError(
+                    {'registration_number': ['Invalid vehicle registration number format. Supported formats include standard state plates (e.g. KA-01-AB-1234, DL3CBB1122) and BH-series (e.g. 22-BH-1234-AA).']}
+                )
+
             attrs['registration_number'] = normalized
 
             # Check for duplicate registration before database write (returns HTTP 409 Conflict)
@@ -95,3 +100,48 @@ class VehicleSerializer(serializers.ModelSerializer):
         # Ensure owner is immutable through vehicle profile updates
         validated_data.pop('owner', None)
         return super().update(instance, validated_data)
+
+
+class VehicleParkingStatusSerializer(serializers.Serializer):
+    """
+    Serializer representing real-time parking status for a vehicle (FR-11 / US-07).
+    """
+    is_parked = serializers.BooleanField()
+    status = serializers.CharField()
+    session_id = serializers.IntegerField(allow_null=True, required=False)
+    check_in_time = serializers.CharField(allow_null=True, required=False)
+    slot = serializers.DictField(allow_null=True, required=False)
+    message = serializers.CharField()
+
+
+class VehicleSearchResultSerializer(serializers.ModelSerializer):
+    """
+    Serializer for US-07 / FR-11 vehicle search results.
+    Combines core vehicle profile details with active parking status.
+    """
+    owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    owner_username = serializers.CharField(source='owner.username', read_only=True)
+    parking_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vehicle
+        fields = [
+            'id',
+            'registration_number',
+            'vehicle_type',
+            'owner',
+            'owner_username',
+            'owner_name',
+            'owner_phone',
+            'created_at',
+            'updated_at',
+            'parking_status',
+        ]
+        read_only_fields = fields
+
+    def get_parking_status(self, obj):
+        context_status = self.context.get('parking_status')
+        if context_status is not None:
+            return context_status
+        from vehicles.services import get_vehicle_parking_status
+        return get_vehicle_parking_status(obj)
