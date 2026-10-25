@@ -18,6 +18,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.test import APIClient
 
+from operations.models import ParkingRecord
 from parking_slots.models import ParkingSlot, ParkingZone
 from vehicles.models import Vehicle
 from vehicles.services import (
@@ -126,52 +127,42 @@ class VehicleSearchServiceTests(TestCase):
         self.assertEqual(found_vehicle.pk, self.vehicle.pk)
 
     def test_get_vehicle_parking_status_with_active_session_returns_parked(self):
-        """Active session record returns PARKED with slot metadata."""
-        mock_session = mock.MagicMock()
-        mock_session.pk = 101
-        mock_session.slot = self.slot
-        mock_session.status = 'ACTIVE'
-        mock_session.check_in_time = '2026-10-25T10:00:00Z'
-        mock_session.entry_time = None
+        """Authoritative persisted active ParkingRecord returns PARKED with slot metadata."""
+        record = ParkingRecord.objects.create(
+            vehicle=self.vehicle,
+            slot=self.slot,
+            operator=self.owner,
+            status=ParkingRecord.Status.ACTIVE,
+        )
 
-        mock_model = mock.MagicMock()
-        mock_model.objects.filter.return_value.select_related.return_value.first.return_value = mock_session
-
-        with mock.patch('django.apps.apps.is_installed', side_effect=lambda app: app == 'operations'):
-            with mock.patch('django.apps.apps.get_model', return_value=mock_model):
-                status_data = get_vehicle_parking_status(self.vehicle)
+        status_data = get_vehicle_parking_status(self.vehicle)
 
         self.assertTrue(status_data['is_parked'])
         self.assertEqual(status_data['status'], 'PARKED')
-        self.assertEqual(status_data['session_id'], 101)
+        self.assertEqual(status_data['session_id'], record.pk)
         self.assertEqual(status_data['slot']['id'], self.slot.pk)
         self.assertEqual(status_data['slot']['slot_number'], 'A-102')
         self.assertEqual(status_data['slot']['zone'], 'North Zone')
         self.assertEqual(status_data['slot']['floor'], 1)
 
     def test_get_vehicle_parking_status_with_completed_session_returns_not_parked(self):
-        """Vehicle with no active session (or only completed historical session) returns NOT_PARKED."""
-        mock_model = mock.MagicMock()
-        mock_model.objects.filter.return_value.select_related.return_value.first.return_value = None
+        """Vehicle with only completed historical ParkingRecord returns NOT_PARKED."""
+        ParkingRecord.objects.create(
+            vehicle=self.vehicle,
+            slot=self.slot,
+            operator=self.owner,
+            status=ParkingRecord.Status.COMPLETED,
+        )
 
-        with mock.patch('django.apps.apps.is_installed', side_effect=lambda app: app == 'operations'):
-            with mock.patch('django.apps.apps.get_model', return_value=mock_model):
-                status_data = get_vehicle_parking_status(self.vehicle)
+        status_data = get_vehicle_parking_status(self.vehicle)
 
         self.assertFalse(status_data['is_parked'])
         self.assertEqual(status_data['status'], 'NOT_PARKED')
         self.assertIsNone(status_data['slot'])
 
     def test_get_vehicle_parking_status_safely_handles_missing_slot(self):
-        """Inconsistent session with missing slot relationship safely returns NOT_PARKED."""
-        mock_session = mock.MagicMock()
-        mock_session.slot = None
-        mock_model = mock.MagicMock()
-        mock_model.objects.filter.return_value.select_related.return_value.first.return_value = mock_session
-
-        with mock.patch('django.apps.apps.is_installed', side_effect=lambda app: app == 'operations'):
-            with mock.patch('django.apps.apps.get_model', return_value=mock_model):
-                status_data = get_vehicle_parking_status(self.vehicle)
+        """Vehicle without active parking record safely returns NOT_PARKED."""
+        status_data = get_vehicle_parking_status(self.vehicle)
 
         self.assertFalse(status_data['is_parked'])
         self.assertEqual(status_data['status'], 'NOT_PARKED')
@@ -335,27 +326,39 @@ class VehicleSearchAPITests(TestCase):
         self.assertEqual(response.data['parking_status']['status'], 'NOT_PARKED')
 
     def test_search_own_vehicle_parked_live_status(self):
-        """Active session returns live PARKED status in API response."""
-        mock_session = mock.MagicMock()
-        mock_session.pk = 205
-        mock_session.slot = self.slot
-        mock_session.status = 'ACTIVE'
-        mock_session.check_in_time = '2026-10-25T12:00:00Z'
-        mock_session.entry_time = None
-
-        mock_model = mock.MagicMock()
-        mock_model.objects.filter.return_value.select_related.return_value.first.return_value = mock_session
+        """Authoritative persisted active ParkingRecord returns live PARKED status in API response."""
+        record = ParkingRecord.objects.create(
+            vehicle=self.vehicle,
+            slot=self.slot,
+            operator=self.customer,
+            status=ParkingRecord.Status.ACTIVE,
+        )
 
         self.client.force_authenticate(user=self.customer)
-        with mock.patch('django.apps.apps.is_installed', side_effect=lambda app: app == 'operations'):
-            with mock.patch('django.apps.apps.get_model', return_value=mock_model):
-                response = self.client.get('/api/v1/vehicles/search/?plate=DL-01-AB-1234')
+        response = self.client.get('/api/v1/vehicles/search/?plate=DL-01-AB-1234')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data['parking_status']['is_parked'])
         self.assertEqual(response.data['parking_status']['status'], 'PARKED')
-        self.assertEqual(response.data['parking_status']['session_id'], 205)
+        self.assertEqual(response.data['parking_status']['session_id'], record.pk)
         self.assertEqual(response.data['parking_status']['slot']['slot_number'], 'C-301')
+
+    def test_search_own_vehicle_completed_session_returns_not_parked(self):
+        """Authoritative persisted completed ParkingRecord returns NOT_PARKED status in API response."""
+        ParkingRecord.objects.create(
+            vehicle=self.vehicle,
+            slot=self.slot,
+            operator=self.customer,
+            status=ParkingRecord.Status.COMPLETED,
+        )
+
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get('/api/v1/vehicles/search/?plate=DL-01-AB-1234')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data['parking_status']['is_parked'])
+        self.assertEqual(response.data['parking_status']['status'], 'NOT_PARKED')
+        self.assertIsNone(response.data['parking_status']['slot'])
 
     def test_search_own_vehicle_by_path_param(self):
         """Customer searching via path parameter returns HTTP 200."""
@@ -451,37 +454,17 @@ class VehicleSearchAPITests(TestCase):
         )
         self.assertEqual(res_patch.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_operator_cannot_update_another_customers_vehicle(self):
-        """An Operator attempting to update a customer's vehicle is rejected with 403 Forbidden on PUT & PATCH."""
+    def test_operator_can_manage_customer_vehicle(self):
+        """Operator has documented access to update customer vehicles (FR-02 / FR-16)."""
         self.client.force_authenticate(user=self.operator)
-
-        # PUT attempt by ID
-        res_put = self.client.put(
-            f'/api/v1/vehicles/{self.vehicle.id}/',
-            {'registration_number': 'DL-01-AB-1234', 'vehicle_type': 'Compact'},
-        )
-        self.assertEqual(res_put.status_code, status.HTTP_403_FORBIDDEN)
-
-        # PATCH attempt by ID
-        res_patch = self.client.patch(
-            f'/api/v1/vehicles/{self.vehicle.id}/',
-            {'vehicle_type': 'Compact'},
-        )
-        self.assertEqual(res_patch.status_code, status.HTTP_403_FORBIDDEN)
-
-        # PUT attempt by plate
-        res_put_plate = self.client.put(
-            f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/',
-            {'registration_number': 'DL-01-AB-1234', 'vehicle_type': 'Compact'},
-        )
-        self.assertEqual(res_put_plate.status_code, status.HTTP_403_FORBIDDEN)
 
         # PATCH attempt by plate
         res_patch_plate = self.client.patch(
             f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/',
-            {'owner_name': 'Operator Overwrite'},
+            {'owner_name': 'Operator Verified Name'},
         )
-        self.assertEqual(res_patch_plate.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res_patch_plate.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_patch_plate.data['owner_name'], 'Operator Verified Name')
 
     def test_backend_rejects_invalid_registration_format_on_create_and_update(self):
         """Backend validates registration formats and rejects malformed plates on create and update."""

@@ -63,9 +63,15 @@ export function VehicleSearchView({
 
         if (response.ok) {
           const data = await response.json()
-          setSearchResult(data)
-          setSearchError(null)
-          setErrorCode(null)
+          if (Array.isArray(data) && data.length === 0) {
+            setErrorCode('NOT_FOUND')
+            setSearchError(`No vehicle found with registration number "${plateToQuery}".`)
+            setSearchResult(null)
+          } else {
+            setSearchResult(data)
+            setSearchError(null)
+            setErrorCode(null)
+          }
         } else if (response.status === 404) {
           setErrorCode('NOT_FOUND')
           setSearchError(`No vehicle found with registration number "${plateToQuery}".`)
@@ -126,6 +132,11 @@ export function VehicleSearchView({
   }
 
   const isCustomer = user?.role === 'Customer'
+  const isMultiple = Array.isArray(searchResult) && searchResult.length > 1
+  const isSingle =
+    (Array.isArray(searchResult) && searchResult.length === 1) ||
+    (searchResult && !Array.isArray(searchResult))
+  const singleResult = Array.isArray(searchResult) ? searchResult[0] : searchResult
 
   return (
     <div className="vehicle-search-container" id="vehicle-search-container">
@@ -275,19 +286,152 @@ export function VehicleSearchView({
           </div>
         )}
 
-        {/* Successful Search Result Display */}
-        {!isSearching && searchResult && (
+        {/* Multiple Search Results Display */}
+        {!isSearching && isMultiple && (
+          <div className="search-multiple-results" id="search-multiple-results">
+            <div className="multiple-results-header">
+              <h3 id="multiple-results-count">Matching Vehicles ({searchResult.length})</h3>
+              <p>Found {searchResult.length} matching vehicles for query "{searchedPlate}".</p>
+            </div>
+            <div className="multiple-results-list" id="multiple-results-list">
+              {searchResult.map((v) => (
+                <div
+                  key={v.id}
+                  className="search-result-display multiple-result-card"
+                  id={`vehicle-search-result-${v.id}`}
+                >
+                  <div
+                    className={`live-status-hero ${
+                      v.parking_status?.is_parked ? 'status-parked' : 'status-not-parked'
+                    }`}
+                  >
+                    <div className="status-hero-main">
+                      <span className="status-indicator-badge">
+                        {v.parking_status?.is_parked ? (
+                          <>
+                            <span className="pulse-dot green" />
+                            <strong>PARKED IN FACILITY</strong>
+                          </>
+                        ) : (
+                          <>
+                            <span className="pulse-dot neutral" />
+                            <strong>NOT CURRENTLY PARKED</strong>
+                          </>
+                        )}
+                      </span>
+                      <p className="status-hero-message">{v.parking_status?.message}</p>
+                    </div>
+
+                    {v.parking_status?.is_parked && v.parking_status?.slot && (
+                      <div className="allocated-slot-pill">
+                        <div className="slot-pill-left">
+                          <span className="pill-sub">ALLOCATED BAY</span>
+                          <strong className="slot-name font-mono">
+                            {v.parking_status.slot.slot_number}
+                          </strong>
+                        </div>
+                        <div className="slot-pill-right">
+                          <span>{v.parking_status.slot.zone || 'Main Zone'}</span>
+                          <small>
+                            {v.parking_status.slot.floor !== null && v.parking_status.slot.floor !== undefined
+                              ? `Floor ${v.parking_status.slot.floor}`
+                              : 'Level 1'}
+                          </small>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="search-spec-card">
+                    <div className="spec-card-header">
+                      <span className="bay-eyebrow">VEHICLE SPECIFICATION</span>
+                      <div className="header-plate-row">
+                        <h2 className="spec-plate font-mono">{v.registration_number}</h2>
+                        <span className="badge-type">{v.vehicle_type}</span>
+                      </div>
+                    </div>
+
+                    <dl className="search-spec-list">
+                      <div className="spec-row">
+                        <dt>Vehicle Classification</dt>
+                        <dd>{v.vehicle_type}</dd>
+                      </div>
+                      <div className="spec-row">
+                        <dt>Owner Full Name</dt>
+                        <dd>{v.owner_name || v.owner_username || '—'}</dd>
+                      </div>
+                      <div className="spec-row">
+                        <dt>Contact Telephone</dt>
+                        <dd>{v.owner_phone ? `📞 ${v.owner_phone}` : 'Not provided'}</dd>
+                      </div>
+                      <div className="spec-row">
+                        <dt>System User Account</dt>
+                        <dd className="font-mono">@{v.owner_username}</dd>
+                      </div>
+                      {v.created_at && (
+                        <div className="spec-row">
+                          <dt>Initial Registration</dt>
+                          <dd>{new Date(v.created_at).toLocaleDateString()}</dd>
+                        </div>
+                      )}
+                      {v.parking_status?.check_in_time && (
+                        <div className="spec-row">
+                          <dt>Session Check-In</dt>
+                          <dd>{new Date(v.parking_status.check_in_time).toLocaleString()}</dd>
+                        </div>
+                      )}
+                    </dl>
+
+                    <div className="spec-card-actions">
+                      {onNavigateToProfile && (
+                        <button
+                          type="button"
+                          className="bay-button bay-button-primary"
+                          onClick={() => onNavigateToProfile(v.id)}
+                        >
+                          <BayIcon name="edit" size={16} />
+                          <span>View & Edit Full Profile</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="bay-button bay-button-quiet"
+                        onClick={() => setSearchResult(v)}
+                        title="Focus on this vehicle"
+                      >
+                        <span>Focus View</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="spec-card-actions">
+              <button
+                type="button"
+                className="bay-button bay-button-quiet"
+                onClick={handleClear}
+              >
+                <span>New Search</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Single Search Result Display */}
+        {!isSearching && isSingle && singleResult && (
           <div className="search-result-display" id="vehicle-search-result-card">
             {/* Live Parking Status Hero Banner */}
             <div
               className={`live-status-hero ${
-                searchResult.parking_status?.is_parked ? 'status-parked' : 'status-not-parked'
+                singleResult.parking_status?.is_parked ? 'status-parked' : 'status-not-parked'
               }`}
               id="live-parking-status-banner"
             >
               <div className="status-hero-main">
                 <span className="status-indicator-badge">
-                  {searchResult.parking_status?.is_parked ? (
+                  {singleResult.parking_status?.is_parked ? (
                     <>
                       <span className="pulse-dot green" />
                       <strong>PARKED IN FACILITY</strong>
@@ -299,23 +443,23 @@ export function VehicleSearchView({
                     </>
                   )}
                 </span>
-                <p className="status-hero-message">{searchResult.parking_status?.message}</p>
+                <p className="status-hero-message">{singleResult.parking_status?.message}</p>
               </div>
 
-              {searchResult.parking_status?.is_parked && searchResult.parking_status?.slot && (
+              {singleResult.parking_status?.is_parked && singleResult.parking_status?.slot && (
                 <div className="allocated-slot-pill" id="search-allocated-slot">
                   <div className="slot-pill-left">
                     <span className="pill-sub">ALLOCATED BAY</span>
                     <strong className="slot-name font-mono">
-                      {searchResult.parking_status.slot.slot_number}
+                      {singleResult.parking_status.slot.slot_number}
                     </strong>
                   </div>
                   <div className="slot-pill-right">
-                    <span>{searchResult.parking_status.slot.zone || 'Main Zone'}</span>
+                    <span>{singleResult.parking_status.slot.zone || 'Main Zone'}</span>
                     <small>
-                      {searchResult.parking_status.slot.floor !== null &&
-                      searchResult.parking_status.slot.floor !== undefined
-                        ? `Floor ${searchResult.parking_status.slot.floor}`
+                      {singleResult.parking_status.slot.floor !== null &&
+                      singleResult.parking_status.slot.floor !== undefined
+                        ? `Floor ${singleResult.parking_status.slot.floor}`
                         : 'Level 1'}
                     </small>
                   </div>
@@ -331,10 +475,10 @@ export function VehicleSearchView({
                   <span className="bay-eyebrow">VEHICLE SPECIFICATION</span>
                   <div className="header-plate-row">
                     <h2 className="spec-plate font-mono" id="search-display-plate">
-                      {searchResult.registration_number}
+                      {singleResult.registration_number}
                     </h2>
                     <span className="badge-type" id="search-display-type">
-                      {searchResult.vehicle_type}
+                      {singleResult.vehicle_type}
                     </span>
                   </div>
                 </div>
@@ -342,34 +486,34 @@ export function VehicleSearchView({
                 <dl className="search-spec-list">
                   <div className="spec-row">
                     <dt>Vehicle Classification</dt>
-                    <dd>{searchResult.vehicle_type}</dd>
+                    <dd>{singleResult.vehicle_type}</dd>
                   </div>
                   <div className="spec-row">
                     <dt>Owner Full Name</dt>
                     <dd id="search-display-owner">
-                      {searchResult.owner_name || searchResult.owner_username || '—'}
+                      {singleResult.owner_name || singleResult.owner_username || '—'}
                     </dd>
                   </div>
                   <div className="spec-row">
                     <dt>Contact Telephone</dt>
                     <dd id="search-display-phone">
-                      {searchResult.owner_phone ? `📞 ${searchResult.owner_phone}` : 'Not provided'}
+                      {singleResult.owner_phone ? `📞 ${singleResult.owner_phone}` : 'Not provided'}
                     </dd>
                   </div>
                   <div className="spec-row">
                     <dt>System User Account</dt>
-                    <dd className="font-mono">@{searchResult.owner_username}</dd>
+                    <dd className="font-mono">@{singleResult.owner_username}</dd>
                   </div>
-                  {searchResult.created_at && (
+                  {singleResult.created_at && (
                     <div className="spec-row">
                       <dt>Initial Registration</dt>
-                      <dd>{new Date(searchResult.created_at).toLocaleDateString()}</dd>
+                      <dd>{new Date(singleResult.created_at).toLocaleDateString()}</dd>
                     </div>
                   )}
-                  {searchResult.parking_status?.check_in_time && (
+                  {singleResult.parking_status?.check_in_time && (
                     <div className="spec-row">
                       <dt>Session Check-In</dt>
-                      <dd>{new Date(searchResult.parking_status.check_in_time).toLocaleString()}</dd>
+                      <dd>{new Date(singleResult.parking_status.check_in_time).toLocaleString()}</dd>
                     </div>
                   )}
                 </dl>
@@ -381,7 +525,7 @@ export function VehicleSearchView({
                       type="button"
                       className="bay-button bay-button-primary"
                       id="btn-view-profile-from-search"
-                      onClick={() => onNavigateToProfile(searchResult.id)}
+                      onClick={() => onNavigateToProfile(singleResult.id)}
                     >
                       <BayIcon name="edit" size={16} />
                       <span>View & Edit Full Profile</span>

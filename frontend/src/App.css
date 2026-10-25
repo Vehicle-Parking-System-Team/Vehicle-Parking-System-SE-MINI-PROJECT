@@ -1443,6 +1443,44 @@
 }
 
 /* ==========================================================================
+   MULTIPLE SEARCH RESULTS STYLES (US-07)
+   ========================================================================== */
+.search-multiple-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.multiple-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px;
+}
+.multiple-results-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14283F;
+  margin: 0;
+}
+.multiple-results-header p {
+  font-size: 13px;
+  color: #687586;
+  margin: 0;
+}
+.multiple-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.multiple-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ==========================================================================
    RESPONSIVE BREAKPOINTS (BAY WORKSPACE)
    ========================================================================== */
 @media (min-width: 1800px) {
