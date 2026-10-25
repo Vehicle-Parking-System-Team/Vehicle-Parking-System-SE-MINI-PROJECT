@@ -202,4 +202,3 @@ class SlotConcurrencyTests(TransactionTestCase):
             self.assertFalse(self.slot.is_active)
             self.assertFalse(other.is_active)
             self.assertFalse(ParkingRecord.objects.exists())
-
