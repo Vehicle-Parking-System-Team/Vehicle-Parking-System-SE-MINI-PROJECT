@@ -21,6 +21,12 @@ class _SlotCompatibilityChanged(Exception):
     """Raised when a slot becomes incompatible during allocation."""
 
 
+class IncompatibleSlot(ValidationError):
+    """US-12 semantic assignment failure; retain US-31 field-error details."""
+
+    status_code = 422
+
+
 def _is_compatible_slot(slot, vehicle):
     """Check whether a parking slot supports the requested vehicle type."""
     slot_type = (slot.vehicle_type or "").strip().casefold()
@@ -74,7 +80,8 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
     Raises:
         NotFound: Vehicle or explicitly selected slot does not exist.
-        ValidationError: Invalid vehicle registration or incompatible slot.
+        ValidationError: Invalid vehicle registration.
+        IncompatibleSlot: Selected slot cannot accommodate the vehicle (422).
         Conflict: Duplicate active record, unavailable slot, or no
                   compatible available slot.
     """
@@ -146,7 +153,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
             )
 
         if not _is_compatible_slot(candidate, vehicle):
-            raise ValidationError(
+            raise IncompatibleSlot(
                 {
                     "slot_id":
                         "The selected slot is incompatible with this vehicle."
@@ -200,7 +207,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
         except _SlotCompatibilityChanged:
             # The nested transaction rolls back the occupation.
             if slot_id is not None:
-                raise ValidationError(
+                raise IncompatibleSlot(
                     {
                         "slot_id":
                             "The selected slot is no longer compatible "

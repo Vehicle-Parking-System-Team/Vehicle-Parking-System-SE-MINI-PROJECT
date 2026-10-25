@@ -13,6 +13,15 @@ from .models import ParkingSlot, ParkingZone
 PROTECTED_STATES = (ParkingSlot.Status.OCCUPIED, ParkingSlot.Status.RESERVED)
 
 
+def _has_active_records(slot_ids):
+    # Imported here because operations also consumes the slot state services.
+    from operations.models import ParkingRecord
+
+    return ParkingRecord.objects.filter(
+        slot_id__in=slot_ids, status=ParkingRecord.Status.ACTIVE,
+    ).exists()
+
+
 def _lock_slot(slot_id, new_zone_id=None):
     # Lock parents before children, also when a zone is deactivated or a bay moved.
     zone_id = get_object_or_404(ParkingSlot, pk=slot_id).zone_id
@@ -61,8 +70,9 @@ def update_slot(slot_id, values):
     target_zone = values.get('zone')
     slot, zones = _lock_slot(slot_id, target_zone.pk if target_zone else None)
     changed = any(getattr(slot, key) != value for key, value in values.items())
-    if slot.status in PROTECTED_STATES and (changed or values.get('is_active') is False):
-        raise Conflict('An occupied or reserved bay cannot be changed or deactivated.')
+    protected = slot.status in PROTECTED_STATES or _has_active_records([slot.pk])
+    if protected and (changed or values.get('is_active') is False):
+        raise Conflict('A bay with an active record or occupied/reserved state cannot be changed or deactivated.')
     zone = zones[target_zone.pk] if target_zone else slot.zone
     if values.get('is_active', slot.is_active) and not zone.is_active:
         raise Conflict('Activate the zone before activating or changing this bay.')
@@ -76,8 +86,10 @@ def update_zone(zone_id, values):
     zone = get_object_or_404(ParkingZone.objects.select_for_update(), pk=zone_id)
     if values.get('is_active') is False:
         children = list(zone.slots.select_for_update().order_by('pk'))
-        if any(slot.status in PROTECTED_STATES for slot in children):
-            raise Conflict('A zone with occupied or reserved bays cannot be deactivated.')
+        if any(slot.status in PROTECTED_STATES for slot in children) or _has_active_records(
+            [slot.pk for slot in children]
+        ):
+            raise Conflict('A zone with active records or occupied/reserved bays cannot be deactivated.')
         zone.slots.filter(is_active=True).update(is_active=False, updated_at=timezone.now())
     for key, value in values.items():
         setattr(zone, key, value)
@@ -96,6 +108,8 @@ def set_maintenance(slot_id, enabled):
 def _transition(slot, expected, target):
     if not slot.is_active or not slot.zone.is_active:
         raise Conflict('This bay or its zone is inactive.')
+    if _has_active_records([slot.pk]):
+        raise Conflict('A bay with an active parking record cannot change state.')
     # Conditional write also prevents a stale reader from overwriting a winner.
     updated = ParkingSlot.objects.filter(
         pk=slot.pk, status=expected, is_active=True, zone__is_active=True,
