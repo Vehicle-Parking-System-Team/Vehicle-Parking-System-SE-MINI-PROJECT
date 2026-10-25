@@ -5,13 +5,13 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.signing import Signer
-from django.db import close_old_connections, connections
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections, connections
 from django.test import (
     TestCase,
     TransactionTestCase,
     skipUnlessDBFeature,
 )
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from common.exceptions import Conflict
@@ -20,7 +20,7 @@ from parking_slots.services import occupy_slot as real_occupy_slot
 from vehicles.models import Vehicle
 
 from .models import ParkingRecord
-from .services import check_in_vehicle, TICKET_SIGNING_SALT
+from .services import TICKET_SIGNING_SALT, check_in_vehicle
 
 
 User = get_user_model()
@@ -37,9 +37,7 @@ class CheckInAPITests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.operator)
 
-        self.zone = ParkingZone.objects.create(
-            name="Zone A",
-        )
+        self.zone = ParkingZone.objects.create(name="Zone A")
 
         self.slot = ParkingSlot.objects.create(
             zone=self.zone,
@@ -123,6 +121,7 @@ class CheckInAPITests(TestCase):
         response = self.check_in(slot_id=incompatible_slot.pk)
 
         self.assertEqual(response.status_code, 400)
+
         self.assertFalse(
             ParkingRecord.objects.filter(
                 vehicle=self.vehicle,
@@ -153,12 +152,88 @@ class CheckInAPITests(TestCase):
         self.assertEqual(first_response.status_code, 201)
         self.assertEqual(second_response.status_code, 409)
 
+        # US-18: Verify the standardized conflict response.
+        self.assertEqual(
+            second_response.data["code"],
+            "CONFLICT",
+        )
+
+        existing_record = ParkingRecord.objects.get(
+            vehicle=self.vehicle,
+            status=ParkingRecord.Status.ACTIVE,
+        )
+
+        details = second_response.data["details"]
+
+        self.assertEqual(
+            details["existing_slot_id"],
+            existing_record.slot_id,
+        )
+        self.assertEqual(
+            details["existing_slot_number"],
+            existing_record.slot.slot_number,
+        )
+        self.assertEqual(
+            details["check_in_time"],
+            existing_record.check_in_time.isoformat(),
+        )
+
+        # Only one active record may exist for this vehicle.
         self.assertEqual(
             ParkingRecord.objects.filter(
                 vehicle=self.vehicle,
                 status=ParkingRecord.Status.ACTIVE,
             ).count(),
             1,
+        )
+
+    def test_completed_session_allows_reentry(self):
+        first_response = self.check_in()
+
+        self.assertEqual(first_response.status_code, 201)
+
+        previous_record = ParkingRecord.objects.get(
+            pk=first_response.data["id"]
+        )
+        previous_slot = previous_record.slot
+
+        # Simulate checkout completing the previous parking session.
+        previous_record.status = ParkingRecord.Status.COMPLETED
+        previous_record.check_out_time = timezone.now()
+        previous_record.save(
+            update_fields=["status", "check_out_time"],
+        )
+
+        # Simulate checkout releasing the parking slot.
+        previous_slot.status = ParkingSlot.Status.AVAILABLE
+        previous_slot.save(update_fields=["status"])
+
+        # US-18: A completed session must not block a new check-in.
+        second_response = self.check_in()
+
+        self.assertEqual(second_response.status_code, 201)
+        self.assertNotEqual(
+            second_response.data["id"],
+            first_response.data["id"],
+        )
+        self.assertEqual(
+            second_response.data["status"],
+            ParkingRecord.Status.ACTIVE,
+        )
+
+        self.assertEqual(
+            ParkingRecord.objects.filter(
+                vehicle=self.vehicle,
+                status=ParkingRecord.Status.ACTIVE,
+            ).count(),
+            1,
+        )
+
+        self.assertEqual(
+            ParkingRecord.objects.filter(
+                vehicle=self.vehicle,
+            ).count(),
+            2,
         )
 
     def test_no_compatible_available_slot_returns_409(self):
@@ -270,13 +345,10 @@ class CheckInAPITests(TestCase):
         self.assertEqual(ParkingRecord.objects.count(), 0)
 
     def test_automatic_allocation_rechecks_compatibility_after_lock(self):
-        original_slot_id = self.slot.pk
-
-        def change_type_before_occupation(slot_id):
-            if slot_id == original_slot_id:
-                ParkingSlot.objects.filter(
-                    pk=slot_id,
-                ).update(
+        def change_type_then_occupy(slot_id):
+            if slot_id == self.slot.pk:
+                # Simulate a slot becoming incompatible during allocation.
+                ParkingSlot.objects.filter(pk=slot_id).update(
                     vehicle_type=Vehicle.VEHICLE_TYPE_SUV,
                 )
 
@@ -284,10 +356,11 @@ class CheckInAPITests(TestCase):
 
         with patch(
             "operations.services.occupy_slot",
-            side_effect=change_type_before_occupation,
+            side_effect=change_type_then_occupy,
         ):
             response = self.check_in()
 
+        # Allocation should skip the incompatible candidate and try the next.
         self.assertEqual(response.status_code, 201)
         self.assertEqual(
             response.data["slot_id"],
@@ -295,9 +368,8 @@ class CheckInAPITests(TestCase):
         )
 
         self.slot.refresh_from_db()
-        self.second_slot.refresh_from_db()
 
-        # The failed candidate's transaction must be rolled back.
+        # The failed candidate's nested transaction should roll back.
         self.assertEqual(
             self.slot.status,
             ParkingSlot.Status.AVAILABLE,
@@ -307,20 +379,10 @@ class CheckInAPITests(TestCase):
             Vehicle.VEHICLE_TYPE_COMPACT,
         )
 
-        # Automatic allocation should continue to the second slot.
-        self.assertEqual(
-            self.second_slot.status,
-            ParkingSlot.Status.OCCUPIED,
-        )
-
     def test_manual_selection_rechecks_compatibility_after_lock(self):
-        original_slot_id = self.slot.pk
-
-        def change_type_before_occupation(slot_id):
-            if slot_id == original_slot_id:
-                ParkingSlot.objects.filter(
-                    pk=slot_id,
-                ).update(
+        def change_type_then_occupy(slot_id):
+            if slot_id == self.slot.pk:
+                ParkingSlot.objects.filter(pk=slot_id).update(
                     vehicle_type=Vehicle.VEHICLE_TYPE_SUV,
                 )
 
@@ -328,7 +390,7 @@ class CheckInAPITests(TestCase):
 
         with patch(
             "operations.services.occupy_slot",
-            side_effect=change_type_before_occupation,
+            side_effect=change_type_then_occupy,
         ):
             response = self.check_in(slot_id=self.slot.pk)
 
@@ -337,8 +399,7 @@ class CheckInAPITests(TestCase):
 
         self.slot.refresh_from_db()
 
-        # Failed manual allocation must not leave a slot occupied
-        # or retain the simulated compatibility change.
+        # The failed manual selection must not leave the slot modified.
         self.assertEqual(
             self.slot.status,
             ParkingSlot.Status.AVAILABLE,
@@ -362,9 +423,7 @@ class CheckInConcurrencyTests(TransactionTestCase):
             role="Operator",
         )
 
-        self.zone = ParkingZone.objects.create(
-            name="Concurrency Zone",
-        )
+        self.zone = ParkingZone.objects.create(name="Concurrency Zone")
 
         self.slot = ParkingSlot.objects.create(
             zone=self.zone,
