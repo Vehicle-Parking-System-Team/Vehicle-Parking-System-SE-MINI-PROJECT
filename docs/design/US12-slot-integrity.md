@@ -3,7 +3,8 @@
 US-12 (#32) protects active parking records even when the retained slot status
 is inconsistent. It uses the existing `parking_slots` service boundary,
 `operations.ParkingRecord`, shared errors and database constraints. No new
-models, migrations, frontend routes or alternative parking domain are added.
+alternative parking domain or frontend routes are added. The US-10 checkout
+integration adds nullable snapshots to the existing ParkingRecord.
 
 ## Integrity rules
 
@@ -12,7 +13,7 @@ models, migrations, frontend routes or alternative parking domain are added.
 - Zone deactivation returns HTTP 409 if any child slot is protected by status
   or an active record. The zone and all children remain unchanged on failure.
 - Maintenance transitions and operations state hooks reject a slot with an
-  active record. A future checkout must complete its record before calling
+  active record. Checkout completes its record before calling
   `release_slot`, within the same outer transaction.
 - Completed records remain retained and do not prevent soft deactivation of
   an otherwise unprotected slot. No historical data is deleted by these guards.
@@ -21,9 +22,8 @@ models, migrations, frontend routes or alternative parking domain are added.
   The US-31 response remains `{error, code, details}`, with `VALIDATION_ERROR`
   and a `slot_id` field message. Other malformed inputs remain HTTP 400.
 
-Allocation currently retains the merged check-in policy: matching class or
-legacy `any`. The broader SAD DEC-14 size hierarchy is a separate unresolved
-contract decision; this implementation does not silently change it.
+Allocation retains the existing check-in policy: matching class or legacy
+`any`. The broader SAD DEC-14 size hierarchy is not introduced by this PR.
 
 ## Transactions and locks
 
@@ -45,13 +45,12 @@ not automatically repaired.
 | --- | --- |
 | Available → Occupied on check-in | Real US-17 service integration and rollback tests |
 | Maintenance rejects allocation | Real check-in API regression tests |
-| Occupied → Available after checkout and fee processing | Not complete: main has no checkout/fee implementation (US-19 / US-22) |
+| Occupied → Available after checkout and fee processing | Real checkout endpoint calculates/saves the fee and completes/releases atomically |
 
-US-10 (#30) is already closed in GitHub, but that status alone is not evidence
-that the third criterion is implemented. Slot-hook tests are not a substitute
-for an actual checkout/fee workflow. No placeholder checkout or invented tariff
-policy is introduced here. Full US-10 completion remains dependent on an
-agreed checkout/fee scope and its integration.
+The [checkout contract](US10-checkout-contract.md) defines the minimal backend
+integration needed for the third criterion, using the existing configured
+tariff. It records a fee and does not claim payment settlement, bill/receipt
+generation, a checkout UI, or closure of other user stories.
 
 ## Verification
 

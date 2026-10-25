@@ -50,6 +50,13 @@ signed-in navigation, with zone/type filters and a 30-second refresh. See the
 [availability API and behavior](docs/design/US11-parking-availability.md) and
 [verification evidence](docs/testing/US11-test-evidence.md).
 
+US-12 protects bays with active parking records and verifies allocation races
+on PostgreSQL. US-10's authenticated checkout API processes the configured fee,
+completes the record and releases the bay atomically. See the
+[slot integrity contract](docs/design/US12-slot-integrity.md),
+[checkout contract](docs/design/US10-checkout-contract.md) and
+[verification evidence](docs/testing/US12-test-evidence.md).
+
 Create and activate a Python virtual environment (Python 3.12+ locally; CI uses 3.13). From `backend/`:
 
 ```sh

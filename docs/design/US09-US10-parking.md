@@ -118,5 +118,6 @@ the separate SQLite upgrade rehearsal and browser checks.
 US-17 now calls `occupy_slot` from the real check-in transaction. The US-12
 follow-up adds active-record integrity guards and PostgreSQL concurrency tests;
 see [US12-slot-integrity.md](US12-slot-integrity.md). US-10's checkout-after-fee
-criterion still requires the actual US-19/US-22 implementation. The historical
-PR #64 hook tests above do not establish that missing integration.
+criterion is completed by the real [checkout integration](US10-checkout-contract.md):
+fee snapshots, record completion and slot release commit or roll back together.
+The historical PR #64 hook tests above are distinct from that integration evidence.

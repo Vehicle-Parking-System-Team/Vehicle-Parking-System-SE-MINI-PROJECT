@@ -245,6 +245,24 @@ class CheckoutAPITests(TestCase):
         self.assertNotIn('fee_amount', response.data)
         self.assertNotIn('hourly_rate_snapshot', response.data)
 
+    def test_jwt_authenticated_api_pipeline(self):
+        self.operator.set_password('Checkout-fixture-only-123!')
+        self.operator.save(update_fields=['password'])
+        api = APIClient()
+        login = api.post('/api/auth/login/', {
+            'username': self.operator.username, 'password': 'Checkout-fixture-only-123!',
+        }, format='json')
+        self.assertEqual(login.status_code, 200)
+        api.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
+        payload = {'registration_number': self.vehicle.registration_number}
+        self.assertEqual(api.post(URL, payload, format='json').status_code, 200)
+        self.assertEqual(api.post('/api/parking/check-in/', payload, format='json').status_code, 201)
+        completed = api.post(URL, payload, format='json')
+        self.assertEqual(completed.status_code, 200)
+        self.assertEqual(completed.data['fee_amount'], '0.00')
+        public = APIClient().get('/api/parking/availability/')
+        self.assertEqual(public.data[0]['status'], 'available')
+
 
 @skipUnlessDBFeature('has_select_for_update')
 class CheckoutConcurrencyTests(TransactionTestCase):

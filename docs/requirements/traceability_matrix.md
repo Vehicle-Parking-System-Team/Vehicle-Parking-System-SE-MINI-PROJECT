@@ -114,3 +114,16 @@ Member 4 owns this reassigned story. Public access, exact zone/type filters and
 30-second/manual refresh are documented in [the US-11 contract](../design/US11-parking-availability.md).
 Local tests and browser checks passed; see [US-11 evidence](../testing/US11-test-evidence.md)
 for TC-UC03-SYS-002 coverage and environment limits. PR review remains pending.
+
+## US-10 and US-12 implementation evidence
+
+FR-04 / US-10 (#30) uses `parking_slots.services` and the real
+`operations.checkout.check_out_vehicle` transaction for check-in/state hooks,
+fee processing, completion and slot release. FR-07 / US-12 (#32) additionally
+protects active records and verifies allocation races on PostgreSQL.
+The implemented nullable snapshot migration preserves historical rows.
+See [the US-10 checkout contract](../design/US10-checkout-contract.md),
+[US-12 integrity contract](../design/US12-slot-integrity.md) and
+[execution evidence](../testing/US12-test-evidence.md).
+Payment/receipt workflows and unrelated story closure are not included;
+PR review remains required.
