@@ -180,11 +180,10 @@ def update_vehicle(
 def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
     """
     Resolves the live parking status of a vehicle (US-07 / FR-11).
-    Derives status directly from authoritative persisted ParkingSession records.
-    Returns PARKED only when the vehicle has a valid active parking session.
-    Returns NOT_PARKED when no active session exists (including completed historical sessions).
-    Safely handles completed sessions, missing slot relationships, and inconsistent data.
-    Uses select_related to avoid N+1 queries.
+    Derives status directly from authoritative persisted ParkingRecord (US-17 / PR #67).
+    Returns PARKED only when the vehicle has a valid active parking record.
+    Returns NOT_PARKED when no active record exists (including completed historical records).
+    Safely handles slot relationships and avoids N+1 queries using select_related.
     """
     if not vehicle or not getattr(vehicle, 'pk', None):
         return {
@@ -196,66 +195,37 @@ def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
             'message': 'No vehicle specified.',
         }
 
-    try:
-        from django.apps import apps
-        SessionModel = None
-        if apps.is_installed('operations'):
-            for name in ('ParkingSession', 'ParkingRecord'):
-                try:
-                    SessionModel = apps.get_model('operations', name)
-                    if SessionModel:
-                        break
-                except LookupError:
-                    continue
+    from operations.models import ParkingRecord
 
-        if not SessionModel:
-            for app_label in ('parking_slots', 'vehicles'):
-                if apps.is_installed(app_label):
-                    for name in ('ParkingSession', 'ParkingRecord'):
-                        try:
-                            SessionModel = apps.get_model(app_label, name)
-                            if SessionModel:
-                                break
-                        except LookupError:
-                            continue
-                if SessionModel:
-                    break
+    active_record = (
+        ParkingRecord.objects.filter(
+            vehicle=vehicle,
+            status=ParkingRecord.Status.ACTIVE,
+        )
+        .select_related('slot', 'slot__zone')
+        .first()
+    )
 
-        if SessionModel:
-            active_session = SessionModel.objects.filter(
-                vehicle=vehicle,
-                status__in=['active', 'ACTIVE', 'CHECKED_IN', 'OCCUPIED'],
-            ).select_related('slot', 'slot__zone').first()
+    if active_record and getattr(active_record, 'slot', None):
+        slot = active_record.slot
+        check_in_val = active_record.check_in_time
+        check_in_str = check_in_val.isoformat() if hasattr(check_in_val, 'isoformat') else str(check_in_val)
+        zone_name = slot.zone.name if getattr(slot, 'zone', None) else ''
+        slot_num = slot.slot_number
 
-            if active_session and getattr(active_session, 'slot', None):
-                slot = active_session.slot
-                if slot and getattr(slot, 'is_active', True):
-                    check_in_val = getattr(active_session, 'entry_time', None) or getattr(active_session, 'check_in_time', None)
-                    if hasattr(check_in_val, 'isoformat'):
-                        check_in_str = check_in_val.isoformat()
-                    else:
-                        check_in_str = str(check_in_val) if check_in_val else None
-
-                    zone_name = ''
-                    if hasattr(slot, 'zone') and slot.zone:
-                        zone_name = getattr(slot.zone, 'name', str(slot.zone))
-
-                    slot_num = getattr(slot, 'slot_number', '')
-                    return {
-                        'is_parked': True,
-                        'status': 'PARKED',
-                        'session_id': active_session.pk,
-                        'check_in_time': check_in_str,
-                        'slot': {
-                            'id': slot.pk,
-                            'slot_number': slot_num,
-                            'zone': zone_name,
-                            'floor': getattr(slot, 'floor', None),
-                        },
-                        'message': f'Vehicle is currently parked in bay {slot_num}.',
-                    }
-    except Exception:
-        pass
+        return {
+            'is_parked': True,
+            'status': 'PARKED',
+            'session_id': active_record.pk,
+            'check_in_time': check_in_str,
+            'slot': {
+                'id': slot.pk,
+                'slot_number': slot_num,
+                'zone': zone_name,
+                'floor': getattr(slot, 'floor', None),
+            },
+            'message': f'Vehicle is currently parked in bay {slot_num}.',
+        }
 
     return {
         'is_parked': False,

@@ -939,3 +939,58 @@ class EmailAuthenticationTests(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_login_with_valid_email_and_incorrect_password_returns_generic_401(self):
+        """Valid email with incorrect password returns generic 401 error."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword999!'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_generic_authentication_failure_consistency_prevents_user_enumeration(self):
+        """
+        Verify that unknown email, valid email with wrong password, unknown username,
+        and valid username with wrong password all yield identical HTTP 401 response envelopes.
+        """
+        scenarios = [
+            {'username': 'unknown.user@parking.local', 'password': 'AnyPassword123!'},
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword123!'},
+            {'username': 'unknown_username', 'password': 'AnyPassword123!'},
+            {'username': 'janedoe', 'password': 'WrongPassword123!'},
+        ]
+        responses = [
+            self.client.post('/api/auth/login/', payload, format='json')
+            for payload in scenarios
+        ]
+
+        for resp in responses:
+            self.assertEqual(resp.status_code, 401)
+            data = resp.json()
+            self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+            self.assertEqual(data['error'], 'Authentication failed.')
+            self.assertEqual(data.get('details'), {})
+
+    def test_login_with_email_whitespace_trimmed(self):
+        """Email identifier with surrounding whitespace is safely trimmed and succeeds."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': '   jane.doe@parking.local   ', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_mixed_case_email(self):
+        """Email lookup handles arbitrary mixed case variations."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'JaNe.DoE@PaRkInG.LoCaL', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')

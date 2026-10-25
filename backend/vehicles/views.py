@@ -62,21 +62,15 @@ class VehicleDetailView(APIView):
         if not vehicle:
             raise NotFound('Vehicle record not found.')
 
-        # Ownership / Role authorization check (FR-16 / SAD §3.4.3)
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            role = getattr(request.user, 'role', None)
-            is_privileged = (
-                role in ['Admin', 'Operator']
-                or getattr(request.user, 'is_staff', False)
-                or getattr(request.user, 'is_superuser', False)
-            )
-            if not is_privileged and vehicle.owner != request.user:
-                raise PermissionDenied('You do not have permission to access this vehicle record.')
-        else:
-            # Modification (PUT, PATCH, DELETE) requires object-level ownership
-            # Operators cannot modify other customers' vehicles (PR #66 Review Fix)
-            if vehicle.owner != request.user:
-                raise PermissionDenied('You do not have permission to modify this vehicle record.')
+        # Ownership and role authorization check (FR-02 / FR-16)
+        is_owner = vehicle.owner == request.user
+        is_admin_or_operator = (
+            getattr(request.user, 'role', None) in ('Admin', 'Operator')
+            or getattr(request.user, 'is_staff', False)
+            or getattr(request.user, 'is_superuser', False)
+        )
+        if not (is_owner or is_admin_or_operator):
+            raise PermissionDenied('You do not have permission to access this vehicle record.')
 
         return vehicle
 
