@@ -41,6 +41,12 @@ class ParkingRecord(models.Model):
         blank=True,
     )
 
+    # Nullable so historical records are retained without inventing past charges.
+    fee_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    hourly_rate_snapshot = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    grace_period_minutes_snapshot = models.PositiveIntegerField(null=True, blank=True)
+    vehicle_type_snapshot = models.CharField(max_length=20, null=True, blank=True)
+
     status = models.CharField(
         max_length=12,
         choices=Status.choices,

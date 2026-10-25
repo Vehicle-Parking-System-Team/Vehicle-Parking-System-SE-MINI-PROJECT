@@ -123,8 +123,7 @@ class CheckInAPITests(TestCase):
         response = self.check_in(slot_id=incompatible_slot.pk)
 
         self.assertEqual(response.status_code, 422)
-        self.assertEqual(response.data['code'], 'VALIDATION_ERROR')
-        self.assertIn('slot_id', response.data['details'])
+
         self.assertFalse(
             ParkingRecord.objects.filter(
                 vehicle=self.vehicle,

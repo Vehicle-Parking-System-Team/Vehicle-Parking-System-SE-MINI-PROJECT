@@ -1,5 +1,7 @@
-from rest_framework import serializers
+from decimal import Decimal
 
+from rest_framework import serializers
+from rates.calculations import billable_hours, elapsed_microseconds
 from vehicles.services import normalize_registration_number
 
 from .models import ParkingRecord
@@ -64,3 +66,38 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
             "ticket_qr_token",
         ]
         read_only_fields = fields
+
+
+class CheckOutRequestSerializer(serializers.Serializer):
+    registration_number = serializers.CharField(max_length=20, trim_whitespace=True)
+
+    def validate(self, attrs):
+        extra_fields = set(self.initial_data) - {'registration_number'}
+        if extra_fields:
+            raise serializers.ValidationError({field: 'This field is not accepted.' for field in extra_fields})
+        return attrs
+
+
+class CheckOutRecordSerializer(ParkingRecordSerializer):
+    duration_seconds = serializers.SerializerMethodField()
+    billable_hours = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
+
+    class Meta(ParkingRecordSerializer.Meta):
+        fields = ParkingRecordSerializer.Meta.fields + [
+            'duration_seconds', 'billable_hours', 'fee_amount', 'currency',
+            'hourly_rate_snapshot', 'grace_period_minutes_snapshot', 'vehicle_type_snapshot',
+        ]
+        read_only_fields = fields
+
+    def get_duration_seconds(self, record):
+        elapsed = elapsed_microseconds(record.check_out_time - record.check_in_time)
+        return format(Decimal(elapsed) / Decimal(1_000_000), '.6f')
+
+    def get_billable_hours(self, record):
+        return billable_hours(
+            record.check_out_time - record.check_in_time, record.grace_period_minutes_snapshot,
+        )
+
+    def get_currency(self, record):
+        return 'INR'

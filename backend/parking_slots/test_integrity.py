@@ -111,6 +111,18 @@ class ActiveRecordIntegrityTests(TestCase):
         self.assertEqual(self.slot.status, 'available')
         self.assertFalse(ParkingRecord.objects.exists())
 
+    def test_incompatible_assignment_preserves_shared_field_errors(self):
+        self.record.delete()
+        self.vehicle.vehicle_type = 'SUV'
+        self.vehicle.save(update_fields=['vehicle_type'])
+        response = self.client.post('/api/parking/check-in/', {
+            'registration_number': self.vehicle.registration_number, 'slot_id': self.slot.pk,
+        })
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.data['code'], 'VALIDATION_ERROR')
+        self.assertIn('slot_id', response.data['details'])
+        self.assertFalse(ParkingRecord.objects.exists())
+
 
 @skipUnlessDBFeature('has_select_for_update')
 class SlotConcurrencyTests(TransactionTestCase):

@@ -77,7 +77,7 @@ jobs:
       - name: Install PostgreSQL test dependencies
         run: python -m pip install -r requirements-postgres.txt
       - name: Verify slot state, integrity and concurrent allocation
-        run: python manage.py test parking_slots.test_integrity parking_slots.test_services operations.tests.CheckInConcurrencyTests --verbosity 2
+        run: python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests.CheckInConcurrencyTests --verbosity 2
 
   frontend-ci:
     name: Frontend CI (React)
