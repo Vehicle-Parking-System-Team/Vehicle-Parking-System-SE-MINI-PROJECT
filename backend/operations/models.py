@@ -1,11 +1,13 @@
+
 from django.conf import settings
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
 
 class ParkingRecord(models.Model):
-    """Persistent parking record for check-in, checkout, and history."""
+    """Persistent parking record for check-in, checkout, billing, and history."""
 
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
@@ -24,11 +26,11 @@ class ParkingRecord(models.Model):
     )
 
     operator = models.ForeignKey(
-    settings.AUTH_USER_MODEL,
-    on_delete=models.PROTECT,
-    related_name="parking_records",
-    null=True,
-    blank=True,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="parking_records",
+        null=True,
+        blank=True,
     )
 
     check_in_time = models.DateTimeField(
@@ -41,6 +43,14 @@ class ParkingRecord(models.Model):
         blank=True,
     )
 
+    fee_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        null=True,
+        blank=True,
+    )
+
     status = models.CharField(
         max_length=12,
         choices=Status.choices,
@@ -49,7 +59,6 @@ class ParkingRecord(models.Model):
     )
 
     # Populated after the record receives its database ID.
-    # Check-in will create the signed token within the same transaction.
     ticket_qr_token = models.CharField(
         max_length=512,
         unique=True,
