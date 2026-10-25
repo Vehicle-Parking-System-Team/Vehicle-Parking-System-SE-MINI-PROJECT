@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseApiError } from '../src/utils/apiErrors.js'
-import { VEHICLE_TYPES, normalizePlate } from '../src/utils/vehicles.js'
+import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput } from '../src/utils/vehicles.js'
 
 const CANONICAL_VEHICLE_TYPES = VEHICLE_TYPES.map((t) => t.value)
 
@@ -231,4 +231,409 @@ test('simulateVehicleRegistrationSubmit handles network failure gracefully', asy
 
   assert.equal(res.status, 'NETWORK_ERROR')
   assert.equal(res.message, 'Failed to fetch')
+})
+
+// --- US-06: Vehicle Profile & Update Tests (FR-02 / TC-UC02-API-002) ---
+
+async function simulateVehicleUpdateSubmit({
+  vehicleId,
+  formData,
+  mockFetch,
+  isSubmitting,
+}) {
+  if (isSubmitting) {
+    return { status: 'BLOCKED_BY_SUBMITTING_STATE' }
+  }
+
+  const normalizedPlate = normalizePlate(formData.registration_number)
+  const validation = validateVehicleUpdateInput({
+    registration_number: normalizedPlate,
+    vehicle_type: formData.vehicle_type,
+  })
+
+  if (!validation.isValid) {
+    return {
+      status: 'CLIENT_VALIDATION_ERROR',
+      fieldErrors: validation.errors,
+      formError: 'Please correct highlighted fields.',
+    }
+  }
+
+  try {
+    const payload = {
+      registration_number: normalizedPlate,
+      vehicle_type: formData.vehicle_type,
+      owner_name: (formData.owner_name || '').trim(),
+      owner_phone: (formData.owner_phone || '').trim(),
+    }
+
+    const response = await mockFetch(`/api/v1/vehicles/${vehicleId}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    const body = await response.json()
+    if (response.status === 200) {
+      return {
+        status: 'SUCCESS',
+        data: body,
+      }
+    }
+
+    const parsed = parseApiError(body)
+    return {
+      status: 'API_ERROR',
+      statusCode: response.status,
+      message: parsed.message,
+      code: parsed.code,
+      fieldErrors: parsed.fieldErrors,
+      formErrors: parsed.formErrors,
+    }
+  } catch (err) {
+    return {
+      status: 'NETWORK_ERROR',
+      message: err.message,
+    }
+  }
+}
+
+async function simulateVehicleProfileFetch({ vehicleId, mockFetch }) {
+  try {
+    const response = await mockFetch(`/api/v1/vehicles/${vehicleId}/`)
+    const body = await response.json()
+    if (response.status === 200) {
+      return { status: 'SUCCESS', data: body }
+    }
+    const parsed = parseApiError(body)
+    return {
+      status: 'API_ERROR',
+      statusCode: response.status,
+      code: parsed.code,
+      message: parsed.message,
+    }
+  } catch (err) {
+    return { status: 'NETWORK_ERROR', message: err.message }
+  }
+}
+
+test('validateVehicleUpdateInput rejects empty registration number', () => {
+  const result = validateVehicleUpdateInput({ registration_number: '   ' })
+  assert.equal(result.isValid, false)
+  assert.ok(result.errors.registration_number)
+})
+
+test('validateVehicleUpdateInput rejects plate exceeding 20 chars', () => {
+  const result = validateVehicleUpdateInput({ registration_number: 'A'.repeat(25) })
+  assert.equal(result.isValid, false)
+  assert.ok(result.errors.registration_number)
+})
+
+test('validateVehicleUpdateInput rejects invalid vehicle type', () => {
+  const result = validateVehicleUpdateInput({ vehicle_type: 'Helicopter' })
+  assert.equal(result.isValid, false)
+  assert.ok(result.errors.vehicle_type)
+})
+
+test('validateVehicleUpdateInput accepts valid update payload', () => {
+  const result = validateVehicleUpdateInput({
+    registration_number: 'KA-01-OK-1234',
+    vehicle_type: 'SUV',
+  })
+  assert.equal(result.isValid, true)
+  assert.deepEqual(result.errors, {})
+})
+
+test('simulateVehicleUpdateSubmit handles successful 200 profile update', async () => {
+  const mockFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => ({
+      id: 42,
+      registration_number: 'KA-01-UPDATED-01',
+      vehicle_type: 'SUV',
+      owner_name: 'Updated Owner',
+      owner_phone: '9876543210',
+    }),
+  })
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 42,
+    formData: {
+      registration_number: 'ka-01-updated-01',
+      vehicle_type: 'SUV',
+      owner_name: 'Updated Owner',
+      owner_phone: '9876543210',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'SUCCESS')
+  assert.equal(res.data.id, 42)
+  assert.equal(res.data.registration_number, 'KA-01-UPDATED-01')
+  assert.equal(res.data.vehicle_type, 'SUV')
+})
+
+test('simulateVehicleUpdateSubmit handles 409 conflict for duplicate plate', async () => {
+  const mockFetch = async () => ({
+    status: 409,
+    ok: false,
+    json: async () => ({
+      error: 'A vehicle with this registration number already exists.',
+      code: 'CONFLICT',
+      details: {},
+    }),
+  })
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 42,
+    formData: {
+      registration_number: 'KA-01-DUPE-01',
+      vehicle_type: 'Compact',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 409)
+  assert.equal(res.code, 'CONFLICT')
+  assert.equal(res.message, 'A vehicle with this registration number already exists.')
+})
+
+test('simulateVehicleUpdateSubmit handles 400 validation error from backend', async () => {
+  const mockFetch = async () => ({
+    status: 400,
+    ok: false,
+    json: async () => ({
+      error: 'Validation failed.',
+      code: 'VALIDATION_ERROR',
+      details: {
+        registration_number: ['Ensure this field has no more than 20 characters.'],
+      },
+    }),
+  })
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 42,
+    formData: {
+      registration_number: 'A'.repeat(20),
+      vehicle_type: 'Compact',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 400)
+  assert.equal(res.code, 'VALIDATION_ERROR')
+  assert.ok(res.fieldErrors.registration_number)
+})
+
+test('simulateVehicleUpdateSubmit handles 403 permission denied for non-owner', async () => {
+  const mockFetch = async () => ({
+    status: 403,
+    ok: false,
+    json: async () => ({
+      error: 'You do not have permission to access this vehicle record.',
+      code: 'PERMISSION_DENIED',
+      details: {},
+    }),
+  })
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 99,
+    formData: {
+      registration_number: 'KA-01-HACK-01',
+      vehicle_type: 'Compact',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 403)
+  assert.equal(res.code, 'PERMISSION_DENIED')
+  assert.equal(res.message, 'You do not have permission to access this vehicle record.')
+})
+
+test('simulateVehicleUpdateSubmit handles 404 not found for missing vehicle', async () => {
+  const mockFetch = async () => ({
+    status: 404,
+    ok: false,
+    json: async () => ({
+      error: 'Vehicle record not found.',
+      code: 'NOT_FOUND',
+      details: {},
+    }),
+  })
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 9999,
+    formData: {
+      registration_number: 'KA-01-MISSING-01',
+      vehicle_type: 'Compact',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 404)
+  assert.equal(res.code, 'NOT_FOUND')
+})
+
+test('simulateVehicleUpdateSubmit handles network failure gracefully', async () => {
+  const mockFetch = async () => {
+    throw new Error('Connection refused')
+  }
+
+  const res = await simulateVehicleUpdateSubmit({
+    vehicleId: 42,
+    formData: {
+      registration_number: 'KA-01-NETFAIL-01',
+      vehicle_type: 'Compact',
+    },
+    mockFetch,
+    isSubmitting: false,
+  })
+
+  assert.equal(res.status, 'NETWORK_ERROR')
+  assert.equal(res.message, 'Connection refused')
+})
+
+test('simulateVehicleProfileFetch handles successful 200 retrieval', async () => {
+  const mockFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => ({
+      id: 10,
+      registration_number: 'KA-05-VIEW-01',
+      vehicle_type: 'Two-Wheeler',
+      owner_name: 'View Owner',
+      owner_phone: '9988776655',
+      created_at: '2026-10-23T10:00:00Z',
+      updated_at: '2026-10-23T10:05:00Z',
+    }),
+  })
+
+  const res = await simulateVehicleProfileFetch({ vehicleId: 10, mockFetch })
+  assert.equal(res.status, 'SUCCESS')
+  assert.equal(res.data.id, 10)
+  assert.equal(res.data.registration_number, 'KA-05-VIEW-01')
+  assert.equal(res.data.vehicle_type, 'Two-Wheeler')
+})
+
+test('simulateVehicleProfileFetch handles 404 for non-existent vehicle', async () => {
+  const mockFetch = async () => ({
+    status: 404,
+    ok: false,
+    json: async () => ({
+      error: 'Vehicle record not found.',
+      code: 'NOT_FOUND',
+      details: {},
+    }),
+  })
+
+  const res = await simulateVehicleProfileFetch({ vehicleId: 999, mockFetch })
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 404)
+  assert.equal(res.code, 'NOT_FOUND')
+})
+
+test('simulateVehicleProfileFetch handles 403 for unauthorized viewer', async () => {
+  const mockFetch = async () => ({
+    status: 403,
+    ok: false,
+    json: async () => ({
+      error: 'You do not have permission to access this vehicle record.',
+      code: 'PERMISSION_DENIED',
+      details: {},
+    }),
+  })
+
+  const res = await simulateVehicleProfileFetch({ vehicleId: 55, mockFetch })
+  assert.equal(res.status, 'API_ERROR')
+  assert.equal(res.statusCode, 403)
+  assert.equal(res.code, 'PERMISSION_DENIED')
+})
+
+test('navigation shell state manages active view transitions and vehicle selection', () => {
+  // Navigation state machine mirroring AuthenticatedView
+  function createNavigationManager() {
+    let activeNav = 'vehicles'
+    let selectedVehicleId = null
+    let isMobileMenuOpen = false
+
+    return {
+      getState: () => ({ activeNav, selectedVehicleId, isMobileMenuOpen }),
+      navigateTo: (nav, vehicleId = null) => {
+        activeNav = nav
+        if (vehicleId !== null) selectedVehicleId = vehicleId
+        isMobileMenuOpen = false
+      },
+      toggleMobileMenu: () => {
+        isMobileMenuOpen = !isMobileMenuOpen
+      },
+    }
+  }
+
+  const nav = createNavigationManager()
+  assert.equal(nav.getState().activeNav, 'vehicles')
+  assert.equal(nav.getState().selectedVehicleId, null)
+  assert.equal(nav.getState().isMobileMenuOpen, false)
+
+  // Toggle mobile drawer
+  nav.toggleMobileMenu()
+  assert.equal(nav.getState().isMobileMenuOpen, true)
+
+  // Navigate to profiles
+  nav.navigateTo('profiles')
+  assert.equal(nav.getState().activeNav, 'profiles')
+  assert.equal(nav.getState().isMobileMenuOpen, false)
+
+  // Navigate to specific vehicle profile from vehicle card (US-05 -> US-06)
+  nav.navigateTo('profiles', 42)
+  assert.equal(nav.getState().activeNav, 'profiles')
+  assert.equal(nav.getState().selectedVehicleId, 42)
+
+  // Navigate back to registration
+  nav.navigateTo('vehicles')
+  assert.equal(nav.getState().activeNav, 'vehicles')
+  // selected ID preserved for next profile view
+  assert.equal(nav.getState().selectedVehicleId, 42)
+
+  // Navigate to account
+  nav.navigateTo('account')
+  assert.equal(nav.getState().activeNav, 'account')
+})
+
+test('vehicle profile editing state transitions between view and edit modes', () => {
+  const initialVehicle = {
+    id: 101,
+    registration_number: 'KA-01-TEST-99',
+    vehicle_type: 'Compact',
+    owner_name: 'Original Owner',
+    owner_phone: '9876543210',
+  }
+
+  let isEditing = false
+  let editFormData = { ...initialVehicle }
+
+  // Enter edit mode
+  isEditing = true
+  assert.equal(isEditing, true)
+  assert.equal(editFormData.registration_number, 'KA-01-TEST-99')
+
+  // Modify form data
+  editFormData.registration_number = 'KA-01-MODIFIED-99'
+  editFormData.vehicle_type = 'SUV'
+
+  // Cancel edit mode
+  isEditing = false
+  editFormData = { ...initialVehicle }
+  assert.equal(isEditing, false)
+  assert.equal(editFormData.registration_number, 'KA-01-TEST-99')
+  assert.equal(editFormData.vehicle_type, 'Compact')
 })
