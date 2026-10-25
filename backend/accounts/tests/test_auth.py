@@ -723,3 +723,274 @@ class LogoutAtomicityTests(TransactionTestCase):
 
         self.user.refresh_from_db()
         self.assertEqual(self.user.token_version, initial_version)
+
+
+class SeedDemoUsersCommandTests(TestCase):
+    """Verifies that seed_demo_users correctly and idempotently seeds evaluation users."""
+
+    def test_seed_demo_users_creates_accounts(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command('seed_demo_users', force=True, stdout=out)
+        output = out.getvalue()
+        self.assertIn('5 users created', output)
+
+        operator = User.objects.get(username='operator1')
+        self.assertEqual(operator.role, 'Operator')
+        self.assertEqual(operator.status, 'active')
+        self.assertTrue(operator.is_active)
+        self.assertTrue(operator.check_password('SecurePass123!'))
+
+        admin = User.objects.get(username='admin')
+        self.assertEqual(admin.role, 'Admin')
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
+
+        suspended = User.objects.get(username='suspended_user')
+        self.assertEqual(suspended.status, 'suspended')
+
+        inactive = User.objects.get(username='inactive_user')
+        self.assertFalse(inactive.is_active)
+
+    def test_seed_demo_users_is_idempotent(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        call_command('seed_demo_users', force=True)
+        out = StringIO()
+        call_command('seed_demo_users', force=True, stdout=out)
+        self.assertIn('5 users updated', out.getvalue())
+
+
+class CustomerRegistrationTests(TestCase):
+    """Integration test suite for public customer self-registration (DEC-13 / SAD §3.4.2 & §5.1)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.valid_payload = {
+            'username': 'newcustomer',
+            'email': 'newcustomer@example.com',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
+        }
+
+    def test_customer_registration_success(self):
+        """Valid customer registration returns 201, JWT pair, and Customer user profile."""
+        response = self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn('access', data)
+        self.assertIn('refresh', data)
+        self.assertIn('user', data)
+        self.assertEqual(data['user']['username'], 'newcustomer')
+        self.assertEqual(data['user']['email'], 'newcustomer@example.com')
+        self.assertEqual(data['user']['role'], 'Customer')
+        self.assertEqual(data['user']['status'], 'active')
+
+        # Verify DB record
+        user = User.objects.get(username='newcustomer')
+        self.assertEqual(user.role, 'Customer')
+        self.assertEqual(user.status, 'active')
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertTrue(user.check_password('SecurePass123!'))
+
+    def test_registration_enforces_customer_role_safeguard(self):
+        """Attempts to register with Admin or Operator roles are overridden to Customer (DEC-13 / NFR-SEC-02)."""
+        malicious_payload = {
+            **self.valid_payload,
+            'username': 'attacker',
+            'email': 'attacker@example.com',
+            'role': 'Admin',
+            'is_staff': True,
+            'is_superuser': True,
+            'status': 'suspended',
+        }
+        response = self.client.post('/api/auth/register/', malicious_payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username='attacker')
+        self.assertEqual(user.role, 'Customer')
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.status, 'active')
+
+    def test_registration_duplicate_username_rejected(self):
+        """Duplicate username registration returns 400 validation error."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        duplicate_payload = {
+            **self.valid_payload,
+            'email': 'different@example.com',
+        }
+        response = self.client.post('/api/auth/register/', duplicate_payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('username', data['details'])
+
+    def test_registration_duplicate_email_rejected(self):
+        """Duplicate email registration returns 400 validation error."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        duplicate_payload = {
+            **self.valid_payload,
+            'username': 'differentuser',
+        }
+        response = self.client.post('/api/auth/register/', duplicate_payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('email', data['details'])
+
+    def test_registration_password_mismatch_rejected(self):
+        """Mismatched password_confirm returns 400 validation error."""
+        payload = {
+            **self.valid_payload,
+            'password_confirm': 'DifferentPass123!',
+        }
+        response = self.client.post('/api/auth/register/', payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('password_confirm', data['details'])
+
+    def test_registration_password_policy_enforcement(self):
+        """Weak passwords missing required complexity rules are rejected (SAD §5.1)."""
+        weak_passwords = [
+            'short1!',       # < 8 chars
+            'nouppercase1!', # no uppercase
+            'NOLOWERCASE1!', # no lowercase
+            'NoDigitsHere!', # no digit
+            'NoSpecial1234', # no special char
+        ]
+        for weak in weak_passwords:
+            payload = {
+                'username': f'user_{weak[:6]}',
+                'email': f'{weak[:6]}@example.com',
+                'password': weak,
+                'password_confirm': weak,
+            }
+            response = self.client.post('/api/auth/register/', payload, format='json')
+            self.assertEqual(response.status_code, 400, f'Expected 400 for password: {weak}')
+            self.assertEqual(response.json()['code'], 'VALIDATION_ERROR')
+
+    def test_login_with_newly_registered_customer(self):
+        """Newly registered customer can authenticate via both username and email."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+
+        # Login by username
+        res1 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'newcustomer', 'password': 'SecurePass123!'},
+            format='json',
+        )
+        self.assertEqual(res1.status_code, 200)
+
+        # Login by email
+        res2 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'newcustomer@example.com', 'password': 'SecurePass123!'},
+            format='json',
+        )
+        self.assertEqual(res2.status_code, 200)
+
+
+class EmailAuthenticationTests(TestCase):
+    """Tests verifying email or username login flexibility."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.password = 'SecurePass123!'
+        self.user = User.objects.create_user(
+            username='janedoe',
+            email='jane.doe@parking.local',
+            password=self.password,
+            role='Customer',
+            status='active',
+        )
+
+    def test_login_with_email_success(self):
+        """Users can sign in using their registered email address."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'jane.doe@parking.local', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_case_insensitive_email(self):
+        """Email login is case-insensitive."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'JANE.DOE@PARKING.LOCAL', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_nonexistent_email_returns_generic_401(self):
+        """Nonexistent email returns generic 401 without user enumeration."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'nonexistent@example.com', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_login_with_valid_email_and_incorrect_password_returns_generic_401(self):
+        """Valid email with incorrect password returns generic 401 error."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword999!'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_generic_authentication_failure_consistency_prevents_user_enumeration(self):
+        """
+        Verify that unknown email, valid email with wrong password, unknown username,
+        and valid username with wrong password all yield identical HTTP 401 response envelopes.
+        """
+        scenarios = [
+            {'username': 'unknown.user@parking.local', 'password': 'AnyPassword123!'},
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword123!'},
+            {'username': 'unknown_username', 'password': 'AnyPassword123!'},
+            {'username': 'janedoe', 'password': 'WrongPassword123!'},
+        ]
+        responses = [
+            self.client.post('/api/auth/login/', payload, format='json')
+            for payload in scenarios
+        ]
+
+        for resp in responses:
+            self.assertEqual(resp.status_code, 401)
+            data = resp.json()
+            self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+            self.assertEqual(data['error'], 'Authentication failed.')
+            self.assertEqual(data.get('details'), {})
+
+    def test_login_with_email_whitespace_trimmed(self):
+        """Email identifier with surrounding whitespace is safely trimmed and succeeds."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': '   jane.doe@parking.local   ', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_mixed_case_email(self):
+        """Email lookup handles arbitrary mixed case variations."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'JaNe.DoE@PaRkInG.LoCaL', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')

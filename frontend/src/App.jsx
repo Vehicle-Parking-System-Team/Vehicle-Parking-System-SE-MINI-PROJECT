@@ -1,13 +1,20 @@
+import { useState } from 'react'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './context/useAuth'
 import { LoginForm } from './components/LoginForm'
+import { RegisterForm } from './components/RegisterForm'
 import { AuthenticatedView } from './components/AuthenticatedView'
 import BayIcon from './components/BayIcon'
 import './App.css'
 
 function AuthMain() {
   const { isAuthenticated } = useAuth()
-  if (isAuthenticated) return <AuthenticatedView />
+  const [authMode, setAuthMode] = useState('login')
+
+  if (isAuthenticated) {
+    return <AuthenticatedView />
+  }
+
   return (
     <main className="bay-login">
       <div className="bay-login-intro">
@@ -31,7 +38,11 @@ function AuthMain() {
         <small>EVERY ARRIVAL DESERVES A BETTER EXPERIENCE.</small>
       </div>
       <div className="bay-login-form">
-        <LoginForm />
+        {authMode === 'login' ? (
+          <LoginForm onSwitchToRegister={() => setAuthMode('register')} />
+        ) : (
+          <RegisterForm onSwitchToLogin={() => setAuthMode('login')} />
+        )}
         <span className="bay-login-caption">Your space starts here.</span>
       </div>
     </main>

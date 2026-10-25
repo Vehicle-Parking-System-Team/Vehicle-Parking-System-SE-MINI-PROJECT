@@ -13,3 +13,28 @@ export function normalizePlate(plate) {
   if (!plate || typeof plate !== 'string') return ''
   return plate.trim().toUpperCase()
 }
+
+export function validateVehicleUpdateInput({ registration_number, vehicle_type }) {
+  const errors = {}
+
+  if (registration_number !== undefined) {
+    const trimmed = (registration_number || '').trim()
+    if (!trimmed) {
+      errors.registration_number = ['Registration number cannot be empty.']
+    } else if (trimmed.length > 20) {
+      errors.registration_number = ['Ensure this field has no more than 20 characters.']
+    }
+  }
+
+  if (vehicle_type !== undefined) {
+    const validTypes = VEHICLE_TYPES.map((t) => t.value)
+    if (!vehicle_type || !validTypes.includes(vehicle_type)) {
+      errors.vehicle_type = ['A valid vehicle type is required.']
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  }
+}

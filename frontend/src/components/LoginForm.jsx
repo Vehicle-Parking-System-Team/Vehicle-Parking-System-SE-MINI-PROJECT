@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 
-export function LoginForm() {
+export function LoginForm({ onSwitchToRegister }) {
   const { login, isLoading, error, clearError } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [localValidation, setLocalValidation] = useState('')
 
   const handleSubmit = async (e) => {
@@ -13,7 +14,7 @@ export function LoginForm() {
     setLocalValidation('')
 
     if (!username.trim() || !password) {
-      setLocalValidation('Please enter both your username and password.')
+      setLocalValidation('Please enter both your username/email and password.')
       return
     }
 
@@ -25,7 +26,7 @@ export function LoginForm() {
   return (
     <div className="auth-card" id="login-container">
       <div className="auth-header">
-        <div className="auth-badge">Security & Access Management</div>
+        <div className="auth-badge">Authorized Access</div>
         <h2>Sign In to Vehicle Parking System</h2>
         <p className="auth-subtitle">
           Enter your authorized credentials to access facility operations and management.
@@ -42,7 +43,7 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} noValidate className="auth-form" aria-busy={isLoading}>
         <div className="form-group">
           <label htmlFor="auth-username">
-            Username <span className="required-indicator" aria-hidden="true">*</span>
+            Username or Email <span className="required-indicator" aria-hidden="true">*</span>
           </label>
           <input
             id="auth-username"
@@ -57,7 +58,7 @@ export function LoginForm() {
                 setLocalValidation('')
               }
             }}
-            placeholder="e.g. operator1 or admin"
+            placeholder="Enter username or email"
             required
             disabled={isLoading}
             autoFocus
@@ -68,23 +69,34 @@ export function LoginForm() {
           <label htmlFor="auth-password">
             Password <span className="required-indicator" aria-hidden="true">*</span>
           </label>
-          <input
-            id="auth-password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              if (displayedError) {
-                clearError()
-                setLocalValidation('')
-              }
-            }}
-            placeholder="••••••••••••"
-            required
-            disabled={isLoading}
-          />
+          <div className="password-input-wrapper">
+            <input
+              id="auth-password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                if (displayedError) {
+                  clearError()
+                  setLocalValidation('')
+                }
+              }}
+              placeholder="••••••••••••"
+              required
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              className="btn-password-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+            >
+              {showPassword ? '👁️' : '👁️‍🗨️'}
+            </button>
+          </div>
         </div>
 
         <button
@@ -105,8 +117,22 @@ export function LoginForm() {
       </form>
 
       <div className="auth-footer">
+        {onSwitchToRegister && (
+          <p className="auth-switch-text">
+            Don't have an account?{' '}
+            <button
+              type="button"
+              className="btn-link"
+              id="btn-switch-to-register"
+              onClick={onSwitchToRegister}
+              disabled={isLoading}
+            >
+              Sign Up
+            </button>
+          </p>
+        )}
         <p className="security-note">
-          🔒 Protected by stateless JSON Web Tokens with server-side revocation on logout (NFR-SEC-01).
+          🔒 Secure session with tokenized authentication
         </p>
       </div>
     </div>

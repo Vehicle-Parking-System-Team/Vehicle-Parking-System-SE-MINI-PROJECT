@@ -73,6 +73,47 @@ export function AuthProvider({ children }) {
     }
   }, [saveSession])
 
+  // Public customer self-registration (DEC-13 / SAD §3.4.2 & §5.1)
+  const register = useCallback(async (username, email, password, passwordConfirm) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`${API_BASE}/register/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          password_confirm: passwordConfirm,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const errorMsg = data.error || 'Registration failed. Please check your details.'
+        setError(errorMsg)
+        return {
+          success: false,
+          error: errorMsg,
+          code: data.code,
+          details: data.details || {},
+        }
+      }
+
+      saveSession({ access: data.access, refresh: data.refresh }, data.user)
+      return { success: true, user: data.user }
+    } catch {
+      const networkError = 'Network error: Unable to contact the registration service.'
+      setError(networkError)
+      return { success: false, error: networkError }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [saveSession])
+
   // Secure logout invalidating tokens on server (US-01 / FR-15 / FR-17)
   const logout = useCallback(async () => {
     setIsLoading(true)
@@ -187,11 +228,12 @@ export function AuthProvider({ children }) {
     isLoading,
     error,
     login,
+    register,
     logout,
     refreshTokens,
     fetchWithAuth,
     clearError,
-  }), [user, accessToken, isLoading, error, login, logout, refreshTokens, fetchWithAuth, clearError])
+  }), [user, accessToken, isLoading, error, login, register, logout, refreshTokens, fetchWithAuth, clearError])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

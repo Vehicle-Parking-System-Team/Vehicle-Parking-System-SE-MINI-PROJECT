@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { VehicleRegistrationForm } from './VehicleRegistrationForm'
+import { VehicleProfileView } from './VehicleProfileView'
 import BayIcon from './BayIcon'
 import SlotsPage from '../pages/Slots'
 
@@ -8,12 +9,21 @@ export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
   const canManage = ['Admin', 'Operator'].includes(user?.role)
   const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null)
+
   const activePage = page === 'facility' && !canManage ? 'vehicles' : page
   const navigation = [
     ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
     ['vehicles', 'My vehicles', 'car'],
+    ['profiles', 'Vehicle profiles', 'edit'],
     ['account', 'Account', 'user'],
   ]
+
+  const handleNavigateToProfile = (vehicleId) => {
+    setSelectedVehicleId(vehicleId)
+    setPage('profiles')
+  }
+
   return (
     <div className="bay-app">
       <a className="bay-skip" href="#bay-main">
@@ -47,6 +57,7 @@ export function AuthenticatedView() {
             <button
               key={key}
               type="button"
+              id={`nav-${key}`}
               className={activePage === key ? 'is-active' : ''}
               aria-current={activePage === key ? 'page' : undefined}
               onClick={() => setPage(key)}
@@ -82,12 +93,13 @@ export function AuthenticatedView() {
             {user?.username?.slice(0, 2).toUpperCase()}
           </span>
           <div>
-            <strong>{user?.username}</strong>
-            <small>{user?.role} workspace</small>
+            <strong id="user-display-username">{user?.username}</strong>
+            <small id="user-display-role">{user?.role} workspace</small>
           </div>
           <button
             type="button"
             className="bay-icon-button"
+            id="btn-logout"
             aria-label="Log out"
             onClick={logout}
             disabled={isLoading}
@@ -115,7 +127,7 @@ export function AuthenticatedView() {
           {activePage === 'facility' ? (
             <SlotsPage />
           ) : activePage === 'vehicles' ? (
-            <section className="bay-legacy-page">
+            <section className="bay-legacy-page" id="authenticated-container">
               <div className="bay-page-heading">
                 <div>
                   <span className="bay-eyebrow">
@@ -127,7 +139,16 @@ export function AuthenticatedView() {
                   <p>Your vehicles. One place.</p>
                 </div>
               </div>
-              <VehicleRegistrationForm />
+              <VehicleRegistrationForm
+                onNavigateToProfile={handleNavigateToProfile}
+              />
+            </section>
+          ) : activePage === 'profiles' ? (
+            <section className="bay-legacy-page" id="vehicle-profile-section">
+              <VehicleProfileView
+                initialVehicleId={selectedVehicleId}
+                onBackToRegistration={() => setPage('vehicles')}
+              />
             </section>
           ) : (
             <section className="bay-account">
@@ -148,7 +169,7 @@ export function AuthenticatedView() {
                   </div>
                   <div>
                     <dt>Account status</dt>
-                    <dd>{user?.status}</dd>
+                    <dd id="user-display-status">{user?.status || 'active'}</dd>
                   </div>
                 </dl>
                 <button
