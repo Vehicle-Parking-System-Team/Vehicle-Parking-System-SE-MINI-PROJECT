@@ -47,8 +47,8 @@ class VehicleSerializer(serializers.ModelSerializer):
         has_plate_key = 'registration_number' in attrs or 'plate_number' in attrs
         raw_reg = attrs.get('registration_number') or attrs.get('plate_number')
 
-        if not has_plate_key and self.instance:
-            # During partial update, if plate is not provided, registration_number remains unchanged
+        if self.partial and not has_plate_key:
+            # During partial update (PATCH), if plate is not provided, registration_number remains unchanged
             pass
         else:
             if not raw_reg or not str(raw_reg).strip():

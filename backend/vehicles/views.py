@@ -62,8 +62,14 @@ class VehicleDetailView(APIView):
         if not vehicle:
             raise NotFound('Vehicle record not found.')
 
-        # Ownership authorization check
-        if vehicle.owner != request.user:
+        # Ownership and role authorization check (FR-02 / FR-16)
+        is_owner = vehicle.owner == request.user
+        is_admin_or_operator = (
+            getattr(request.user, 'role', None) in ('Admin', 'Operator')
+            or getattr(request.user, 'is_staff', False)
+            or getattr(request.user, 'is_superuser', False)
+        )
+        if not (is_owner or is_admin_or_operator):
             raise PermissionDenied('You do not have permission to access this vehicle record.')
 
         return vehicle

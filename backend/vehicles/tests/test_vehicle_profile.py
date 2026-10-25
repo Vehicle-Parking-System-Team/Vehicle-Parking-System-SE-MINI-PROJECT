@@ -307,3 +307,156 @@ class VehicleProfileAPITests(TestCase):
 
         self.vehicle.refresh_from_db()
         self.assertEqual(self.vehicle.owner, self.owner)
+
+    def test_put_missing_registration_number_returns_400_validation_error(self):
+        """Full PUT update omitting registration_number is rejected with 400 and not treated as PATCH."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.owner_token}')
+        payload = {
+            'vehicle_type': 'SUV',
+            'owner_name': 'Attempted Partial via PUT',
+        }
+        res = self.client.put(f'/api/v1/vehicles/{self.vehicle.id}/', payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['code'], 'VALIDATION_ERROR')
+        self.assertIn('registration_number', res.data['details'])
+
+        # Ensure vehicle state was not modified
+        self.vehicle.refresh_from_db()
+        self.assertEqual(self.vehicle.vehicle_type, 'Compact')
+        self.assertEqual(self.vehicle.owner_name, 'Car Owner')
+
+    def test_put_missing_vehicle_type_returns_400_validation_error(self):
+        """Full PUT update omitting required vehicle_type is rejected with 400 validation error."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.owner_token}')
+        payload = {
+            'registration_number': 'KA-03-HA-5555',
+            'owner_name': 'Car Owner',
+        }
+        res = self.client.put(f'/api/v1/vehicles/{self.vehicle.id}/', payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['code'], 'VALIDATION_ERROR')
+        self.assertIn('vehicle_type', res.data['details'])
+
+    def test_put_missing_all_required_fields_returns_400_validation_error(self):
+        """Full PUT update with empty payload returns structured 400 validation error."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.owner_token}')
+        res = self.client.put(f'/api/v1/vehicles/{self.vehicle.id}/', {})
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data['code'], 'VALIDATION_ERROR')
+        self.assertIn('vehicle_type', res.data['details'])
+
+    def test_put_with_plate_number_alias_succeeds(self):
+        """Full PUT update providing plate_number alias instead of registration_number succeeds."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.owner_token}')
+        payload = {
+            'plate_number': 'ka-03-ha-7777',
+            'vehicle_type': 'SUV',
+            'owner_name': 'Updated via Alias',
+        }
+        res = self.client.put(f'/api/v1/vehicles/{self.vehicle.id}/', payload)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['registration_number'], 'KA-03-HA-7777')
+        self.assertEqual(res.data['vehicle_type'], 'SUV')
+
+        self.vehicle.refresh_from_db()
+        self.assertEqual(self.vehicle.registration_number, 'KA-03-HA-7777')
+
+    def test_patch_omitting_plate_preserves_registration_number(self):
+        """Partial PATCH updating only classification or contact preserves existing plate."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.owner_token}')
+        res = self.client.patch(
+            f'/api/v1/vehicles/{self.vehicle.id}/',
+            {'vehicle_type': 'EV Charging'},
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['vehicle_type'], 'EV Charging')
+        self.assertEqual(res.data['registration_number'], 'KA-03-HA-5555')
+
+        self.vehicle.refresh_from_db()
+        self.assertEqual(self.vehicle.vehicle_type, 'EV Charging')
+        self.assertEqual(self.vehicle.registration_number, 'KA-03-HA-5555')
+
+    def test_other_user_cannot_view_vehicle_by_plate(self):
+        """Customer cannot view another user's vehicle via the plate route (anti-enumeration)."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.stranger_token}')
+        res = self.client.get(f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/')
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.data['code'], 'PERMISSION_DENIED')
+        # Ensure no private vehicle information leaks in error response
+        self.assertEqual(res.data.get('details'), {})
+        self.assertNotIn('registration_number', res.data)
+        self.assertNotIn('owner_name', res.data)
+
+    def test_other_user_cannot_update_vehicle_by_plate(self):
+        """Customer cannot update another user's vehicle via the plate route."""
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.stranger_token}')
+        res = self.client.put(
+            f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/',
+            {'registration_number': 'KA-03-HA-5555', 'vehicle_type': 'SUV'},
+        )
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res.data['code'], 'PERMISSION_DENIED')
+
+        res_patch = self.client.patch(
+            f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/',
+            {'vehicle_type': 'SUV'},
+        )
+        self.assertEqual(res_patch.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(res_patch.data['code'], 'PERMISSION_DENIED')
+
+    def test_admin_and_operator_roles_can_access_vehicle_by_id_and_plate(self):
+        """Admin and Operator roles retain documented access to inspect and manage vehicles (FR-02 / FR-16)."""
+        admin_user = User.objects.create_user(
+            username='admin_inspector',
+            email='admin_inspector@parking.local',
+            password='SecurePassword123!',
+            role='Admin',
+            status='active',
+        )
+        operator_user = User.objects.create_user(
+            username='operator_inspector',
+            email='operator_inspector@parking.local',
+            password='SecurePassword123!',
+            role='Operator',
+            status='active',
+        )
+
+        admin_token = AccessToken.for_user(admin_user)
+        admin_token['token_version'] = admin_user.token_version
+        admin_token['username'] = admin_user.username
+        admin_token['role'] = admin_user.role
+
+        operator_token = AccessToken.for_user(operator_user)
+        operator_token['token_version'] = operator_user.token_version
+        operator_token['username'] = operator_user.username
+        operator_token['role'] = operator_user.role
+
+        # Admin access by ID
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(admin_token)}')
+        res = self.client.get(f'/api/v1/vehicles/{self.vehicle.id}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['id'], self.vehicle.id)
+
+        # Admin access by plate
+        res = self.client.get(f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['registration_number'], self.vehicle.registration_number)
+
+        # Operator access by ID
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(operator_token)}')
+        res = self.client.get(f'/api/v1/vehicles/{self.vehicle.id}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['id'], self.vehicle.id)
+
+        # Operator access by plate
+        res = self.client.get(f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/')
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['registration_number'], self.vehicle.registration_number)
+
+        # Operator update by plate
+        res = self.client.patch(
+            f'/api/v1/vehicles/by-plate/{self.vehicle.registration_number}/',
+            {'owner_name': 'Operator Verified Name'},
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data['owner_name'], 'Operator Verified Name')
