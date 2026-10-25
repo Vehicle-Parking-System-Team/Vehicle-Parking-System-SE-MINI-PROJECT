@@ -78,7 +78,7 @@ All 44 repository issues (#1 through #52) and pull requests (#55) were inspected
 - **Duplicate Issues #3 and #9:** Previously closed with appropriate rationale comments and links to surviving canonical epics (#2 and #21). Left closed without unnecessary modification.
 - **Milestone Allocation & Story Count Verification:**
   - **Sprint 1 Active Milestone (6 stories, 25 SP):** US-01 (#1, 3 SP), US-05 (#25, 5 SP), US-09 (#29, 5 SP), US-10 (#30, 3 SP), US-17 (#37, 5 SP), US-31 (#51, 4 SP). Verified attached to Milestone 1 (`Sprint 1`).
-  - **Sprint 2 Active Milestone (11 stories, 42 SP):** US-02 (#22, 5 SP), US-06 (#26, 4 SP), US-07 (#27, 3 SP), US-11 (#31, 3 SP), US-12 (#32, 3 SP), US-13 (#33, 5 SP), US-18 (#38, 3 SP), US-19 (#39, 5 SP), US-20 (#40, 3 SP), US-25 (#45, 5 SP), US-29 (#49, 3 SP). Verified attached to Milestone 2 (`Sprint 2`).
+  - **Sprint 2 Active Milestone (11 stories, 42 SP):** US-02 (#22, 5 SP), US-06 (#26, 4 SP), US-07 (#27, 3 SP), US-11 (#31, 3 SP, Member 4 [reassigned from Member 2 on 25 Oct 2026]), US-12 (#32, 3 SP, Member 4 [reassigned from Member 2 on 25 Oct 2026]), US-13 (#33, 5 SP), US-18 (#38, 3 SP), US-19 (#39, 5 SP), US-20 (#40, 3 SP), US-25 (#45, 5 SP), US-29 (#49, 3 SP). Verified attached to Milestone 2 (`Sprint 2`).
   - **Product Backlog / Unassigned Milestones (`milestone: null`, 15 stories, 49 SP):**
     - *Sprint 3 Backlog (13 stories, 42 SP):* US-03 (#23, 3 SP), US-04 (#24, 2 SP), US-08 (#28, 4 SP), US-14 (#34, 2 SP), US-15 (#35, 4 SP), US-16 (#36, 4 SP), US-21 (#41, 3 SP), US-22 (#42, 5 SP), US-23 (#43, 3 SP), US-26 (#46, 3 SP), US-27 (#47, 3 SP), US-28 (#48, 3 SP), US-30 (#50, 3 SP).
     - *Sprint 4 Backlog (2 stories, 7 SP):* US-24 (#44, 2 SP), US-32 (#52, 5 SP).
@@ -100,10 +100,10 @@ Cross-document inspection of `Vehicle_Parking_System_SRS.docx`, `Vehicle_Parking
 | **FR-04** | Real-Time Slot State Management | E3 / US-10 (#30) | Member 2 | UC-03 (`TC-UC03-INT-001`) |
 | **FR-05** | Check-In Vehicle & Slot Allocation | E5 / US-17 (#37) | Member 3 | UC-05 (`TC-UC05-UNIT-001`, `TC-UC05-INT-001`) |
 | **FR-06** | Single Active Session Enforcement | E5 / US-18 (#38) | Member 3 | UC-05 (`TC-UC05-INT-002`) |
-| **FR-07** | Occupied/Unavailable Slot Protection | E3 / US-12 (#32), E5 / US-17 (#37) | Member 2 / Member 3 | UC-03 (`TC-UC03-SYS-002`), UC-05 (`TC-UC05-INT-001`) |
+| **FR-07** | Occupied/Unavailable Slot Protection | E3 / US-12 (#32), E5 / US-17 (#37) | Member 4 *(Reassigned from Member 2)* / Member 3 | UC-03 (`TC-UC03-SYS-002`), UC-05 (`TC-UC05-INT-001`) |
 | **FR-08** | Vehicle Check-Out & Exit Verification | E5 / US-19 (#39) | Member 3 | UC-06 (`TC-UC06-INT-001`) |
 | **FR-09** | Automatic Slot Release on Check-Out | E5 / US-19 (#39) | Member 3 | UC-06 (`TC-UC06-INT-002`) |
-| **FR-10** | Live Parking Occupancy Dashboard | E3 / US-11 (#31) | Member 2 | UC-03 (`TC-UC03-SYS-002`) |
+| **FR-10** | Live Parking Occupancy Dashboard | E3 / US-11 (#31) | Member 4 *(Reassigned from Member 2)* | UC-03 (`TC-UC03-SYS-002`) |
 | **FR-11** | Search Vehicle by License Plate | E2 / US-07 (#27) | Member 1 | UC-02 (`TC-UC02-API-001`, `TC-UC02-API-002`) |
 | **FR-12** | Persistent Parking History Trail | E5 / US-20 (#40) | Member 3 | UC-06 (`TC-UC06-SYS-001`) |
 | **FR-13** | Server-Side Input Validation | E2 / US-08 (#28), E8 / US-31 (#51) | Member 1 / Member 4 | UC-10 (`TC-UC10-API-001`) |
@@ -280,3 +280,14 @@ Phase 3 is complete. The repository issues and project documentation now present
 - All 8 Epics and 32 User Stories are clearly identified and mapped to the 30 Functional Requirements and 11 Non-Functional Requirements.
 - The Requirements Traceability Matrix and generation script source accurately reflect verified member ownership, Test Plan test cases, and repository paths.
 - The team can now proceed to the next phase of backlog work with total confidence in the underlying baseline.
+
+---
+
+## 10. Addendum: Workload Balancing Reassignment (25 October 2026)
+
+On 25 October 2026, user stories US-11 (#31, FR-10, 3 SP) and US-12 (#32, FR-07, 3 SP) were reassigned from Member 2 (`tejasv5467`) to Member 4 (`maddox095`) due to Member 2 availability constraints.
+- **Member 2 Scope:** Retains completed stories US-09 (#29) and US-10 (#30) (merged in PR #64) and full ownership of Epic E4 (US-13..16).
+- **Member 4 Scope:** Retains Epics E7 (US-25..28) and E8 (US-29..32), and assumes US-11 and US-12.
+- **Sprint 2 Capacity:** Member 2 capacity rebalanced to 5 SP (US-13); Member 4 capacity rebalanced to 14 SP (US-25, US-29, US-11, US-12).
+- **Integrity:** Story requirements, acceptance criteria, priorities, and sprint milestones remain unchanged.
+
