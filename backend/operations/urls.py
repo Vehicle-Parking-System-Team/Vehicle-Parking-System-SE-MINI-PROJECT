@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import CheckInView
+from .views import VehicleCheckInView
 
 
 app_name = "operations"
@@ -8,7 +8,7 @@ app_name = "operations"
 urlpatterns = [
     path(
         "check-in/",
-        CheckInView.as_view(),
+        VehicleCheckInView.as_view(),
         name="check-in",
     ),
 ]

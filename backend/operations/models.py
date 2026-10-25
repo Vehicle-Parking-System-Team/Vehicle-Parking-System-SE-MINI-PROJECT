@@ -1,66 +1,85 @@
-import uuid
-
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
-
-from parking_slots.models import ParkingSlot
-from vehicles.models import Vehicle
+from django.utils import timezone
 
 
-class ParkingSession(models.Model):
+class ParkingRecord(models.Model):
+    """Persistent parking record for check-in, checkout, and history."""
+
     class Status(models.TextChoices):
-        ACTIVE = 'active', 'Active'
-        COMPLETED = 'completed', 'Completed'
+        ACTIVE = "ACTIVE", "Active"
+        COMPLETED = "COMPLETED", "Completed"
 
     vehicle = models.ForeignKey(
-        Vehicle,
+        "vehicles.Vehicle",
         on_delete=models.PROTECT,
-        related_name='parking_sessions',
+        related_name="parking_records",
     )
 
     slot = models.ForeignKey(
-        ParkingSlot,
+        "parking_slots.ParkingSlot",
         on_delete=models.PROTECT,
-        related_name='parking_sessions',
+        related_name="parking_records",
     )
 
-    entry_time = models.DateTimeField(auto_now_add=True)
+    operator = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.PROTECT,
+    related_name="parking_records",
+    null=True,
+    blank=True,
+    )
 
-    exit_time = models.DateTimeField(
+    check_in_time = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    check_out_time = models.DateTimeField(
         null=True,
         blank=True,
     )
 
     status = models.CharField(
-        max_length=20,
+        max_length=12,
         choices=Status.choices,
         default=Status.ACTIVE,
         db_index=True,
     )
 
-    ticket_token = models.UUIDField(
-        default=uuid.uuid4,
+    # Populated after the record receives its database ID.
+    # Check-in will create the signed token within the same transaction.
+    ticket_qr_token = models.CharField(
+        max_length=512,
         unique=True,
+        null=True,
+        blank=True,
         editable=False,
     )
 
     class Meta:
-        ordering = ['-entry_time']
+        ordering = ["-check_in_time", "-pk"]
+
         constraints = [
             models.UniqueConstraint(
-                fields=['vehicle'],
-                condition=Q(status='active'),
-                name='unique_active_session_vehicle',
+                fields=["vehicle"],
+                condition=Q(status="ACTIVE"),
+                name="uniq_active_record_vehicle",
             ),
             models.UniqueConstraint(
-                fields=['slot'],
-                condition=Q(status='active'),
-                name='unique_active_session_slot',
+                fields=["slot"],
+                condition=Q(status="ACTIVE"),
+                name="uniq_active_record_slot",
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=["vehicle", "status"],
+                name="ops_record_vehicle_status",
             ),
         ]
 
     def __str__(self):
-        return (
-            f'{self.vehicle.registration_number} - '
-            f'{self.slot} ({self.status})'
-        )
+        return f"{self.vehicle.registration_number} - {self.status}"
