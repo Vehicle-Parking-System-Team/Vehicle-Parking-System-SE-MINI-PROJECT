@@ -63,14 +63,20 @@ class VehicleDetailView(APIView):
             raise NotFound('Vehicle record not found.')
 
         # Ownership / Role authorization check (FR-16 / SAD §3.4.3)
-        role = getattr(request.user, 'role', None)
-        is_privileged = (
-            role in ['Admin', 'Operator']
-            or getattr(request.user, 'is_staff', False)
-            or getattr(request.user, 'is_superuser', False)
-        )
-        if not is_privileged and vehicle.owner != request.user:
-            raise PermissionDenied('You do not have permission to access this vehicle record.')
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            role = getattr(request.user, 'role', None)
+            is_privileged = (
+                role in ['Admin', 'Operator']
+                or getattr(request.user, 'is_staff', False)
+                or getattr(request.user, 'is_superuser', False)
+            )
+            if not is_privileged and vehicle.owner != request.user:
+                raise PermissionDenied('You do not have permission to access this vehicle record.')
+        else:
+            # Modification (PUT, PATCH, DELETE) requires object-level ownership
+            # Operators cannot modify other customers' vehicles (PR #66 Review Fix)
+            if vehicle.owner != request.user:
+                raise PermissionDenied('You do not have permission to modify this vehicle record.')
 
         return vehicle
 
@@ -152,6 +158,24 @@ class VehicleSearchView(APIView):
             )
 
         from vehicles.services import search_vehicle_by_plate
-        vehicle, parking_status = search_vehicle_by_plate(search_plate, requesting_user=request.user)
-        serializer = VehicleSearchResultSerializer(vehicle, context={'parking_status': parking_status})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            result = search_vehicle_by_plate(search_plate, requesting_user=request.user)
+        except ValueError as err:
+            return Response(
+                {
+                    'error': str(err),
+                    'code': 'INVALID_SEARCH_QUERY',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if isinstance(result, list):
+            data = [
+                VehicleSearchResultSerializer(v, context={'parking_status': ps}).data
+                for v, ps in result
+            ]
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            vehicle, parking_status = result
+            serializer = VehicleSearchResultSerializer(vehicle, context={'parking_status': parking_status})
+            return Response(serializer.data, status=status.HTTP_200_OK)
