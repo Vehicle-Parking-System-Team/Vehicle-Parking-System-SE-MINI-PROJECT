@@ -656,6 +656,13 @@ async function simulateVehicleSearch({ plate, mockFetch }) {
     const body = await response.json()
 
     if (response.status === 200) {
+      if (Array.isArray(body) && body.length === 0) {
+        return {
+          status: 'NOT_FOUND',
+          result: null,
+          error: `No vehicle found with registration number "${validation.normalized}".`,
+        }
+      }
       return {
         status: 'SUCCESS',
         result: body,
@@ -836,3 +843,124 @@ test('navigation shell handles search view and profile deep-linking', () => {
   assert.equal(activePage, 'profiles')
   assert.equal(selectedVehicleId, 105)
 })
+
+test('simulateVehicleSearch handles multiple matching vehicles returned as an array (US-07 Review Fix)', async () => {
+  const mockPayload = [
+    {
+      id: 21,
+      registration_number: 'KA-01-AB-1111',
+      vehicle_type: 'Compact',
+      owner_name: 'Alice Johnson',
+      owner_username: 'alice1',
+      owner_phone: '9876543211',
+      parking_status: {
+        is_parked: true,
+        status: 'PARKED',
+        session_id: 301,
+        check_in_time: '2026-10-25T10:00:00Z',
+        slot: {
+          id: 5,
+          slot_number: 'A-101',
+          zone: 'North Wing',
+          floor: 1,
+        },
+        message: 'Vehicle is currently parked in bay A-101.',
+      },
+    },
+    {
+      id: 22,
+      registration_number: 'KA-01-AB-2222',
+      vehicle_type: 'SUV',
+      owner_name: 'Bob Johnson',
+      owner_username: 'bobj',
+      owner_phone: '9876543222',
+      parking_status: {
+        is_parked: false,
+        status: 'NOT_PARKED',
+        session_id: null,
+        check_in_time: null,
+        slot: null,
+        message: 'Vehicle is not currently parked in any slot.',
+      },
+    },
+  ]
+
+  const mockFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => mockPayload,
+  })
+
+  const res = await simulateVehicleSearch({ plate: 'KA-01-AB', mockFetch })
+  assert.equal(res.status, 'SUCCESS')
+  assert.ok(Array.isArray(res.result))
+  assert.equal(res.result.length, 2)
+
+  // Verify first matching vehicle details and live PARKED status
+  const first = res.result[0]
+  assert.equal(first.registration_number, 'KA-01-AB-1111')
+  assert.equal(first.vehicle_type, 'Compact')
+  assert.equal(first.parking_status.is_parked, true)
+  assert.equal(first.parking_status.status, 'PARKED')
+  assert.equal(first.parking_status.slot.slot_number, 'A-101')
+
+  // Verify second matching vehicle details and live NOT_PARKED status
+  const second = res.result[1]
+  assert.equal(second.registration_number, 'KA-01-AB-2222')
+  assert.equal(second.vehicle_type, 'SUV')
+  assert.equal(second.parking_status.is_parked, false)
+  assert.equal(second.parking_status.status, 'NOT_PARKED')
+  assert.equal(second.parking_status.slot, null)
+})
+
+test('simulateVehicleSearch handles single vehicle in array format [vehicle] (US-07 Review Fix)', async () => {
+  const singleItemArray = [
+    {
+      id: 30,
+      registration_number: 'MH-12-CD-3456',
+      vehicle_type: 'Two-Wheeler',
+      owner_name: 'Sameer Rao',
+      owner_username: 'sameer_r',
+      owner_phone: '9123456789',
+      parking_status: {
+        is_parked: false,
+        status: 'NOT_PARKED',
+        session_id: null,
+        check_in_time: null,
+        slot: null,
+        message: 'Vehicle is not currently parked in any slot.',
+      },
+    },
+  ]
+
+  const mockFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => singleItemArray,
+  })
+
+  const res = await simulateVehicleSearch({ plate: 'MH-12-CD-3456', mockFetch })
+  assert.equal(res.status, 'SUCCESS')
+  assert.ok(Array.isArray(res.result))
+  assert.equal(res.result.length, 1)
+
+  // Verify normalization and extraction of single item from array
+  const vehicle = res.result[0]
+  assert.equal(vehicle.registration_number, 'MH-12-CD-3456')
+  assert.equal(vehicle.vehicle_type, 'Two-Wheeler')
+  assert.equal(vehicle.parking_status.status, 'NOT_PARKED')
+})
+
+test('simulateVehicleSearch handles empty array [] response as not found (US-07 Review Fix)', async () => {
+  const mockFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => [],
+  })
+
+  const res = await simulateVehicleSearch({ plate: 'KA-99-XX-9999', mockFetch })
+  assert.equal(res.status, 'NOT_FOUND')
+  assert.equal(res.result, null)
+  assert.match(res.error, /No vehicle found/)
+})
+

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
-from vehicles.services import normalize_registration_number
+from vehicles.services import normalize_registration_number, is_valid_registration_number
 
 
 class VehicleSerializer(serializers.ModelSerializer):
@@ -47,8 +47,8 @@ class VehicleSerializer(serializers.ModelSerializer):
         has_plate_key = 'registration_number' in attrs or 'plate_number' in attrs
         raw_reg = attrs.get('registration_number') or attrs.get('plate_number')
 
-        if not has_plate_key and self.instance:
-            # During partial update, if plate is not provided, registration_number remains unchanged
+        if self.partial and not has_plate_key:
+            # During partial update (PATCH), if plate is not provided, registration_number remains unchanged
             pass
         else:
             if not raw_reg or not str(raw_reg).strip():
@@ -60,6 +60,11 @@ class VehicleSerializer(serializers.ModelSerializer):
             if len(normalized) > 20:
                 raise serializers.ValidationError(
                     {'registration_number': ['Ensure this field has no more than 20 characters.']}
+                )
+
+            if not is_valid_registration_number(normalized):
+                raise serializers.ValidationError(
+                    {'registration_number': ['Invalid vehicle registration number format. Supported formats include standard state plates (e.g. KA-01-AB-1234, DL3CBB1122) and BH-series (e.g. 22-BH-1234-AA).']}
                 )
 
             attrs['registration_number'] = normalized

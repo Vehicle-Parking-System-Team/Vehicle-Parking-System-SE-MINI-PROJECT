@@ -185,10 +185,10 @@ The table below reconciles the architecture components with the canonical baseli
 | **FR-04** | Real-Time Slot State Management | E3 / US-10 (#30) | Slot Allocation Engine (§3.4.4) | `backend/slots/services.py` | `TC-UC03-INT-001` |
 | **FR-05** | Check-In & Slot Allocation | E5 / US-17 (#37) | Operations Module (§3.4.5) | `backend/operations/views.py` | `TC-UC05-UNIT-001`<br>`TC-UC05-INT-001` |
 | **FR-06** | Single Active Session Constraint | E5 / US-18 (#38) | Operations Module (§3.4.5) | `backend/operations/services.py` | `TC-UC05-INT-002` |
-| **FR-07** | Occupied Slot Protection | E3 / US-12 (#32)<br>E5 / US-17 (#37) | Slot Engine & Operations (§3.4.4, §3.4.5) | `backend/operations/services.py` | `TC-UC03-SYS-002`<br>`TC-UC05-INT-001` |
+| **FR-07** | Occupied Slot Protection | E3 / US-12 (#32) *(Owner: Member 4 [reassigned from Member 2])*<br>E5 / US-17 (#37) *(Owner: Member 3)* | Slot Engine & Operations (§3.4.4, §3.4.5) | `backend/operations/services.py` | `TC-UC03-SYS-002`<br>`TC-UC05-INT-001` |
 | **FR-08** | Vehicle Check-Out Operations | E5 / US-19 (#39) | Operations Module (§3.4.5) | `backend/operations/views.py` | `TC-UC06-INT-001` |
 | **FR-09** | Automatic Slot Release | E5 / US-19 (#39) | Operations Module (§3.4.5) | `backend/operations/services.py` | `TC-UC06-INT-002` |
-| **FR-10** | Live Occupancy Dashboard | E3 / US-11 (#31) | Slot Allocation Engine (§3.4.4) | `frontend/src/pages/Dashboard.jsx` | `TC-UC03-SYS-002` |
+| **FR-10** | Live Occupancy Dashboard | E3 / US-11 (#31) *(Owner: Member 4 [reassigned from Member 2])* | Slot Allocation Engine (§3.4.4) | `frontend/src/pages/Dashboard.jsx` | `TC-UC03-SYS-002` |
 | **FR-11** | Search Vehicle by License Plate | E2 / US-07 (#27) | Vehicle Management Module (§3.4.3) | `backend/vehicles/views.py`<br>`frontend/src/pages/Search.jsx` | `TC-UC02-API-001`<br>`TC-UC02-API-002` |
 | **FR-12** | Persistent Parking History Trail | E5 / US-20 (#40) | Operations Module (§3.4.5) | `backend/operations/models.py`<br>`frontend/src/pages/History.jsx` | `TC-UC06-SYS-001` |
 | **FR-13** | Server-Side Input Validation | E2 / US-08 (#28)<br>E8 / US-31 (#51) | Common Validation Layer (§3.4.9) | `backend/common/serializers.py` | `TC-UC10-API-001` |
@@ -384,3 +384,4 @@ All application domain modules (`backend/accounts/`, `backend/vehicles/`, `backe
 | :--- | :--- | :--- | :--- |
 | **1.0.0** | 19 Oct 2026 | Member 2 (Architecture Lead) | Initial SAD draft PDF export (`Vehicle_Parking_System_SAD (2) (1) (1).pdf`). |
 | **1.1.0** | 19 Oct 2026 | Member 1 & Member 2 | Harmonized SAD markdown baseline: corrected §3.8 traceability to canonical FR-01..30, aligned roles to Admin/Operator/Customer, eliminated hardware assumptions, formalized DEC-01..15, and reconciled with SRS v1.1 and Test Plan v1.0. |
+| **1.1.1** | 25 Oct 2026 | Member 1 (Integration Lead) | Documented story ownership reassignment: US-11 (#31, FR-10) and US-12 (#32, FR-07) transferred from Member 2 to Member 4 due to Member 2 workload/availability constraints; Member 2 retains US-09, US-10 (Done) and Epic E4 (US-13..16); Member 4 assumes US-11, US-12 alongside Epics E7 and E8. |

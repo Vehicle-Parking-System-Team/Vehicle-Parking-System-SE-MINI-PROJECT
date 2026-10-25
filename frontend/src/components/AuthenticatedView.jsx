@@ -14,6 +14,7 @@ export function AuthenticatedView() {
 
   const activePage = page === 'facility' && !canManage ? 'vehicles' : page
   const navigation = [
+    ['availability', 'Parking availability', 'map'],
     ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
     ['vehicles', 'My vehicles', 'car'],
     ['profiles', 'Vehicle profiles', 'edit'],
@@ -126,8 +127,10 @@ export function AuthenticatedView() {
           </span>
         </header>
         <main id="bay-main" className="bay-main" tabIndex={-1}>
-          {activePage === 'facility' ? (
-            <SlotsPage />
+          {activePage === 'availability' ? (
+            <SlotsPage key="availability" availability />
+          ) : activePage === 'facility' ? (
+            <SlotsPage key="management" />
           ) : activePage === 'vehicles' ? (
             <section className="bay-legacy-page" id="authenticated-container">
               <div className="bay-page-heading">
