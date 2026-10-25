@@ -104,3 +104,13 @@
 | **US-11 (#31)** | View current parking status | Member 2 (`tejasv5467`) | Member 4 (`maddox095`) | 25 Oct 2026 | Member 2 workload / availability; Member 4 assumes unfinished facility stories | FR-10; real-time occupancy status dashboard across zones; Sprint 2, 3 SP, Priority Medium | Ready / In Progress (Unchanged) |
 | **US-12 (#32)** | Enforce slot integrity and destructive-operation rules | Member 2 (`tejasv5467`) | Member 4 (`maddox095`) | 25 Oct 2026 | Member 2 workload / availability; Member 4 assumes unfinished facility stories | FR-07, BR-12, NFR-SAFE-01; prevent assignment to occupied/unavailable slots; Sprint 2, 3 SP, Priority High | Ready / In Progress (Unchanged) |
 
+
+## US-11 implementation evidence
+
+The FR-10 row above retains its planned implementation target. The implemented
+US-11 (#31) target is `backend/parking_slots/availability.py` and the read-only
+mode of `frontend/src/pages/Slots.jsx`; no separate `Dashboard.jsx` is needed.
+Member 4 owns this reassigned story. Public access, exact zone/type filters and
+30-second/manual refresh are documented in [the US-11 contract](../design/US11-parking-availability.md).
+Local tests and browser checks passed; see [US-11 evidence](../testing/US11-test-evidence.md)
+for TC-UC03-SYS-002 coverage and environment limits. PR review remains pending.

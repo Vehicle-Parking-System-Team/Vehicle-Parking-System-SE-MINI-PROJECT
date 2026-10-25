@@ -45,6 +45,11 @@ The shared US-31 API error handler and frontend error helper are available for d
 
 ## Development checks
 
+US-11 adds public, read-only parking availability from the sign-in screen and
+signed-in navigation, with zone/type filters and a 30-second refresh. See the
+[availability API and behavior](docs/design/US11-parking-availability.md) and
+[verification evidence](docs/testing/US11-test-evidence.md).
+
 Create and activate a Python virtual environment (Python 3.12+ locally; CI uses 3.13). From `backend/`:
 
 ```sh

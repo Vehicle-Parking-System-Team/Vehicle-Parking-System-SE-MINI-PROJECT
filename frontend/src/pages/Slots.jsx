@@ -2,6 +2,12 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { requestSlots } from '../utils/slots'
 import {
+  AVAILABILITY_REFRESH_MS,
+  filterAvailability,
+  requestAvailability,
+} from '../utils/availability'
+import { VEHICLE_TYPES } from '../utils/vehicles'
+import {
   buildFloorLayout,
   floorCode,
   floorLabel,
@@ -13,6 +19,7 @@ import { DEMO_SLOTS } from '../data/demoSlots'
 import BayIcon from '../components/BayIcon'
 import SlotEditor from '../components/SlotEditor'
 import './Slots.css'
+import './Availability.css'
 
 const ParkingScene = lazy(() => import('../components/ParkingScene'))
 
@@ -26,7 +33,7 @@ function StatusBadge({ slot }) {
   )
 }
 
-export default function SlotsPage() {
+export default function SlotsPage({ availability = false }) {
   const { fetchWithAuth } = useAuth()
   const [liveSlots, setLiveSlots] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,31 +51,53 @@ export default function SlotsPage() {
   const [editor, setEditor] = useState(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [zone, setZone] = useState('')
+  const [vehicleType, setVehicleType] = useState('')
 
   useEffect(() => {
     let ignore = false
-    requestSlots(fetchWithAuth)
-      .then((data) => {
-        if (!Array.isArray(data))
-          throw new Error('The slot list could not be read.')
-        if (!ignore) {
-          setLiveSlots(data)
-          setLoadedAt(new Date())
-        }
-      })
-      .catch((failure) => {
-        if (!ignore) setError(failure)
-      })
-      .finally(() => {
-        if (!ignore) setLoading(false)
-      })
+    let pending = false
+    const controller = new AbortController()
+    function load() {
+      if (pending) return
+      pending = true
+      setLoading(true)
+      const request = availability
+        ? requestAvailability(controller.signal)
+        : requestSlots(fetchWithAuth, '', { signal: controller.signal })
+      request
+        .then((data) => {
+          if (!Array.isArray(data))
+            throw new Error('The slot list could not be read.')
+          if (!ignore) {
+            setLiveSlots(data)
+            setLoadedAt(new Date())
+            setError(null)
+          }
+        })
+        .catch((failure) => {
+          if (!ignore) setError(failure)
+        })
+        .finally(() => {
+          pending = false
+          if (!ignore) setLoading(false)
+        })
+    }
+    load()
+    const timer = availability ? setInterval(load, AVAILABILITY_REFRESH_MS) : null
     return () => {
       ignore = true
+      controller.abort()
+      clearInterval(timer)
     }
-  }, [fetchWithAuth, revision])
+  }, [availability, fetchWithAuth, revision])
 
   const { floors, activeFloor, floorSlots, layout, stats } = useMemo(() => {
-    const source = demo ? DEMO_SLOTS : liveSlots
+    const source = availability
+      ? filterAvailability(liveSlots, zone, vehicleType)
+      : demo
+        ? DEMO_SLOTS
+        : liveSlots
     const floors = [...new Set(source.map((slot) => slot.floor))].sort(
       (a, b) => (a === null ? 1 : b === null ? -1 : a - b),
     )
@@ -85,7 +114,8 @@ export default function SlotsPage() {
       layout: buildFloorLayout(floorSlots),
       stats: summarizeSlots(floorSlots),
     }
-  }, [demo, liveSlots, floor])
+  }, [availability, demo, liveSlots, floor, zone, vehicleType])
+  const zones = [...new Map(liveSlots.map((slot) => [String(slot.zone), slot.zone_name]))]
   const selected = floorSlots.find((slot) => slot.id === selectedId)
   const filtered = floorSlots.filter((slot) =>
     `${slot.slot_number} ${slot.zone_name} ${slot.vehicle_type}`
@@ -99,7 +129,7 @@ export default function SlotsPage() {
 
   function refresh() {
     setLoading(true)
-    setError(null)
+    if (!availability) setError(null)
     setMessage('')
     setRevision((value) => value + 1)
   }
@@ -124,7 +154,7 @@ export default function SlotsPage() {
   }
 
   async function updateSelected(action) {
-    if (!selected || demo || saving) return
+    if (!selected || availability || demo || saving) return
     setSaving(true)
     setError(null)
     setMessage('')
@@ -162,23 +192,29 @@ export default function SlotsPage() {
   }
 
   return (
-    <div className="bay-facility">
+    <div className="bay-facility" aria-busy={loading}>
       <div className="bay-page-heading">
         <div>
           <span className="bay-eyebrow">FACILITY OVERVIEW</span>
           <h1>
             Parking, in perspective<span>.</span>
           </h1>
-          <p>Manage your parking spaces, floor by floor.</p>
+          <p>
+            {availability
+              ? 'View current availability, floor by floor.'
+              : 'Manage your parking spaces, floor by floor.'}
+          </p>
         </div>
-        <button
-          className="bay-button bay-button-primary"
-          onClick={() => setEditor({ slot: null })}
-          disabled={demo || loading}
-        >
-          <BayIcon name="plus" size={18} />
-          Add parking bay
-        </button>
+        {!availability && (
+          <button
+            className="bay-button bay-button-primary"
+            onClick={() => setEditor({ slot: null })}
+            disabled={demo || loading}
+          >
+            <BayIcon name="plus" size={18} />
+            Add parking bay
+          </button>
+        )}
       </div>
       <div className={`bay-source-bar ${demo ? 'bay-source-demo' : ''}`}>
         <span>
@@ -194,17 +230,55 @@ export default function SlotsPage() {
                   : 'No snapshot available'}
           </span>
         </span>
-        <button type="button" onClick={switchData}>
-          {demo ? 'Return to facility' : 'Explore design demo'}
-          <BayIcon name="arrow" size={15} />
-        </button>
+        {!availability && (
+          <button type="button" onClick={switchData}>
+            {demo ? 'Return to facility' : 'Explore design demo'}
+            <BayIcon name="arrow" size={15} />
+          </button>
+        )}
       </div>
       {error && !demo && (
         <div className="bay-alert" role="alert">
           {error.message || 'Unable to reach the slot service.'}
+          {availability && (
+            <span>
+              {' '}{loadedAt
+                ? 'Showing the last successful snapshot; it may be out of date.'
+                : 'No availability snapshot loaded.'}
+            </span>
+          )}
           <button type="button" onClick={refresh} disabled={loading}>
             Try again
           </button>
+        </div>
+      )}
+      {availability && (
+        <div className="bay-availability-filters">
+          <div className="bay-availability-field">
+            <label htmlFor="availability-zone">Zone</label>
+            <select id="availability-zone" value={zone} onChange={(event) => {
+              setZone(event.target.value)
+              setSelectedId(null)
+            }}>
+              <option value="">All zones</option>
+              {zones.map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="bay-availability-field">
+            <label htmlFor="availability-type">Vehicle type</label>
+            <select id="availability-type" value={vehicleType} onChange={(event) => {
+              setVehicleType(event.target.value)
+              setSelectedId(null)
+            }}>
+              <option value="">All types</option>
+              {VEHICLE_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <p>Refreshes every 30 seconds. Counts and map show the selected floor and filters.</p>
         </div>
       )}
       {message && (
@@ -361,8 +435,8 @@ export default function SlotsPage() {
             {floorSlots.length === 0 && !loading && (
               <div className="bay-empty-overlay">
                 <BayIcon name="layers" size={30} />
-                <strong>A blank canvas for your facility.</strong>
-                <p>Add a bay to begin, or explore the design demo above.</p>
+                <strong>{availability ? 'No matching active bays.' : 'A blank canvas for your facility.'}</strong>
+                <p>{availability ? 'Try another zone or vehicle type, or refresh.' : 'Add a bay to begin, or explore the design demo above.'}</p>
               </div>
             )}
             {mode === '3d' && !rendererError && (
@@ -473,9 +547,9 @@ export default function SlotsPage() {
                   </dd>
                 </div>
               </dl>
-              {demo ? (
+              {demo || availability ? (
                 <p className="bay-inspector-hint">
-                  Design preview. Sample bays cannot be edited.
+                  {availability ? 'Public availability is read only.' : 'Design preview. Sample bays cannot be edited.'}
                 </p>
               ) : (
                 <div className="bay-inspector-actions">
@@ -621,7 +695,7 @@ export default function SlotsPage() {
           <p className="bay-muted">
             {loading
               ? 'Loading your facility...'
-              : query
+                : query || availability
                 ? 'No matching bays on this floor.'
                 : 'Create a parking bay to get started.'}
           </p>
@@ -637,7 +711,7 @@ export default function SlotsPage() {
           </button>
         )}
       </section>
-      {editor && !demo && (
+      {editor && !demo && !availability && (
         <SlotEditor
           slot={editor.slot}
           onClose={() => setEditor(null)}
