@@ -112,3 +112,11 @@ Run `python manage.py test` from `backend`, and `npm test`, `npm run lint`,
 statuses, legacy types and timestamps. Test databases are isolated; tests do not
 alter a developer's normal database. See the handoff's validation evidence for
 the separate SQLite upgrade rehearsal and browser checks.
+
+## Current operations integration
+
+US-17 now calls `occupy_slot` from the real check-in transaction. The US-12
+follow-up adds active-record integrity guards and PostgreSQL concurrency tests;
+see [US12-slot-integrity.md](US12-slot-integrity.md). US-10's checkout-after-fee
+criterion still requires the actual US-19/US-22 implementation. The historical
+PR #64 hook tests above do not establish that missing integration.
