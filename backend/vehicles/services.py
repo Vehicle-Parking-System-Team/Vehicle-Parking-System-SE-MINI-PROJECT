@@ -1,17 +1,53 @@
+import re
 from django.db import IntegrityError, transaction
+from django.db.models import Q
+from rest_framework.exceptions import NotFound, PermissionDenied
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
+
+# Anchored regex supporting standard state registrations and BH-series
+REGISTRATION_NUMBER_PATTERN = re.compile(
+    r'^(?:[A-Z]{2}[-\s]?(?:[0-9]{1,2}[-\s]?)?[A-Z]{1,8}[-\s]?[0-9]{1,4}|[0-9]{2}[-\s]?BH[-\s]?[0-9]{4}[-\s]?[A-Z]{1,2})$'
+)
 
 
 def normalize_registration_number(registration_number: str) -> str:
     """
     Normalizes a vehicle registration number / license plate.
-    Trims leading/trailing whitespace and converts to uppercase.
-    Does not impose an overly restrictive alphanumeric regex.
+    - Trims leading/trailing whitespace and converts to uppercase.
+    - Collapses whitespace around hyphens.
+    - Converts space-separated format (e.g. 'KA 01 AB 1234') into canonical hyphenated form.
+    - Preserves unseparated alphanumeric plates (e.g. 'DL3CBB1122').
     """
     if not registration_number:
         return ''
-    return str(registration_number).strip().upper()
+    s = str(registration_number).strip().upper()
+    # Collapse any whitespace around hyphens
+    s = re.sub(r'\s*-\s*', '-', s)
+    # Convert space-separated parts to hyphens
+    if ' ' in s and '-' not in s:
+        parts = s.split()
+        if len(parts) in (3, 4):
+            s = '-'.join(parts)
+        else:
+            s = ' '.join(parts)
+    return s
+
+
+def is_valid_registration_number(registration_number: str) -> bool:
+    """
+    Validates vehicle registration numbers according to documented supported formats:
+    1. Standard State format: 2-letter state code + 1-2 digit RTO + 1-4 letter series + 1-4 digit serial
+       (e.g., KA-01-AB-1234, DL3CBB1122, MH-12-CD-5678, KA-01-TEST-99).
+    2. BH-Series format: 2-digit year + BH + 4-digit serial + 1-2 letter series
+       (e.g., 22-BH-1234-AA, 22BH1234A).
+    Enforces complete input anchoring (^...$) and rejects malformed prefixes, excess characters,
+    trailing junk, and embedded substrings.
+    """
+    if not registration_number or not isinstance(registration_number, str):
+        return False
+    normalized = normalize_registration_number(registration_number)
+    return bool(REGISTRATION_NUMBER_PATTERN.fullmatch(normalized))
 
 
 def get_vehicle_by_registration_number(registration_number: str) -> Vehicle | None:
@@ -46,6 +82,7 @@ def register_vehicle(
     """
     Registers a new vehicle record under the provided authenticated owner.
     Enforces normalized plate uniqueness and raises Conflict (HTTP 409) if duplicate.
+    Validates registration number format against documented patterns.
     """
     if not owner:
         raise ValueError('A valid owner is required.')
@@ -59,6 +96,8 @@ def register_vehicle(
         raise ValueError('Registration number cannot be empty.')
     if len(normalized_plate) > 20:
         raise ValueError('Registration number cannot exceed 20 characters.')
+    if not is_valid_registration_number(normalized_plate):
+        raise ValueError('Invalid vehicle registration number format.')
 
     # Explicit domain conflict check (US-31 error contract)
     if Vehicle.objects.filter(registration_number=normalized_plate).exists():
@@ -116,6 +155,8 @@ def update_vehicle(
             raise ValueError('Registration number cannot be empty.')
         if len(normalized_plate) > 20:
             raise ValueError('Registration number cannot exceed 20 characters.')
+        if not is_valid_registration_number(normalized_plate):
+            raise ValueError('Invalid vehicle registration number format.')
 
         duplicate_qs = Vehicle.objects.filter(registration_number=normalized_plate).exclude(pk=vehicle.pk)
         if duplicate_qs.exists():
@@ -134,3 +175,144 @@ def update_vehicle(
             return vehicle
     except IntegrityError:
         raise Conflict('A vehicle with this registration number already exists.')
+
+
+def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
+    """
+    Resolves the live parking status of a vehicle (US-07 / FR-11).
+    Derives status directly from authoritative persisted ParkingRecord (US-17 / PR #67).
+    Returns PARKED only when the vehicle has a valid active parking record.
+    Returns NOT_PARKED when no active record exists (including completed historical records).
+    Safely handles slot relationships and avoids N+1 queries using select_related.
+    """
+    if not vehicle or not getattr(vehicle, 'pk', None):
+        return {
+            'is_parked': False,
+            'status': 'NOT_PARKED',
+            'session_id': None,
+            'check_in_time': None,
+            'slot': None,
+            'message': 'No vehicle specified.',
+        }
+
+    from operations.models import ParkingRecord
+
+    active_record = (
+        ParkingRecord.objects.filter(
+            vehicle=vehicle,
+            status=ParkingRecord.Status.ACTIVE,
+        )
+        .select_related('slot', 'slot__zone')
+        .first()
+    )
+
+    if active_record and getattr(active_record, 'slot', None):
+        slot = active_record.slot
+        check_in_val = active_record.check_in_time
+        check_in_str = check_in_val.isoformat() if hasattr(check_in_val, 'isoformat') else str(check_in_val)
+        zone_name = slot.zone.name if getattr(slot, 'zone', None) else ''
+        slot_num = slot.slot_number
+
+        return {
+            'is_parked': True,
+            'status': 'PARKED',
+            'session_id': active_record.pk,
+            'check_in_time': check_in_str,
+            'slot': {
+                'id': slot.pk,
+                'slot_number': slot_num,
+                'zone': zone_name,
+                'floor': getattr(slot, 'floor', None),
+            },
+            'message': f'Vehicle is currently parked in bay {slot_num}.',
+        }
+
+    return {
+        'is_parked': False,
+        'status': 'NOT_PARKED',
+        'session_id': None,
+        'check_in_time': None,
+        'slot': None,
+        'message': 'Vehicle is not currently parked in any slot.',
+    }
+
+
+def search_vehicles(search_query: str, requesting_user=None) -> list[tuple[Vehicle, dict]]:
+    """
+    Searches for vehicles by license plate (exact or partial matching) and resolves their live parking status.
+    - Normalizes search string (case, whitespace, permitted separators).
+    - Prevents unrestricted full-table searches (requires minimum 2 non-separator characters).
+    - Enforces RBAC permissions:
+      * Admin & Operator: permitted to search any vehicle.
+      * Customer: restricted to own vehicles (cross-tenant queries are blocked).
+    - Returns a list of (vehicle, parking_status) tuples.
+    - Uses safe Django ORM queries with select_related to avoid N+1 queries.
+    """
+    if not search_query or not str(search_query).strip():
+        raise ValueError('A license plate or registration number is required to search.')
+
+    raw = str(search_query).strip()
+    alphanumeric_chars = re.sub(r'[^A-Za-z0-9]', '', raw)
+    if len(alphanumeric_chars) < 2:
+        raise ValueError('Search query must contain at least 2 alphanumeric characters.')
+
+    # Permission check
+    is_privileged = False
+    if requesting_user and hasattr(requesting_user, 'is_authenticated') and requesting_user.is_authenticated:
+        role = getattr(requesting_user, 'role', None)
+        is_privileged = (
+            role in ['Admin', 'Operator']
+            or getattr(requesting_user, 'is_staff', False)
+            or getattr(requesting_user, 'is_superuser', False)
+        )
+
+    # First, attempt normalized exact lookup
+    normalized_exact = normalize_registration_number(raw)
+
+    # Check if exact match exists anywhere in the database
+    exact_match = Vehicle.objects.filter(registration_number=normalized_exact).first()
+    if exact_match:
+        if not is_privileged and exact_match.owner != requesting_user:
+            raise PermissionDenied('You do not have permission to view details for this vehicle.')
+        return [(exact_match, get_vehicle_parking_status(exact_match))]
+
+    # Build safe ORM query for partial search
+    upper_query = raw.upper()
+    collapsed = re.sub(r'\s+', '-', upper_query)
+    clean_no_sep = re.sub(r'[-\s]', '', upper_query)
+
+    query_filter = (
+        Q(registration_number__icontains=upper_query)
+        | Q(registration_number__icontains=collapsed)
+    )
+    if clean_no_sep:
+        query_filter |= Q(registration_number__icontains=clean_no_sep)
+
+    # Role scoping: Customer only searches own vehicles; Admin/Operator searches all
+    if is_privileged:
+        qs = Vehicle.objects.filter(query_filter).order_by('registration_number')
+    else:
+        qs = Vehicle.objects.filter(query_filter, owner=requesting_user).order_by('registration_number')
+
+    results = list(qs[:50])
+    if not results:
+        raise NotFound(f'No vehicle found with registration number "{normalized_exact}".')
+
+    return [(v, get_vehicle_parking_status(v)) for v in results]
+
+
+def search_vehicle_by_plate(plate: str, requesting_user=None) -> tuple[Vehicle, dict] | list[tuple[Vehicle, dict]]:
+    """
+    Searches for a vehicle by license plate and resolves its parking status (US-07 / FR-11).
+    Preserves existing exact-match behavior and response schema:
+    If a single vehicle matches, returns (vehicle, parking_status).
+    If multiple vehicles match, returns a list of (vehicle, parking_status) tuples.
+    Raises NotFound (HTTP 404) if no vehicle matches.
+    Raises PermissionDenied (HTTP 403) if requesting user lacks authorization.
+    Raises ValueError (HTTP 400) if query is missing, empty, or too short.
+    """
+    results = search_vehicles(plate, requesting_user=requesting_user)
+    if len(results) == 1:
+        return results[0]
+    return results
+

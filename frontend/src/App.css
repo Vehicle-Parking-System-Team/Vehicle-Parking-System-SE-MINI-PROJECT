@@ -1107,6 +1107,380 @@
 }
 
 /* ==========================================================================
+   US-07 VEHICLE SEARCH & LIVE OCCUPANCY STATUS VIEW
+   ========================================================================== */
+.vehicle-search-container {
+  max-width: 960px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.search-bar-card {
+  background: #ffffff;
+  border: 1px solid var(--bay-line);
+  border-radius: 10px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+.search-form {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+.search-input-wrapper {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid #bfbfbf;
+  border-radius: 7px;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search-input-wrapper:focus-within {
+  border-color: #272727;
+  box-shadow: 0 0 0 2px rgba(39, 39, 39, 0.12);
+}
+.search-icon-adornment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 14px;
+  color: #717171;
+}
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: #172536;
+  outline: none;
+  min-height: auto;
+  letter-spacing: 0.5px;
+}
+.search-input::placeholder {
+  color: #8c8c8c;
+}
+.btn-clear-search {
+  background: transparent;
+  border: none;
+  padding: 0 14px;
+  color: #717171;
+  cursor: pointer;
+  font-size: 13px;
+  min-height: auto;
+  line-height: 1;
+}
+.btn-clear-search:hover {
+  color: #1c1c1c;
+}
+.btn-search-submit {
+  padding: 12px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.quick-search-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--bay-line);
+  padding-top: 14px;
+}
+.quick-search-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #717171;
+  font-weight: 600;
+}
+.quick-search-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quick-plate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #deded9;
+  background: #f5f5f2;
+  font-size: 12px;
+  color: #242424;
+  cursor: pointer;
+  min-height: auto;
+  transition: all 0.15s ease;
+}
+.quick-plate-pill:hover {
+  border-color: #272727;
+  background: #ffffff;
+}
+.quick-plate-pill.active {
+  border-color: #272727;
+  background: #272727;
+  color: #ffffff;
+}
+.quick-plate-pill .pill-dot {
+  color: #21845A;
+  font-size: 10px;
+}
+.quick-plate-pill .pill-type {
+  color: #717171;
+}
+.quick-plate-pill.active .pill-type {
+  color: #d5d5d5;
+}
+.search-results-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.live-status-hero {
+  border-radius: 10px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.live-status-hero.status-parked {
+  background: linear-gradient(135deg, rgba(33, 132, 90, 0.08) 0%, rgba(33, 132, 90, 0.03) 100%);
+  border: 1px solid rgba(33, 132, 90, 0.3);
+  color: #155724;
+}
+.live-status-hero.status-not-parked {
+  background: #ffffff;
+  border: 1px solid var(--bay-line);
+  color: #3a3a3a;
+}
+.status-hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.status-indicator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.pulse-dot.green {
+  background: #21845a;
+  box-shadow: 0 0 0 3px rgba(33, 132, 90, 0.25);
+}
+.pulse-dot.neutral {
+  background: #888888;
+}
+.status-hero-message {
+  font-size: 13px;
+  color: #575757;
+  margin: 0;
+}
+.allocated-slot-pill {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(33, 132, 90, 0.35);
+  border-radius: 8px;
+  padding: 10px 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+.slot-pill-left .pill-sub {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #687586;
+  font-weight: 600;
+}
+.slot-pill-left .slot-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: #14283F;
+}
+.slot-pill-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172536;
+}
+.slot-pill-right small {
+  font-size: 11px;
+  color: #687586;
+  font-weight: normal;
+}
+.search-spec-card {
+  background: #ffffff;
+  border: 1px solid var(--bay-line);
+  border-radius: 10px;
+  padding: 24px;
+}
+.spec-card-header {
+  border-bottom: 1px solid #deded9;
+  padding-bottom: 14px;
+}
+.header-plate-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+.spec-plate {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #14283F;
+  margin: 0;
+}
+.search-spec-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+.spec-row dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #717171;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.spec-row dd {
+  font-size: 14px;
+  font-weight: 500;
+  color: #172536;
+  margin: 0;
+}
+.spec-card-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  border-top: 1px solid var(--bay-line);
+  padding-top: 18px;
+  flex-wrap: wrap;
+}
+.search-state-card {
+  background: #ffffff;
+  border: 1px solid var(--bay-line);
+  border-radius: 10px;
+  padding: 40px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.search-state-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #172536;
+  margin: 0;
+}
+.search-state-card p {
+  font-size: 13px;
+  color: #575757;
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.5;
+}
+.search-state-card.state-empty {
+  border-style: dashed;
+}
+.empty-search-icon {
+  color: #8c8c8c;
+  margin-bottom: 6px;
+}
+.search-state-card.state-not-found {
+  background: rgba(230, 91, 82, 0.04);
+  border-color: rgba(230, 91, 82, 0.25);
+}
+.search-state-card.state-not-found h3 {
+  color: #b93838;
+}
+.search-state-card.state-forbidden {
+  background: rgba(169, 101, 18, 0.04);
+  border-color: rgba(169, 101, 18, 0.25);
+}
+.search-state-card.state-forbidden h3 {
+  color: #A96512;
+}
+.search-state-card.state-error {
+  background: rgba(185, 56, 56, 0.04);
+  border-color: rgba(185, 56, 56, 0.25);
+}
+.state-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+.state-actions {
+  margin-top: 12px;
+}
+
+/* ==========================================================================
+   MULTIPLE SEARCH RESULTS STYLES (US-07)
+   ========================================================================== */
+.search-multiple-results {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.multiple-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 4px;
+}
+.multiple-results-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #14283F;
+  margin: 0;
+}
+.multiple-results-header p {
+  font-size: 13px;
+  color: #687586;
+  margin: 0;
+}
+.multiple-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.multiple-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ==========================================================================
    RESPONSIVE BREAKPOINTS (BAY WORKSPACE)
    ========================================================================== */
 @media (min-width: 1800px) {
