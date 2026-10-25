@@ -2,8 +2,8 @@
 
 **Project:** Vehicle Parking System (SE Mini-Project)  
 **Repository:** Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT  
-**Version:** 1.1.0 (Phase 3 Baseline Alignment)  
-**Baseline Date:** October 2026  
+**Version:** 1.1.1 (Member 2 to Member 4 Reassignment)  
+**Baseline Date:** October 2026 (Updated 25 October 2026)  
 **Integration Lead & Scrum Master:** Member 1  
 **Agile Traceability Pipeline:** Requirement (FR/NFR) → Epic / User Story (US) → Design (SAD) → Implementation (Code File) → Test Case (Software Test Plan) → Status
 
@@ -26,10 +26,10 @@
 | **FR-04** | Maintain real-time slot state (Available, Occupied, Maintenance) | US-10 (#30) | E3: Parking Facility & Availability (#16) | Member 2 | docs/SAD/ §3.4.4 Slot Allocation Engine | backend/slots/services.py | TC-UC03-INT-001 | Not Run |
 | **FR-05** | Check-in vehicle and allocate an available compatible parking slot | US-17 (#37) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/views.py | TC-UC05-UNIT-001<br>TC-UC05-INT-001 | Not Run |
 | **FR-06** | Enforce single-active-session constraint per vehicle | US-18 (#38) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/services.py | TC-UC05-INT-002 | Not Run |
-| **FR-07** | Prevent assignment to occupied or unavailable parking slot | US-12 (#32)<br>US-17 (#37) | E3: Parking Facility (#16)<br>E5: Operations (#18) | Member 2<br>Member 3 | docs/SAD/ §3.4.4, §3.4.5 | backend/operations/services.py | TC-UC03-SYS-002<br>TC-UC05-INT-001 | Not Run |
+| **FR-07** | Prevent assignment to occupied or unavailable parking slot | US-12 (#32)<br>US-17 (#37) | E3: Parking Facility (#16)<br>E5: Operations (#18) | Member 4 *(Reassigned from Member 2)*<br>Member 3 | docs/SAD/ §3.4.4, §3.4.5 | backend/operations/services.py | TC-UC03-SYS-002<br>TC-UC05-INT-001 | Not Run |
 | **FR-08** | Check-out vehicle upon operator request or exit verification | US-19 (#39) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/views.py | TC-UC06-INT-001 | Not Run |
 | **FR-09** | Automatically release parking slot to Available upon checkout | US-19 (#39) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/services.py | TC-UC06-INT-002 | Not Run |
-| **FR-10** | Live parking occupancy status dashboard for operators and users | US-11 (#31) | E3: Parking Facility & Availability (#16) | Member 2 | docs/SAD/ §3.4.4 Slot Allocation Engine | frontend/src/pages/Dashboard.jsx | TC-UC03-SYS-002 | Not Run |
+| **FR-10** | Live parking occupancy status dashboard for operators and users | US-11 (#31) | E3: Parking Facility & Availability (#16) | Member 4 *(Reassigned from Member 2)* | docs/SAD/ §3.4.4 Slot Allocation Engine | frontend/src/pages/Dashboard.jsx | TC-UC03-SYS-002 | Not Run |
 | **FR-11** | Search vehicle by license plate and inspect current parking status | US-07 (#27) | E2: Vehicle Management (#15) | Member 1 | docs/SAD/ §3.4.3 Vehicle Management | backend/vehicles/views.py<br>frontend/src/pages/Search.jsx | TC-UC02-API-001<br>TC-UC02-API-002 | Not Run |
 | **FR-12** | Maintain persistent historical audit trail of parking sessions | US-20 (#40) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/models.py<br>frontend/src/pages/History.jsx | TC-UC06-SYS-001 | Not Run |
 | **FR-13** | Backend data validation for all client-submitted payload fields | US-08 (#28)<br>US-31 (#51) | E2: Vehicle Mgmt (#15)<br>E8: System Admin (#21) | Member 1<br>Member 4 | docs/SAD/ §3.4.9, §4.5 Validation | backend/common/serializers.py | TC-UC10-API-001 | Not Run |
@@ -81,16 +81,26 @@
   - *Functional Scope:* Authentication, RBAC, user profiles, vehicle registration, profile updates, vehicle search, and duplicate handling.  
   - *Coordination:* SRS & RTM synchronization, Project Plan, Git workflow, Sprint Backlog tracking, Integration coordination.
 - **Member 2:**  
-  - *Assigned Epics:* Epic E3 (Parking Facility & Availability: #16) and Epic E4 (Reservation Management: #17).  
-  - *Assigned User Stories:* US-09 (#29), US-10 (#30), US-11 (#31), US-12 (#32), US-13 (#33), US-14 (#34), US-15 (#35), US-16 (#36).  
-  - *Functional Scope:* Parking slots, zones, real-time slot states, occupancy dashboard, slot constraints, advance reservations, reservation modifications, and conflict prevention.
+  - *Assigned Epics:* Epic E3 (Parking Facility & Availability: #16 — US-09, US-10 Done; US-11, US-12 reassigned) and Epic E4 (Reservation Management: #17).  
+  - *Assigned User Stories:* US-09 (#29, Done), US-10 (#30, Done), US-13 (#33), US-14 (#34), US-15 (#35), US-16 (#36). *(Historical: US-11 #31 and US-12 #32 transferred to Member 4 on 25 Oct 2026).*  
+  - *Functional Scope:* Parking slots, zones, real-time slot states (completed); advance reservations, reservation modifications, conflict prevention, and hold expiry.
 - **Member 3:**  
   - *Assigned Epics:* Epic E5 (Parking Operations: #18) and Epic E6 (Pricing, Billing & Payment: #19).  
   - *Assigned User Stories:* US-17 (#37), US-18 (#38), US-19 (#39), US-20 (#40), US-21 (#41), US-22 (#42), US-23 (#43), US-24 (#44).  
   - *Functional Scope:* Check-in, check-out, slot assignment, single-active-session enforcement, history retention, tariff configuration, fee calculation, digital parking slips, and payment recording.
 - **Member 4:**  
-  - *Assigned Epics:* Epic E7 (Admin Dashboard & Reporting: #20) and Epic E8 (Audit, Notifications & Quality: #21).  
-  - *Assigned User Stories:* US-25 (#45), US-26 (#46), US-27 (#47), US-28 (#48), US-29 (#49), US-30 (#50), US-31 (#51), US-32 (#52).  
-  - *Functional Scope:* Admin dashboard metrics, occupancy/revenue reports, CSV/PDF export, system audit logging, in-app notifications, centralized validation, and security hardening.
+  - *Assigned Epics:* Epic E7 (Admin Dashboard & Reporting: #20), Epic E8 (Audit, Notifications & Quality: #21), and Parking Facility & Availability reassigned stories US-11 (#31) and US-12 (#32) from Epic E3 (#16).  
+  - *Assigned User Stories:* US-25 (#45), US-26 (#46), US-27 (#47), US-28 (#48), US-29 (#49), US-30 (#50), US-31 (#51), US-32 (#52), US-11 (#31, reassigned from Member 2), US-12 (#32, reassigned from Member 2).  
+  - *Functional Scope:* Admin dashboard metrics, occupancy/revenue reports, CSV/PDF export, system audit logging, in-app notifications, centralized validation, security hardening, live occupancy dashboard (US-11), and slot integrity safeguards (US-12).
 - **Cross-Cutting (All Members):**  
   - Unified error response schema ({error, code, details}), database transactional integrity, test suite execution, and CI/CD quality gates.
+
+---
+
+## 5. User Story Reassignment Changelog (25 October 2026)
+
+| User Story ID & Issue | Story Title | Original Owner | New Owner | Effective Date | Reason | Requirements & Criteria | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **US-11 (#31)** | View current parking status | Member 2 (`tejasv5467`) | Member 4 (`maddox095`) | 25 Oct 2026 | Member 2 workload / availability; Member 4 assumes unfinished facility stories | FR-10; real-time occupancy status dashboard across zones; Sprint 2, 3 SP, Priority Medium | Ready / In Progress (Unchanged) |
+| **US-12 (#32)** | Enforce slot integrity and destructive-operation rules | Member 2 (`tejasv5467`) | Member 4 (`maddox095`) | 25 Oct 2026 | Member 2 workload / availability; Member 4 assumes unfinished facility stories | FR-07, BR-12, NFR-SAFE-01; prevent assignment to occupied/unavailable slots; Sprint 2, 3 SP, Priority High | Ready / In Progress (Unchanged) |
+

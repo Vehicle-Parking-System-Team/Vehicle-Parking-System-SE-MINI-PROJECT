@@ -55,7 +55,7 @@ The project is partitioned into **8 agreed Epics**, with exactly **2 Epics (8 Us
 |---|---|---|---|---|---|
 | **#2** | **E1 – Identity & Access Management** | Auth, logout, RBAC, user accounts, profiles, passwords | Member 1 | `Trisha-Vallamkonda-Prathap` | US-01, US-02, US-03, US-04 (13 SP) |
 | **#15** | **E2 – Vehicle Management** | Vehicle registration, updates, plate search, duplicate handling | Member 1 | `Trisha-Vallamkonda-Prathap` | US-05, US-06, US-07, US-08 (16 SP) |
-| **#16** | **E3 – Parking Facility & Availability** | Slot CRUD, state management, live occupancy dashboard, integrity rules | Member 2 | `tejasv5467` | US-09, US-10, US-11, US-12 (14 SP) |
+| **#16** | **E3 – Parking Facility & Availability** | Slot CRUD, state management, live occupancy dashboard, integrity rules | Member 2 / Member 4 | `tejasv5467` / `maddox095` | US-09, US-10 (Member 2 - Done); US-11, US-12 (Reassigned to Member 4 - 6 SP) |
 | **#17** | **E4 – Reservation Management** | Advance reservations, modification, cancellation, conflict prevention, check-in link | Member 2 | `tejasv5467` | US-13, US-14, US-15, US-16 (15 SP) |
 | **#18** | **E5 – Parking Operations** | Check-in, slot allocation, single active session, check-out, slot release, history | Member 3 | `vasishtcoffee` | US-17, US-18, US-19, US-20 (16 SP) |
 | **#19** | **E6 – Pricing, Billing & Payment** | Rate configuration, fee calculation, receipt/bill generation, payment recording | Member 3 | `vasishtcoffee` | US-21, US-22, US-23, US-24 (13 SP) |
@@ -82,8 +82,8 @@ The project is partitioned into **8 agreed Epics**, with exactly **2 Epics (8 Us
 | **US-08** | #28 | Vehicle validation and duplicate handling | E2 (#15) | Member 1 | 4 SP | Backlog (Sprint 3) | Handbook `FR-13, FR-14` / SRS v1.1 `FR-13, FR-14` |
 | **US-09** | #29 | Create, modify and remove parking slots | E3 (#16) | Member 2 | 5 SP | Sprint 1 (19–23 Oct) | Handbook `FR-03` / SRS v1.1 `FR-03, FR-23` |
 | **US-10** | #30 | Maintain slot state | E3 (#16) | Member 2 | 3 SP | Sprint 1 (19–23 Oct) | Handbook `FR-04` / SRS v1.1 `FR-04` |
-| **US-11** | #31 | View current parking status | E3 (#16) | Member 2 | 3 SP | Sprint 2 (26–30 Oct) | Handbook `FR-10` / SRS v1.1 `FR-10` |
-| **US-12** | #32 | Enforce slot integrity and destructive-operation rules | E3 (#16) | Member 2 | 3 SP | Sprint 2 (26–30 Oct) | Handbook `FR-07, BR-12` / SRS v1.1 `FR-07, NFR-SAFE-01` |
+| **US-11** | #31 | View current parking status | E3 (#16) | Member 4 *(Reassigned from Member 2)* | 3 SP | Sprint 2 (26–30 Oct) | Handbook `FR-10` / SRS v1.1 `FR-10` |
+| **US-12** | #32 | Enforce slot integrity and destructive-operation rules | E3 (#16) | Member 4 *(Reassigned from Member 2)* | 3 SP | Sprint 2 (26–30 Oct) | Handbook `FR-07, BR-12` / SRS v1.1 `FR-07, NFR-SAFE-01` |
 | **US-13** | #33 | Create a parking reservation | E4 (#17) | Member 2 | 5 SP | Sprint 2 (26–30 Oct) | Handbook `FR-19` / Cross-ref `UC-04` |
 | **US-14** | #34 | Modify or cancel a future reservation | E4 (#17) | Member 2 | 2 SP | Backlog (Sprint 3) | Handbook `FR-21` / Cross-ref `UC-04` |
 | **US-15** | #35 | Prevent reservation conflicts | E4 (#17) | Member 2 | 4 SP | Backlog (Sprint 3) | Handbook `FR-20` / `NFR-SAFE-01, NFR-PERF-02` |
@@ -324,7 +324,7 @@ Every issue in the GitHub repository was directly queried and verified. The cano
 #### Canonical Epics (8 Verified Epics)
 1. **Epic #2 (`E1 – Identity & Access Management`):** Open | Labels: `['Epic', 'Member 1']` | Assignee: `Trisha-Vallamkonda-Prathap` (Member 1) | Scope: Auth, logout, RBAC, user accounts, profiles, passwords | Stories: US-01, US-02, US-03, US-04 (13 SP).
 2. **Epic #15 (`E2 – Vehicle Management`):** Open | Labels: `['Epic', 'Member 1']` | Assignee: `Trisha-Vallamkonda-Prathap` (Member 1) | Scope: Vehicle registration, profile updates, license search, validation | Stories: US-05, US-06, US-07, US-08 (16 SP).
-3. **Epic #16 (`E3 – Parking Facility & Availability`):** Open | Labels: `['Epic', 'Member 2']` | Assignee: `tejasv5467` (Member 2) | Scope: Slot CRUD, slot state management, live occupancy dashboard, integrity safeguards | Stories: US-09, US-10, US-11, US-12 (14 SP).
+3. **Epic #16 (`E3 – Parking Facility & Availability`):** Open | Labels: `['Epic', 'Member 2', 'Member 4']` | Assignee: `tejasv5467` (Member 2) & `maddox095` (Member 4) | Scope: Slot CRUD, slot state management (Member 2 - Done), live occupancy dashboard, integrity safeguards (Reassigned to Member 4 on 25 Oct 2026) | Stories: US-09, US-10 (Member 2, 8 SP); US-11, US-12 (Member 4, 6 SP).
 4. **Epic #17 (`E4 – Reservation Management`):** Open | Labels: `['Epic', 'Member 2']` | Assignee: `tejasv5467` (Member 2) | Scope: Advance reservations, modification, cancellation, conflict prevention, check-in link | Stories: US-13, US-14, US-15, US-16 (15 SP).
 5. **Epic #18 (`E5 – Parking Operations`):** Open | Labels: `['Epic', 'Member 3']` | Assignee: `vasishtcoffee` (Member 3) | Scope: Check-in, slot allocation, active session uniqueness, check-out, slot release, history | Stories: US-17, US-18, US-19, US-20 (16 SP).
 6. **Epic #19 (`E6 – Pricing, Billing & Payment`):** Open | Labels: `['Epic', 'Member 3']` | Assignee: `vasishtcoffee` (Member 3) | Scope: Tariff rates, automated fee calculation, bill/receipt issuance, payment status | Stories: US-21, US-22, US-23, US-24 (13 SP).
@@ -357,10 +357,10 @@ Every functional and non-functional requirement across the committed documents (
 | **FR-04** | Maintain real-time slot state with valid status values (Available, Occupied, Maintenance/Unavailable). | US-10 (#30) | E3 Parking Facility | Member 2 | TC-UC03-SYS-002, TC-UC03-INT-001 | SRS 5.2.3; Test Plan UC-03; Issue #30; Handbook FR-04 | Aligned on ID FR-04. RTM uses US-SM-02. SAD renumbers FR-04 as Slot Creation. Master: **FR-04**. |
 | **FR-05** | Allow an operator to check in a vehicle and assign it to an available, compatible parking slot. | US-17 (#37) | E5 Parking Operations | Member 3 | TC-UC05-UNIT-001, TC-UC05-INT-001 | SRS 5.3.3; Test Plan UC-05; Issue #37; Handbook FR-05 | Aligned on ID FR-05. RTM uses US-OP-01. SAD renumbers FR-05 as Allocation Engine. Master: **FR-05**. |
 | **FR-06** | Enforce single-active-session constraint, preventing a vehicle from being assigned to more than one active slot. | US-18 (#38) | E5 Parking Operations | Member 3 | TC-UC05-INT-002, NFR-SAFE-02 | SRS 5.3.3; Test Plan UC-05; Issue #38; Handbook FR-06 | Aligned on ID FR-06. RTM uses US-OP-02. SAD renumbers FR-06 as Grid UI. Master: **FR-06**. |
-| **FR-07** | Prevent assignment of an occupied or unavailable parking slot to another vehicle. | US-12 (#32) | E3 Parking Facility | Member 2 | TC-UC03-UNIT-001, TC-UC05-INT-001, NFR-SAFE-01 | SRS 5.3.3; Test Plan UC-03; Issue #32; Handbook FR-07 | Aligned on ID FR-07. Issue #32 assigns slot integrity enforcement to Member 2. SAD renumbers FR-07 as Vehicle Entry. Master: **FR-07**. |
+| **FR-07** | Prevent assignment of an occupied or unavailable parking slot to another vehicle. | US-12 (#32) | E3 Parking Facility | Member 4 *(Reassigned from Member 2)* | TC-UC03-UNIT-001, TC-UC05-INT-001, NFR-SAFE-01 | SRS 5.3.3; Test Plan UC-03; Issue #32; Handbook FR-07 | Aligned on ID FR-07. Issue #32 assigned to Member 4 on 25 Oct 2026 (originally Member 2). SAD renumbers FR-07 as Vehicle Entry. Master: **FR-07**. |
 | **FR-08** | Allow an operator to check out a vehicle, recording exit timestamp and completing the active session. | US-19 (#39) | E5 Parking Operations | Member 3 | TC-UC06-INT-001, TC-UC06-SYS-001 | SRS 5.4.3; Test Plan UC-06; Issue #39; Handbook FR-08 | Aligned on ID FR-08. Grouped with FR-09 in US-19. RTM uses US-OP-04. SAD renumbers FR-08 as Vehicle Exit. Master: **FR-08**. |
 | **FR-09** | Automatically release the assigned parking slot back to 'Available' immediately upon successful checkout. | US-19 (#39) | E5 Parking Operations | Member 3 | TC-UC06-INT-001, TC-UC06-SYS-001 | SRS 5.4.3; Test Plan UC-06; Issue #39; Handbook FR-09 | Aligned on ID FR-09. Grouped with FR-08 in US-19. RTM uses US-OP-05. SAD renumbers FR-09 as Fee Calculation. Master: **FR-09**. |
-| **FR-10** | Display live parking occupancy status dashboard showing total, available, and occupied slots across zones. | US-11 (#31) | E3 Parking Facility | Member 2 | TC-UC03-SYS-002 | SRS 5.2.3; Test Plan UC-03; Issue #31; Handbook FR-10 | Aligned on ID FR-10. RTM uses US-SM-03. SAD renumbers FR-10 as Receipt/Invoice. Master: **FR-10**. |
+| **FR-10** | Display live parking occupancy status dashboard showing total, available, and occupied slots across zones. | US-11 (#31) | E3 Parking Facility | Member 4 *(Reassigned from Member 2)* | TC-UC03-SYS-002 | SRS 5.2.3; Test Plan UC-03; Issue #31; Handbook FR-10 | Aligned on ID FR-10. Issue #31 assigned to Member 4 on 25 Oct 2026 (originally Member 2). RTM uses US-SM-03. SAD renumbers FR-10 as Receipt/Invoice. Master: **FR-10**. |
 | **FR-11** | Allow authorized users or operators to search for a vehicle by license plate and inspect its current status. | US-07 (#27) | E2 Vehicle Mgmt | Member 1 | TC-UC02-API-001 | SRS 5.1.3; Test Plan UC-02; Issue #27; Handbook FR-11 | Aligned on ID FR-11. RTM uses US-VM-03. SAD renumbers FR-11 as Pricing Tiers. Master: **FR-11**. |
 | **FR-12** | Maintain persistent, immutable historical parking records for completed sessions. | US-20 (#40) | E5 Parking Operations | Member 3 | TC-UC06-INT-001 | SRS 5.1.3; Test Plan UC-06; Issue #40; Handbook FR-12 | Aligned on ID FR-12. RTM erroneously assigns to Member 1 (US-VM-04). Master owner is **Member 3 (US-20)**. SAD renumbers FR-12 as Dashboard. |
 | **FR-13** | Validate all client-submitted payload fields on the server side before processing any operation. | US-08 (#28), US-31 (#51) | E8 Audit & Quality | Member 4 (Team) | TC-UC10-API-001, NFR-SEC-03 | SRS 5.5.3; Test Plan UC-10; Issues #28, #51; Handbook FR-13 | Universal contract. Issue #51 establishes shared format; #28 applies it to vehicles. RTM uses US-SYS-01. SAD renumbers FR-13 as Search/Export. Master: **FR-13**. |
@@ -382,9 +382,9 @@ Every functional and non-functional requirement across the committed documents (
 | **FR-29** | Record immutable security audit log entries for privileged events, authentications, fee waivers, and status overrides. | US-29 (#49) | E8 Audit & Quality | Member 4 | TC-UC09-INT-001 | Test Plan UC-09; Issue #49; Handbook FR-29 | Missing from committed SRS. RTM numbers Summary Reports as FR-29. SAD numbers Offline Sync as FR-29. Master: **FR-29**. |
 | **FR-30** | Deliver in-app notification alerts for operational events (facility full, reservation expiring, checkout confirmation). | US-30 (#50) | E8 Audit & Quality | Member 4 | TC-UC09-SYS-002 | Test Plan UC-09; Issue #50; Handbook FR-30 | Missing from committed SRS. RTM numbers Export Logs as FR-30. SAD numbers DB Failover as FR-30. Master: **FR-30**. |
 | **NFR-PERF-01** | Interactive API response time < 500ms p95 under standard operational load. | US-07, US-25, US-31 | Cross-Cutting | All Members | Automated API benchmarks | SRS 6.1; Test Plan 5.2; Issues #27, #45, #51 | SRS marked target as TBD; Test Plan and RTM define < 500ms p95. |
-| **NFR-PERF-02** | ACID transactional consistency under 50+ concurrent check-in/out and reservation requests. | US-12, US-15, US-18 | Cross-Cutting | Members 2 & 3 | Database concurrency isolation tests | SRS 6.1; Test Plan 5.2, 10; Issues #32, #35, #38 | SRS marked target as TBD; Test Plan and RTM define 50+ concurrent requests. |
+| **NFR-PERF-02** | ACID transactional consistency under 50+ concurrent check-in/out and reservation requests. | US-12, US-15, US-18 | Cross-Cutting | Members 2, 3 & 4 | Database concurrency isolation tests | SRS 6.1; Test Plan 5.2, 10; Issues #32, #35, #38 | SRS marked target as TBD; Test Plan and RTM define 50+ concurrent requests. |
 | **NFR-PERF-03** | Indexed query execution < 200ms on vehicle search and parking history over 100,000 records. | US-07, US-20 | E2 & E5 | Members 1 & 3 | Indexed query benchmark tests | SRS 6.1; Test Plan 5.2; Issues #27, #40 | SRS marked scale as TBD; RTM and Test Plan define 100k records / < 200ms. |
-| **NFR-SAFE-01** | Prevent assignment of one active slot to multiple vehicles, and prevent overlapping reservations. | US-12, US-15 | E3 & E4 | Member 2 | TC-UC03-UNIT-001, TC-UC04-API-002 | SRS 6.2; Test Plan 3; Issues #32, #35 | Fully aligned across SRS, Test Plan, and Issues. |
+| **NFR-SAFE-01** | Prevent assignment of one active slot to multiple vehicles, and prevent overlapping reservations. | US-12, US-15 | E3 & E4 | Members 2 & 4 | TC-UC03-UNIT-001, TC-UC04-API-002 | SRS 6.2; Test Plan 3; Issues #32, #35 | Fully aligned across SRS, Test Plan, and Issues. |
 | **NFR-SAFE-02** | Prevent a single vehicle from having more than one active check-in or active reservation hold. | US-18 | E5 Operations | Member 3 | TC-UC05-INT-002 | SRS 6.2; Test Plan 3; Issue #38 | Fully aligned across SRS, Test Plan, and Issues. |
 | **NFR-SAFE-03** | Atomic rollback of multi-table database transactions on partial failure during check-in, checkout, or billing. | US-17, US-19, US-24 | E5 & E6 | Member 3 | TC-UC06-INT-002 | SRS 6.2; Test Plan 5.2; Issues #37, #39, #44 | Fully aligned across SRS, Test Plan, and Issues. |
 | **NFR-SEC-01** | Role-Based Access Control enforcement on all protected backend API routes returning HTTP 401/403. | US-01, US-02, US-32 | E1 & E8 | Members 1 & 4 | TC-SEC-001, TC-UC01-API-002 | SRS 6.3; Test Plan 5.4; Issues #1, #22, #52 | Fully aligned across SRS, Test Plan, and Issues. |
@@ -411,15 +411,15 @@ Every functional and non-functional requirement across the committed documents (
      - US-02 (#22, Member 1, 5 SP): RBAC Enforcement  
      - US-06 (#26, Member 1, 4 SP): Vehicle View & Update  
      - US-07 (#27, Member 1, 3 SP): Vehicle Search & Status  
-     - US-11 (#31, Member 2, 3 SP): Occupancy View  
-     - US-12 (#32, Member 2, 3 SP): Slot Integrity Rules  
+     - US-11 (#31, Member 4 [reassigned from Member 2 on 25 Oct 2026], 3 SP): Occupancy View  
+     - US-12 (#32, Member 4 [reassigned from Member 2 on 25 Oct 2026], 3 SP): Slot Integrity Rules  
      - US-13 (#33, Member 2, 5 SP): Reservation Creation  
      - US-18 (#38, Member 3, 3 SP): Prevent Duplicate Active Check-In  
      - US-19 (#39, Member 3, 5 SP): Check-Out & Slot Release  
      - US-20 (#40, Member 3, 3 SP): Retain Parking History  
      - US-25 (#45, Member 4, 5 SP): Admin Dashboard Metrics  
      - US-29 (#49, Member 4, 3 SP): Security Audit Log  
-     *(Capacity: Member 1: 12 SP, Member 2: 11 SP, Member 3: 11 SP, Member 4: 8 SP. Total: 42 SP.)*
+     *(Capacity after 25 Oct 2026 Reassignment: Member 1: 12 SP, Member 2: 5 SP, Member 3: 11 SP, Member 4: 14 SP. Total: 42 SP. Member 4 takes over 6 SP from Member 2's Sprint 2 allocation).*
   3. No Milestone Assigned (`None` in GitHub): **15 Stories, 49 SP total**  
      - In their issue descriptions, 13 stories state `Target Sprint: Sprint 3` (US-03, US-04, US-08, US-14, US-15, US-16, US-21, US-22, US-23, US-26, US-27, US-28, US-30) and 2 stories state `Target Sprint: Sprint 4` (US-24, US-32).
 
@@ -512,4 +512,18 @@ In the initial draft of `DOCUMENT_ISSUE_AUDIT.md`:
                      ▼
 [STEP 6: PROCEED TO APPLICATION CODE IMPLEMENTATION (Sprint 1 / Sprint 2)]
 ```
+
+---
+
+## 12. Addendum: Agile Workload Balancing & User Story Reassignment (25 October 2026)
+
+On 25 October 2026, due to Member 2's workload and availability constraints, two unfinished user stories originally assigned to Member 2 under Epic E3 were reassigned to Member 4:
+- **US-11 (#31):** *View current parking status* (FR-10, 3 SP, Sprint 2) — Transferred to Member 4 (`maddox095`).
+- **US-12 (#32):** *Enforce slot integrity and destructive-operation rules* (FR-07, BR-12, NFR-SAFE-01, 3 SP, Sprint 2) — Transferred to Member 4 (`maddox095`).
+
+**Retained Scopes:**
+- **Member 2:** Retains completed stories US-09 (#29) and US-10 (#30) (merged in PR #64), and retains full ownership of Epic E4 (Reservation Management: US-13, US-14, US-15, US-16).
+- **Member 4:** Retains all existing responsibilities under Epic E7 (Admin Dashboard & Reporting: US-25..28) and Epic E8 (Audit, Notifications & Quality: US-29..32), while assuming US-11 and US-12.
+- **Sprint 2 Capacity Rebalance:** Member 2 capacity shifts from 11 SP to 5 SP (US-13); Member 4 capacity shifts from 8 SP to 14 SP (US-25, US-29, US-11, US-12). All story requirements, priorities, acceptance criteria, and milestones remain unchanged.
+
 
