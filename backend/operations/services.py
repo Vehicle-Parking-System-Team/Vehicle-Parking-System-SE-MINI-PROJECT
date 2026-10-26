@@ -4,11 +4,14 @@ from django.core.signing import Signer
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from common.exceptions import Conflict
 from parking_slots.models import ParkingSlot
 from parking_slots.services import occupy_slot, release_slot
+from parking_slots.permissions import can_manage_parking
+from rates.calculations import calculate_parking_fee
+from rates.models import ParkingRate
 from vehicles.models import Vehicle
 from vehicles.services import normalize_registration_number
 
@@ -20,6 +23,12 @@ TICKET_SIGNING_SALT = "vehicle-parking.entry-ticket.v1"
 
 class _SlotCompatibilityChanged(Exception):
     """Raised when a slot becomes incompatible during allocation."""
+
+
+class IncompatibleSlot(ValidationError):
+    """US-12 semantic assignment failure; retain US-31 field-error details."""
+
+    status_code = 422
 
 
 def _is_compatible_slot(slot, vehicle):
@@ -105,7 +114,8 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
     Raises:
         NotFound: Vehicle or explicitly selected slot does not exist.
-        ValidationError: Invalid vehicle registration or incompatible slot.
+        ValidationError: Invalid vehicle registration.
+        IncompatibleSlot: Selected slot cannot accommodate the vehicle (422).
         Conflict: Duplicate active record, unavailable slot, or no
                   compatible available slot.
     """
@@ -166,7 +176,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
             )
 
         if not _is_compatible_slot(candidate, vehicle):
-            raise ValidationError(
+            raise IncompatibleSlot(
                 {
                     "slot_id":
                         "The selected slot is incompatible with this vehicle."
@@ -217,7 +227,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
         except _SlotCompatibilityChanged:
             # The nested transaction rolls back the slot occupation.
             if slot_id is not None:
-                raise ValidationError(
+                raise IncompatibleSlot(
                     {
                         "slot_id":
                             "The selected slot is no longer compatible "
@@ -260,87 +270,45 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
 @transaction.atomic
 def check_out_vehicle(registration_number, operator):
-    """
-    Complete the active parking session for a registered vehicle.
-
-    The checkout timestamp, completed status, and slot release are all
-    performed in one transaction. If slot release fails, the record
-    completion is rolled back.
-
-    Args:
-        registration_number: Registered vehicle's license plate.
-        operator: Authenticated user performing the checkout.
-
-    Returns:
-        The completed ParkingRecord.
-
-    Raises:
-        NotFound: The vehicle or its active parking session does not exist.
-        ValidationError: Invalid registration number or operator.
-        Conflict: Checkout time is invalid or slot release cannot proceed.
-    """
-    if operator is None or not getattr(operator, "is_authenticated", False):
-        raise ValidationError(
-            {"operator": "An authenticated operator is required."}
-        )
-
+    if not can_manage_parking(operator):
+        raise PermissionDenied('An active Admin or Operator account is required.')
     plate = normalize_registration_number(registration_number)
+    if not plate or len(plate) > 20:
+        raise ValidationError({'registration_number': 'Use a valid registration number.'})
 
-    if not plate:
-        raise ValidationError(
-            {
-                "registration_number":
-                    "A vehicle registration number is required."
-            }
-        )
-
-    # Lock the vehicle to serialize checkout and check-in operations
-    # for that vehicle on databases supporting row-level locks.
-    vehicle = (
-        Vehicle.objects.select_for_update()
-        .filter(registration_number=plate)
-        .first()
-    )
-
+    # Match check-in's vehicle-first order. Never lock a slot before its zone.
+    vehicle = Vehicle.objects.select_for_update().filter(registration_number=plate).first()
     if vehicle is None:
-        raise NotFound(
-            "No registered vehicle was found with this registration number."
-        )
-
-    # Only an active session can be checked out.
-    record = (
-        ParkingRecord.objects.select_for_update()
-        .filter(
-            vehicle=vehicle,
-            status=ParkingRecord.Status.ACTIVE,
-        )
-        .order_by("-check_in_time", "-pk")
-        .first()
-    )
-
+        raise NotFound('No active parking record was found for this vehicle.')
+    record = ParkingRecord.objects.select_for_update().filter(
+        vehicle=vehicle, status=ParkingRecord.Status.ACTIVE,
+    ).first()
     if record is None:
-        raise NotFound(
-            "No active parking session was found for this vehicle."
-        )
+        raise NotFound('No active parking record was found for this vehicle.')
+    if record.check_out_time is not None:
+        raise Conflict('The active parking record already has a checkout timestamp.')
 
-    checkout_time = timezone.now()
-
-    if checkout_time < record.check_in_time:
-        raise Conflict(
-            "Checkout time cannot be earlier than the check-in time."
-        )
-
-    # Complete the session first. The slot release is in the same
-    # outer transaction, so a failure will roll both changes back.
-    record.check_out_time = checkout_time
-    record.status = ParkingRecord.Status.COMPLETED
-    record.save(
-        update_fields=["check_out_time", "status"],
+    # One read captures the tariff tuple; snapshots preserve it if the admin edits later.
+    # Tariff writers need not wait for checkout to finish.
+    rate = ParkingRate.objects.filter(vehicle_type=vehicle.vehicle_type).first()
+    if rate is None:
+        raise Conflict('Configure a parking rate for this vehicle type before checkout.')
+    exit_time = timezone.now()
+    amount = calculate_parking_fee(
+        exit_time - record.check_in_time, rate.hourly_rate, rate.grace_period_minutes,
     )
-
-    # release_slot only permits an occupied slot to become available.
-    release_slot(record.slot_id)
-
-    record.refresh_from_db()
-
+    record.fee_amount = amount
+    record.hourly_rate_snapshot = rate.hourly_rate
+    record.grace_period_minutes_snapshot = rate.grace_period_minutes
+    record.vehicle_type_snapshot = vehicle.vehicle_type
+    record.check_out_time = exit_time
+    record.status = ParkingRecord.Status.COMPLETED
+    record.save(update_fields=[
+        'fee_amount', 'hourly_rate_snapshot', 'grace_period_minutes_snapshot',
+        'vehicle_type_snapshot', 'check_out_time', 'status',
+    ])
+    # The active-record guard now sees our completed record in this transaction.
+    # A release failure rolls the fee, completion and timestamp back together.
+    record.slot = release_slot(record.slot_id)
+    record.vehicle = vehicle
     return record

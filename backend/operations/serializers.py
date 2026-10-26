@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from rates.calculations import billable_hours
 from vehicles.services import normalize_registration_number
 
 from .models import ParkingRecord
@@ -42,6 +43,14 @@ class CheckOutRequestSerializer(serializers.Serializer):
             )
 
         return plate
+
+    def validate(self, attrs):
+        extra_fields = set(self.initial_data) - {'registration_number'}
+        if extra_fields:
+            raise serializers.ValidationError({
+                field: 'This field is not accepted.' for field in extra_fields
+            })
+        return attrs
 
 
 class ParkingRecordSerializer(serializers.ModelSerializer):
@@ -101,6 +110,26 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
         if obj.check_out_time is None:
             return None
 
-        duration = (obj.check_out_time - obj.check_in_time).total_seconds()
+        duration = obj.check_out_time - obj.check_in_time
+        return max(0, duration.days * 86400 + duration.seconds)
 
-        return max(0, int(duration))
+
+class CheckOutRecordSerializer(ParkingRecordSerializer):
+    billable_hours = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
+
+    class Meta(ParkingRecordSerializer.Meta):
+        fields = ParkingRecordSerializer.Meta.fields + [
+            'billable_hours', 'fee_amount', 'currency', 'hourly_rate_snapshot',
+            'grace_period_minutes_snapshot', 'vehicle_type_snapshot',
+        ]
+        read_only_fields = fields
+
+    def get_billable_hours(self, record):
+        return billable_hours(
+            record.check_out_time - record.check_in_time,
+            record.grace_period_minutes_snapshot,
+        )
+
+    def get_currency(self, record):
+        return 'INR'

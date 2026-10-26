@@ -8,6 +8,7 @@ from parking_slots.permissions import CanManageParking
 from .serializers import (
     CheckInRequestSerializer,
     CheckOutRequestSerializer,
+    CheckOutRecordSerializer,
     ParkingRecordSerializer,
 )
 from .services import check_in_vehicle, check_out_vehicle
@@ -53,6 +54,6 @@ class VehicleCheckOutView(APIView):
         )
 
         return Response(
-            ParkingRecordSerializer(record).data,
+            CheckOutRecordSerializer(record).data,
             status=status.HTTP_200_OK,
         )
