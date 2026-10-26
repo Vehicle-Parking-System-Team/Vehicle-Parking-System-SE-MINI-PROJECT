@@ -30,6 +30,36 @@ def _is_compatible_slot(slot, vehicle):
     return slot_type in {"any", vehicle_type}
 
 
+def _raise_duplicate_active_record_conflict(vehicle):
+    """
+    Reject duplicate check-in with details of the existing active session.
+
+    Returns normally if no active record exists.
+    Raises Conflict if an active record is found.
+    """
+    existing_record = (
+        ParkingRecord.objects.select_related("slot")
+        .filter(
+            vehicle=vehicle,
+            status=ParkingRecord.Status.ACTIVE,
+        )
+        .order_by("-check_in_time", "-pk")
+        .first()
+    )
+
+    if existing_record is None:
+        return
+
+    raise Conflict(
+        "This vehicle already has an active parking record.",
+        details={
+            "existing_slot_id": existing_record.slot_id,
+            "existing_slot_number": existing_record.slot.slot_number,
+            "check_in_time": existing_record.check_in_time.isoformat(),
+        },
+    ) from None
+
+
 def create_signed_ticket(record):
     """
     Generate a signed QR-ready ticket payload.
@@ -107,14 +137,8 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
             "No registered vehicle was found with this registration number."
         )
 
-    # A vehicle cannot have two active parking records.
-    if ParkingRecord.objects.filter(
-        vehicle=vehicle,
-        status=ParkingRecord.Status.ACTIVE,
-    ).exists():
-        raise Conflict(
-            "This vehicle already has an active parking record."
-        )
+    # 4. Reject a duplicate check-in and return existing session details.
+    _raise_duplicate_active_record_conflict(vehicle)
 
     compatible_slots = ParkingSlot.objects.filter(
         Q(vehicle_type__iexact=vehicle.vehicle_type)
@@ -169,6 +193,8 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                 # Locks and updates the slot within the transaction.
                 slot = occupy_slot(candidate_id)
 
+                # Recheck compatibility after the slot lifecycle service
+                # has locked and refreshed the slot.
                 if not _is_compatible_slot(slot, vehicle):
                     raise _SlotCompatibilityChanged(
                         "The slot is no longer compatible."
@@ -181,12 +207,15 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     status=ParkingRecord.Status.ACTIVE,
                 )
 
+                # 8. Generate the signed ticket after the database ID exists.
+                # Keep token creation in the same transaction.
                 record.ticket_qr_token = create_signed_ticket(record)
                 record.save(update_fields=["ticket_qr_token"])
 
             return record
 
         except _SlotCompatibilityChanged:
+            # The nested transaction rolls back the slot occupation.
             if slot_id is not None:
                 raise ValidationError(
                     {
@@ -196,6 +225,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     }
                 ) from None
 
+            # Automatic allocation can try another candidate.
             continue
 
         except Conflict:
@@ -205,14 +235,9 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
             continue
 
         except IntegrityError:
-            # The nested atomic block has rolled back to its savepoint.
-            if ParkingRecord.objects.filter(
-                vehicle=vehicle,
-                status=ParkingRecord.Status.ACTIVE,
-            ).exists():
-                raise Conflict(
-                    "This vehicle already has an active parking record."
-                ) from None
+            # The inner transaction/savepoint has rolled back.
+            # Check whether another request created an active record.
+            _raise_duplicate_active_record_conflict(vehicle)
 
             if ParkingRecord.objects.filter(
                 slot_id=candidate_id,
@@ -225,6 +250,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
                 continue
 
+            # Do not hide unexpected integrity errors.
             raise
 
     raise Conflict(
