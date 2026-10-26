@@ -10,11 +10,12 @@ from parking_slots.permissions import CanManageParking
 from .models import ParkingRecord
 from .serializers import (
     CheckInRequestSerializer,
+    CheckOutRequestSerializer,
     ParkingHistoryQuerySerializer,
     ParkingHistoryRecordSerializer,
     ParkingRecordSerializer,
 )
-from .services import check_in_vehicle
+from .services import check_in_vehicle, check_out_vehicle
 
 
 class ParkingHistoryPagination(PageNumberPagination):
@@ -48,19 +49,30 @@ class VehicleCheckInView(APIView):
         )
 
 
-class ParkingHistoryView(APIView):
-    """
-    Read-only, paginated history of completed parking sessions.
+class VehicleCheckOutView(APIView):
+    """Check out a vehicle and release its parking slot."""
 
-    Supported query parameters:
-        registration_number: vehicle registration plate
-        vehicle_id: vehicle primary key
-        slot_id: parking slot primary key
-        start_date: inclusive date for check-in
-        end_date: inclusive date for check-in
-        page: page number
-        page_size: results per page, up to 100
-    """
+    permission_classes = [IsAuthenticated, CanManageParking]
+
+    def post(self, request):
+        request_serializer = CheckOutRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
+        record = check_out_vehicle(
+            registration_number=(
+                request_serializer.validated_data["registration_number"]
+            ),
+            operator=request.user,
+        )
+
+        return Response(
+            ParkingRecordSerializer(record).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class ParkingHistoryView(APIView):
+    """Read-only, paginated history of completed parking sessions."""
 
     permission_classes = [IsAuthenticated, CanManageParking]
     pagination_class = ParkingHistoryPagination
@@ -74,7 +86,12 @@ class ParkingHistoryView(APIView):
 
         records = (
             ParkingRecord.objects
-            .select_related("vehicle", "slot", "slot__zone", "operator")
+            .select_related(
+                "vehicle",
+                "slot",
+                "slot__zone",
+                "operator",
+            )
             .filter(
                 status=ParkingRecord.Status.COMPLETED,
                 check_out_time__isnull=False,
@@ -114,9 +131,6 @@ class ParkingHistoryView(APIView):
             view=self,
         )
 
-        serializer = ParkingHistoryRecordSerializer(
-            page,
-            many=True,
-        )
+        serializer = ParkingHistoryRecordSerializer(page, many=True)
 
         return paginator.get_paginated_response(serializer.data)

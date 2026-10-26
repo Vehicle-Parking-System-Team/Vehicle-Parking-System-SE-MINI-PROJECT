@@ -27,6 +27,23 @@ class CheckInRequestSerializer(serializers.Serializer):
         return plate
 
 
+class CheckOutRequestSerializer(serializers.Serializer):
+    registration_number = serializers.CharField(
+        max_length=20,
+        trim_whitespace=True,
+    )
+
+    def validate_registration_number(self, value):
+        plate = normalize_registration_number(value)
+
+        if not plate:
+            raise serializers.ValidationError(
+                "A valid vehicle registration number is required."
+            )
+
+        return plate
+
+
 class ParkingHistoryQuerySerializer(serializers.Serializer):
     registration_number = serializers.CharField(
         required=False,
@@ -68,6 +85,7 @@ class ParkingHistoryQuerySerializer(serializers.Serializer):
 
 class ParkingRecordSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(read_only=True)
+
     registration_number = serializers.CharField(
         source="vehicle.registration_number",
         read_only=True,
@@ -86,6 +104,7 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     operator_id = serializers.IntegerField(read_only=True)
+    duration_seconds = serializers.SerializerMethodField()
 
     class Meta:
         model = ParkingRecord
@@ -100,15 +119,28 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
             "operator_id",
             "check_in_time",
             "check_out_time",
+            "duration_seconds",
             "fee_amount",
             "status",
             "ticket_qr_token",
         ]
         read_only_fields = fields
 
+    def get_duration_seconds(self, obj):
+        """Return the completed session duration in whole seconds."""
+        if obj.check_out_time is None:
+            return None
+
+        duration = (
+            obj.check_out_time - obj.check_in_time
+        ).total_seconds()
+
+        return max(0, int(duration))
+
 
 class ParkingHistoryRecordSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(read_only=True)
+
     registration_number = serializers.CharField(
         source="vehicle.registration_number",
         read_only=True,
