@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from decimal import Decimal
-from threading import Barrier
+from threading import Barrier, Event
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -10,6 +10,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.db import connection
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.utils import timezone
+from django.urls import resolve
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.test import APIClient
 
@@ -19,9 +20,10 @@ from parking_slots.services import release_slot as real_release_slot
 from rates.calculations import calculate_parking_fee
 from rates.models import ParkingRate
 from vehicles.models import Vehicle
-from .checkout import check_out_vehicle
+from .services import check_out_vehicle
 from .models import ParkingRecord
 from .services import check_in_vehicle
+from .serializers import ParkingRecordSerializer, CheckOutRecordSerializer
 
 
 URL = '/api/parking/check-out/'
@@ -84,7 +86,7 @@ class CheckoutAPITests(TestCase):
         self.exit_time = self.record.check_in_time + timedelta(minutes=61)
 
     def checkout(self, **extra):
-        with patch('operations.checkout.timezone.now', return_value=self.exit_time):
+        with patch('operations.services.timezone.now', return_value=self.exit_time):
             return self.client.post(URL, {'registration_number': self.vehicle.registration_number, **extra}, format='json')
 
     def assert_still_parked(self):
@@ -104,7 +106,8 @@ class CheckoutAPITests(TestCase):
         response = self.checkout()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data['status'], 'COMPLETED')
-        self.assertEqual(response.data['duration_seconds'], '3660.000000')
+        self.assertEqual(response.data['duration_seconds'], 3660)
+        self.assertIs(type(response.data['duration_seconds']), int)
         self.assertEqual(response.data['billable_hours'], 2)
         self.assertEqual(response.data['fee_amount'], '80.00')
         self.assertEqual(response.data['currency'], 'INR')
@@ -175,7 +178,7 @@ class CheckoutAPITests(TestCase):
         self.assertEqual(ParkingRecord.objects.count(), 1)
 
     def test_plate_normalization_and_reentry_after_checkout(self):
-        with patch('operations.checkout.timezone.now', return_value=self.exit_time):
+        with patch('operations.services.timezone.now', return_value=self.exit_time):
             response = self.client.post(URL, {'registration_number': '  ka01ab1234  '})
         self.assertEqual(response.status_code, 200)
         second = check_in_vehicle(self.vehicle.registration_number, self.operator, self.slot.pk)
@@ -217,7 +220,7 @@ class CheckoutAPITests(TestCase):
         def fail_after_release(slot_id):
             real_release_slot(slot_id)
             raise Conflict('Simulated downstream release failure.')
-        with patch('operations.checkout.release_slot', side_effect=fail_after_release):
+        with patch('operations.services.release_slot', side_effect=fail_after_release):
             self.assertEqual(self.checkout().status_code, 409)
         self.assert_still_parked()
 
@@ -244,6 +247,28 @@ class CheckoutAPITests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertNotIn('fee_amount', response.data)
         self.assertNotIn('hourly_rate_snapshot', response.data)
+        self.assertIsNone(response.data['duration_seconds'])
+
+    def test_duration_type_is_shared_without_rounding_fee_boundaries(self):
+        self.assertIsNone(ParkingRecordSerializer(self.record).data['duration_seconds'])
+        self.exit_time = self.record.check_in_time + timedelta(hours=1, microseconds=1)
+        response = self.checkout()
+        self.assertEqual(response.status_code, 200)
+        self.record.refresh_from_db()
+        for data in (response.data, ParkingRecordSerializer(self.record).data,
+                     CheckOutRecordSerializer(self.record).data):
+            self.assertIs(type(data['duration_seconds']), int)
+            self.assertEqual(data['duration_seconds'], 3600)
+        self.assertEqual(response.data['billable_hours'], 2)
+        self.assertEqual(response.data['fee_amount'], '80.00')
+
+    def test_there_is_one_checkout_route(self):
+        from .urls import urlpatterns
+        from .views import VehicleCheckOutView
+
+        routes = [route for route in urlpatterns if str(route.pattern) == 'check-out/']
+        self.assertEqual(len(routes), 1)
+        self.assertIs(resolve(URL).func.view_class, VehicleCheckOutView)
 
     def test_jwt_authenticated_api_pipeline(self):
         self.operator.set_password('Checkout-fixture-only-123!')
@@ -321,6 +346,37 @@ class CheckoutConcurrencyTests(TransactionTestCase):
         self.assertEqual(self.record.status, 'COMPLETED')
         self.assertEqual(active, 1 if results[1] == 'allocated' else 0)
         self.assertEqual(self.slot.status, 'occupied' if active else 'available')
+
+    def test_tariff_edit_is_not_blocked_and_checkout_keeps_its_read_snapshot(self):
+        rate_read, rate_updated = Event(), Event()
+        ParkingRecord.objects.filter(pk=self.record.pk).update(
+            check_in_time=timezone.now() - timedelta(minutes=61),
+        )
+
+        def paused_calculation(*args):
+            rate_read.set()
+            if not rate_updated.wait(timeout=10):
+                raise AssertionError('Tariff update was blocked by checkout.')
+            return calculate_parking_fee(*args)
+
+        def update_tariff():
+            if not rate_read.wait(timeout=10):
+                raise AssertionError('Checkout did not read its tariff.')
+            ParkingRate.objects.filter(vehicle_type='Compact').update(
+                hourly_rate=Decimal('99.00'), grace_period_minutes=0,
+            )
+            rate_updated.set()
+
+        with patch('operations.services.calculate_parking_fee', side_effect=paused_calculation):
+            results = self.race(
+                lambda: check_out_vehicle(self.vehicle.registration_number, self.operator),
+                update_tariff,
+            )
+        record = results[0]
+        self.assertEqual(record.fee_amount, Decimal('80.00'))
+        self.assertEqual(record.hourly_rate_snapshot, Decimal('40.00'))
+        self.assertEqual(record.grace_period_minutes_snapshot, 15)
+        self.assertEqual(ParkingRate.objects.get(vehicle_type='Compact').hourly_rate, Decimal('99.00'))
 
 
 class CheckoutMigrationTests(TransactionTestCase):

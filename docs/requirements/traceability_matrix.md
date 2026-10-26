@@ -118,7 +118,7 @@ for TC-UC03-SYS-002 coverage and environment limits. PR review remains pending.
 ## US-10 and US-12 implementation evidence
 
 FR-04 / US-10 (#30) uses `parking_slots.services` and the real
-`operations.checkout.check_out_vehicle` transaction for check-in/state hooks,
+`operations.services.check_out_vehicle` transaction for check-in/state hooks,
 fee processing, completion and slot release. FR-07 / US-12 (#32) additionally
 protects active records and verifies allocation races on PostgreSQL.
 The implemented nullable snapshot migration preserves historical rows.

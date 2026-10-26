@@ -7,12 +7,11 @@ from parking_slots.permissions import CanManageParking
 
 from .serializers import (
     CheckInRequestSerializer,
-    ParkingRecordSerializer,
     CheckOutRequestSerializer,
     CheckOutRecordSerializer,
+    ParkingRecordSerializer,
 )
-from .services import check_in_vehicle
-from .checkout import check_out_vehicle
+from .services import check_in_vehicle, check_out_vehicle
 
 
 class VehicleCheckInView(APIView):
@@ -39,10 +38,22 @@ class VehicleCheckInView(APIView):
 
 
 class VehicleCheckOutView(APIView):
+    """Complete an active parking session and release its parking slot."""
+
     permission_classes = [IsAuthenticated, CanManageParking]
 
     def post(self, request):
-        serializer = CheckOutRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        record = check_out_vehicle(serializer.validated_data['registration_number'], request.user)
-        return Response(CheckOutRecordSerializer(record).data, status=status.HTTP_200_OK)
+        request_serializer = CheckOutRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
+        record = check_out_vehicle(
+            registration_number=(
+                request_serializer.validated_data["registration_number"]
+            ),
+            operator=request.user,
+        )
+
+        return Response(
+            CheckOutRecordSerializer(record).data,
+            status=status.HTTP_200_OK,
+        )

@@ -68,3 +68,13 @@ application database. CI's PostgreSQL job uses disposable test-only credentials.
 The migration preservation test restores all migration leaf nodes after its
 historical-data checks. This preserves its original row/field assertions and
 ensures dependent operations tables exist for subsequent tests.
+
+
+## Reconciled US-19 checkout
+
+The merged US-19 endpoint and PR's fee integration use one
+`operations.services.check_out_vehicle` implementation and one `check-out/`
+route. The base record serializer owns integer `duration_seconds` (NULL for
+active sessions); the checkout serializer adds fee/snapshot fields without
+changing that type. Tariffs are read once without `select_for_update`; only
+vehicle/record and zone/slot state transitions require checkout locks.

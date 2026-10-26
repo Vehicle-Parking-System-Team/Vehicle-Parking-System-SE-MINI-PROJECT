@@ -13,8 +13,8 @@ port 55432; the developer/shared application databases were not used.
 
 | Check | Observed result |
 | --- | --- |
-| Full `python manage.py test --verbosity 1`, PostgreSQL | 269 passed, no skips, 136.735 s |
-| Full suite, SQLite | 269 run; 261 passed, 8 row-lock concurrency tests skipped, 125.196 s |
+| Full `python manage.py test --verbosity 1`, PostgreSQL | 279 passed, no skips, 118.224 s |
+| Full suite, SQLite | 279 run; 270 passed, 9 row-lock concurrency tests skipped, 107.503 s |
 | `python manage.py check` | No issues |
 | `python manage.py makemigrations --check --dry-run` | No changes detected |
 
@@ -49,7 +49,7 @@ database creation permission, then run:
 
 ```sh
 python manage.py test --verbosity 1
-python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests.CheckInConcurrencyTests --verbosity 2
+python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests --verbosity 2
 ```
 
 The PostgreSQL CI job runs the second command. Existing SQLite and frontend
@@ -88,7 +88,7 @@ fee persistence and atomic slot release. Checkout tests additionally cover:
 See [the checkout contract](../design/US10-checkout-contract.md) and
 [the integrity contract](../design/US12-slot-integrity.md). These tests use
 Django's APIClient and database transactions; no new frontend or deployment is
-claimed. All local results above reflect the refreshed branch including US-07 and US-18.
+claimed. All local results above reflect the refreshed branch including US-07, US-18 and US-19.
 
 
 ## Integration with merged US-18
@@ -98,3 +98,24 @@ re-entry coverage. The shared incompatible-assignment test now expects HTTP
 422, matching US-12, in both initial selection and the locked compatibility
 recheck. Duplicate active sessions still return HTTP 409 with existing-slot
 metadata. The full suites above were rerun after resolving this conflict.
+
+
+## Single checkout integration with merged US-19
+
+Merged main at `5b066a4`. One `operations.services.check_out_vehicle` now
+implements both US-19 behavior and US-10 fee/snapshot persistence; the duplicate
+checkout module is removed. There is one checkout view, request serializer and
+URL pattern. Existing US-19 assertions are retained with a valid configured
+tariff fixture. The full suites above ran after reconciliation.
+
+The operations suite additionally passed all 51 tests on PostgreSQL. Added
+regressions verify that the checkout and base record serializers return integer
+whole-second `duration_seconds` (NULL when active), and that one hour plus one
+microsecond still bills two hours despite its displayed duration being 3600.
+
+The tariff is fetched in one ordinary SELECT, without a row lock. A PostgreSQL
+test pauses checkout after that read and completes an independent rate/grace
+update before allowing checkout to continue. Checkout still persists the
+originally read fee inputs and amount. This verifies both that tariff writers
+are not blocked and that the saved snapshots are stable. Vehicle/record locks
+and the outer transaction still protect checkout/slot-state correctness.
