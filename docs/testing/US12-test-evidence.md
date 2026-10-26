@@ -13,8 +13,8 @@ port 55432; the developer/shared application databases were not used.
 
 | Check | Observed result |
 | --- | --- |
-| Full `python manage.py test --verbosity 1`, PostgreSQL | 268 passed, no skips, 126.880 s |
-| Full suite, SQLite | 268 run; 260 passed, 8 row-lock concurrency tests skipped, 115.296 s |
+| Full `python manage.py test --verbosity 1`, PostgreSQL | 269 passed, no skips, 136.735 s |
+| Full suite, SQLite | 269 run; 261 passed, 8 row-lock concurrency tests skipped, 125.196 s |
 | `python manage.py check` | No issues |
 | `python manage.py makemigrations --check --dry-run` | No changes detected |
 
@@ -88,4 +88,13 @@ fee persistence and atomic slot release. Checkout tests additionally cover:
 See [the checkout contract](../design/US10-checkout-contract.md) and
 [the integrity contract](../design/US12-slot-integrity.md). These tests use
 Django's APIClient and database transactions; no new frontend or deployment is
-claimed. All local results above reflect the refreshed branch including US-07.
+claimed. All local results above reflect the refreshed branch including US-07 and US-18.
+
+
+## Integration with merged US-18
+
+Merged main at `b1ee4e6`, retaining its duplicate-session conflict details and
+re-entry coverage. The shared incompatible-assignment test now expects HTTP
+422, matching US-12, in both initial selection and the locked compatibility
+recheck. Duplicate active sessions still return HTTP 409 with existing-slot
+metadata. The full suites above were rerun after resolving this conflict.
