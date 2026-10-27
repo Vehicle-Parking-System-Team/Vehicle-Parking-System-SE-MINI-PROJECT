@@ -1,5 +1,7 @@
 # US-09 / US-10 implementation on PR #64
 
+> **Historical implementation snapshot:** The hook-only integration limits below describe PR #64. The later merged PR #72 wires real check-in/checkout, fee snapshots and slot release. Use the [current checkout contract](US10-checkout-contract.md), [US-12 evidence](../testing/US12-test-evidence.md) and [current test summary](../testing/SPRINT1_TEST_SUMMARY.md) for delivered behavior. This preserves the original handoff without treating its pending work as the current state.
+
 This implementation extends `parking_slots` from PR #64 at
 `8374e7b5b293c4de4de323a10d86fc4bd17cb9ca`. It uses the existing models,
 database tables, zone foreign key, per-zone slot-number constraint and URLs.

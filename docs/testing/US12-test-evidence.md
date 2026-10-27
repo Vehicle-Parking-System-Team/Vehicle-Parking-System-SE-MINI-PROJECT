@@ -1,5 +1,7 @@
 # US-12 integrity verification and US-10 integration limits
 
+> **Historical story evidence:** Results and limitations below describe the original story verification. For the integrated 27 October application baseline, use [the current test summary](SPRINT1_TEST_SUMMARY.md). Later module additions do not invalidate these results or retroactively expand what this execution proved.
+
 Requirements: FR-04, FR-07, NFR-SAFE-01; stories #30 and #32.
 This evidence covers slot guards and the real check-in → fee processing →
 checkout → slot-release integration required by US-10. Payment/receipt
