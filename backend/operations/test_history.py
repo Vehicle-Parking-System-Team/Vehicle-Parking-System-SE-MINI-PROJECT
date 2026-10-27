@@ -67,7 +67,7 @@ class ParkingHistoryAPITests(TestCase):
             slot=slot,
             operator=self.operator,
             registration_number_snapshot=vehicle.registration_number,
-            vehicle_type_snapshot=vehicle.vehicle_type,
+            vehicle_type_at_checkin_snapshot=vehicle.vehicle_type,
             slot_number_snapshot=slot.slot_number,
             zone_name_snapshot=slot.zone.name,
             check_in_time=check_in,
@@ -83,7 +83,7 @@ class ParkingHistoryAPITests(TestCase):
             slot=self.slot2,
             operator=self.operator,
             registration_number_snapshot=self.vehicle2.registration_number,
-            vehicle_type_snapshot=self.vehicle2.vehicle_type,
+            vehicle_type_at_checkin_snapshot=self.vehicle2.vehicle_type,
             slot_number_snapshot=self.slot2.slot_number,
             zone_name_snapshot=self.slot2.zone.name,
             status=ParkingRecord.Status.ACTIVE,
@@ -103,7 +103,7 @@ class ParkingHistoryAPITests(TestCase):
     def test_history_uses_snapshots_after_related_details_change(self):
         record = self.create_completed_record()
         original_registration = record.registration_number_snapshot
-        original_vehicle_type = record.vehicle_type_snapshot
+        original_vehicle_type = record.vehicle_type_at_checkin_snapshot
         original_slot_number = record.slot_number_snapshot
         original_zone_name = record.zone_name_snapshot
 
@@ -143,7 +143,7 @@ class ParkingHistoryAPITests(TestCase):
             record.registration_number_snapshot,
             self.vehicle1.registration_number,
         )
-        self.assertEqual(record.vehicle_type_snapshot, self.vehicle1.vehicle_type)
+        self.assertEqual(record.vehicle_type_at_checkin_snapshot, self.vehicle1.vehicle_type)
         self.assertEqual(record.slot_number_snapshot, self.slot1.slot_number)
         self.assertEqual(record.zone_name_snapshot, self.zone.name)
 

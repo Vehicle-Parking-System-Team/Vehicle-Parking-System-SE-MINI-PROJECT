@@ -62,7 +62,7 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
     )
 
     vehicle_type = serializers.CharField(
-        source="vehicle_type_snapshot",
+        source="vehicle_type_at_checkin_snapshot",
         read_only=True,
     )
 
@@ -96,7 +96,6 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
             "check_in_time",
             "check_out_time",
             "duration_seconds",
-            "fee_amount",
             "status",
             "ticket_qr_token",
         ]
@@ -121,7 +120,7 @@ class CheckOutRecordSerializer(ParkingRecordSerializer):
 
     class Meta(ParkingRecordSerializer.Meta):
         fields = ParkingRecordSerializer.Meta.fields + [
-            'billable_hours', 'currency', 'hourly_rate_snapshot',
+            'billable_hours', 'fee_amount', 'currency', 'hourly_rate_snapshot',
             'grace_period_minutes_snapshot', 'vehicle_type_snapshot',
         ]
         read_only_fields = fields
@@ -176,7 +175,7 @@ class ParkingHistoryRecordSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     vehicle_type = serializers.CharField(
-        source="vehicle_type_snapshot",
+        source="vehicle_type_at_checkin_snapshot",
         read_only=True,
     )
     slot_id = serializers.IntegerField(read_only=True)

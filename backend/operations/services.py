@@ -223,7 +223,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     slot=slot,
                     operator=operator,
                     registration_number_snapshot=vehicle.registration_number,
-                    vehicle_type_snapshot=vehicle.vehicle_type,
+                    vehicle_type_at_checkin_snapshot=vehicle.vehicle_type,
                     slot_number_snapshot=slot.slot_number,
                     zone_name_snapshot=slot.zone.name,
                     status=ParkingRecord.Status.ACTIVE,
@@ -302,7 +302,12 @@ def check_out_vehicle(registration_number, operator):
 
     # One read captures the tariff tuple; snapshots preserve it if the admin edits later.
     # Tariff writers need not wait for checkout to finish.
-    rate = ParkingRate.objects.filter(vehicle_type=vehicle.vehicle_type).first()
+    session_vehicle_type = (
+        record.vehicle_type_at_checkin_snapshot or vehicle.vehicle_type
+    )
+    rate = ParkingRate.objects.filter(
+        vehicle_type=session_vehicle_type
+    ).first()
     if rate is None:
         raise Conflict('Configure a parking rate for this vehicle type before checkout.')
     exit_time = timezone.now()
@@ -312,11 +317,12 @@ def check_out_vehicle(registration_number, operator):
     record.fee_amount = amount
     record.hourly_rate_snapshot = rate.hourly_rate
     record.grace_period_minutes_snapshot = rate.grace_period_minutes
+    record.vehicle_type_snapshot = session_vehicle_type
     record.check_out_time = exit_time
     record.status = ParkingRecord.Status.COMPLETED
     record.save(update_fields=[
         'fee_amount', 'hourly_rate_snapshot', 'grace_period_minutes_snapshot',
-        'check_out_time', 'status',
+        'vehicle_type_snapshot', 'check_out_time', 'status',
     ])
     # The active-record guard now sees our completed record in this transaction.
     # A release failure rolls the fee, completion and timestamp back together.

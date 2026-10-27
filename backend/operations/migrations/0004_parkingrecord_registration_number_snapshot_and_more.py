@@ -14,7 +14,7 @@ def populate_parking_snapshots(apps, schema_editor):
     fields_to_update = [
         "registration_number_snapshot",
         "slot_number_snapshot",
-        "vehicle_type_snapshot",
+        "vehicle_type_at_checkin_snapshot",
         "zone_name_snapshot",
     ]
     batch = []
@@ -22,7 +22,7 @@ def populate_parking_snapshots(apps, schema_editor):
     for record in records.iterator(chunk_size=500):
         record.registration_number_snapshot = record.vehicle.registration_number
         record.slot_number_snapshot = record.slot.slot_number
-        record.vehicle_type_snapshot = record.vehicle.vehicle_type
+        record.vehicle_type_at_checkin_snapshot = record.vehicle.vehicle_type
         record.zone_name_snapshot = record.slot.zone.name
         batch.append(record)
 
@@ -48,6 +48,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AddField(
+            model_name="parkingrecord",
+            name="vehicle_type_at_checkin_snapshot",
+            field=models.CharField(
+                blank=True,
+                editable=False,
+                max_length=30,
+                null=True,
+            ),
+        ),
         migrations.AddField(
             model_name="parkingrecord",
             name="registration_number_snapshot",
