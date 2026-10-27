@@ -4,13 +4,13 @@ Issue: [#43 — Generate bill and receipt](https://github.com/Vehicle-Parking-Sy
 
 ## Generate a receipt
 
-`POST /api/parking/receipts/` requires authentication and accepts only a completed parking record ID:
+`POST /api/parking/check-out/` now creates the receipt in the same database transaction as checkout and includes receipt data in its response. `POST /api/parking/receipts/` is also available for an explicitly requested receipt and requires authentication. It accepts only a completed parking record ID:
 
 ```json
 { "record_id": 123 }
 ```
 
-A successful first request returns HTTP 201 and a stable receipt identifier, unique invoice number, itemized charge snapshots, entry/exit timestamps, elapsed duration, rate, multiplier, billable hours, grace period, total fee and currency. Repeating the request for the same session returns the same receipt with HTTP 200; a one-to-one database constraint prevents duplicate receipts for a session.
+A successful first explicit receipt request returns HTTP 201 and a stable receipt identifier, unique invoice number, itemized charge snapshots, entry/exit timestamps, elapsed duration, rate, multiplier, billable hours, grace period, total fee and currency. Repeating the request for the same session returns the same receipt with HTTP 200; a one-to-one database constraint prevents duplicate receipts for a session. Receipt creation is atomic with checkout so a receipt error cannot leave a completed session without its receipt.
 
 The receipt stores its own snapshot of vehicle/slot labels, timestamps, rate, multiplier, duration, computed charge breakdown and total. Later edits to the parking record do not rewrite an issued receipt. The billed amount is copied from checkout, not recomputed during receipt generation.
 
