@@ -5,8 +5,6 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.urls import reverse
-from django.utils import timezone
 from rest_framework.test import APIClient
 
 from billing.models import BillingReceipt
@@ -153,8 +151,7 @@ class BillingReceiptAPITests(TestCase):
         self.assertEqual(BillingReceipt.objects.count(), 0)
 
     def test_customer_cannot_generate_receipt_for_another_customer(self):
-        self.vehicle.owner = self.other_customer
-        self.vehicle.save(update_fields=['owner'])
+        self.client.force_authenticate(user=self.other_customer)
 
         response = self.generate()
 
