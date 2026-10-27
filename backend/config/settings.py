@@ -5,6 +5,7 @@ Django settings for Vehicle Parking System backend.
 import os
 from datetime import timedelta
 from pathlib import Path
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -17,12 +18,15 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-SECRET_KEY = os.getenv(
-    'DJANGO_SECRET_KEY',
-    'django-insecure-vehicle-parking-system-dev-key-change-in-production'
-)
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '').strip()
+if not SECRET_KEY:
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set in the environment or an ignored .env file.')
 
 DEBUG = os.getenv('DJANGO_DEBUG', 'True').lower() in ('true', '1', 't', 'yes')
+
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -90,12 +94,14 @@ ASGI_APPLICATION = 'config.asgi.application'
 # Uses PostgreSQL if DB_ENGINE or DB_NAME configured, otherwise falls back to SQLite for initial local dev
 DB_ENGINE = os.getenv('DB_ENGINE', '')
 if 'postgresql' in DB_ENGINE:
+    if not os.getenv('DB_PASSWORD', '').strip():
+        raise ImproperlyConfigured('DB_PASSWORD must be set when PostgreSQL is selected.')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME', 'parking_db'),
             'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'PASSWORD': os.environ['DB_PASSWORD'],
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
         }
@@ -171,6 +177,16 @@ SIMPLE_JWT = {
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
+    for origin in os.getenv(
+        'CORS_ALLOWED_ORIGINS',
+        'http://localhost:5173,http://127.0.0.1:5173' if DEBUG else '',
+    ).split(',')
+    if origin.strip()
+]
+
+# Cookie/session authentication uses CSRF validation independently of CORS.
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
     if origin.strip()
 ]

@@ -2,6 +2,10 @@
 
 A comprehensive software engineering solution for automated vehicle parking management, slot allocation, and monitoring.
 
+All backend commands require a locally generated `DJANGO_SECRET_KEY` in the environment
+or an ignored `.env` file. See [US-32 security setup](docs/design/US32-security.md)
+before running the commands below, and [verification evidence](docs/testing/US32-test-evidence.md).
+
 ## Technology Stack
 
 - **Backend**: Python, Django, Django REST Framework

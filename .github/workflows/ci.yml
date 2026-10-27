@@ -32,6 +32,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Generate ephemeral test signing key
+        run: |
+          echo "DJANGO_SECRET_KEY=$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')" >> "$GITHUB_ENV"
+
       - name: Run Django system check
         run: python manage.py check
 
@@ -77,7 +81,9 @@ jobs:
       - name: Install PostgreSQL test dependencies
         run: python -m pip install -r requirements-postgres.txt
       - name: Verify slot state, integrity and concurrent allocation
-        run: python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests --verbosity 2
+        run: |
+          export DJANGO_SECRET_KEY="$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')"
+          python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests --verbosity 2
 
   frontend-ci:
     name: Frontend CI (React)
