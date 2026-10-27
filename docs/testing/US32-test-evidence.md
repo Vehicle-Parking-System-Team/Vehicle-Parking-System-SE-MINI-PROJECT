@@ -47,7 +47,7 @@ subcases; they do not redefine the Test Plan's existing TC-SEC-001/002 scenarios
 | TC-US32-012 | `test_valid_csrf_reaches_payload_validation` | Valid CSRF reaches serializer, returning 400 for empty payload |
 | TC-US32-013 | `test_cors_allowlist_does_not_grant_csrf_trust` | Allowed CORS origin with valid token still fails CSRF origin check |
 | TC-US32-014 | `test_customer_cannot_read_or_modify_another_vehicle` | Foreign vehicle read/update denied; state preserved |
-| TC-US32-015 | `test_sql_payload_cannot_broaden_vehicle_search` | SQL-like plate rejected without extra records |
+| TC-US32-015 | `test_sql_payload_cannot_broaden_vehicle_search` | SQL-like plate returns application JSON with HTTP 404 and `NOT_FOUND`; record count unchanged |
 | TC-US32-016 | `test_production_redirect_and_secure_session_cookie` | HTTP redirects to HTTPS; HTTPS response sets Secure session/CSRF cookies |
 
 ## Remaining acceptance

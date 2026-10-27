@@ -153,7 +153,8 @@ class SecurityBoundaryTests(TestCase):
         client = APIClient()
         client.force_authenticate(self.operator)
         response = client.get('/api/v1/vehicles/search/', {'plate': "' OR 1=1 --"})
-        self.assertIn(response.status_code, (400, 404))
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json()['code'], 'NOT_FOUND')
         self.assertEqual(Vehicle.objects.count(), 1)
 
     @override_settings(
