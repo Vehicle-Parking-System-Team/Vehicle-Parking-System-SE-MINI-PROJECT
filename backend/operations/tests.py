@@ -19,6 +19,7 @@ from common.exceptions import Conflict
 from parking_slots.models import ParkingSlot, ParkingZone
 from parking_slots.services import occupy_slot as real_occupy_slot
 from vehicles.models import Vehicle
+from rates.models import ParkingRate
 
 from .models import ParkingRecord
 from .services import TICKET_SIGNING_SALT, check_in_vehicle
@@ -56,6 +57,11 @@ class CheckInAPITests(TestCase):
             registration_number="KA-01-AB-1234",
             vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT,
             owner=self.operator,
+        )
+
+        # Checkout now processes the configured tariff before releasing the slot.
+        ParkingRate.objects.create(
+            vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, hourly_rate="40.00",
         )
 
         self.url = "/api/parking/check-in/"
@@ -135,7 +141,7 @@ class CheckInAPITests(TestCase):
 
         response = self.check_in(slot_id=incompatible_slot.pk)
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 422)
 
         self.assertFalse(
             ParkingRecord.objects.filter(
@@ -414,7 +420,7 @@ class CheckInAPITests(TestCase):
         ):
             response = self.check_in(slot_id=self.slot.pk)
 
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 422)
         self.assertEqual(ParkingRecord.objects.count(), 0)
 
         self.slot.refresh_from_db()

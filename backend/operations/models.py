@@ -1,12 +1,11 @@
 from django.conf import settings
-from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
 
 class ParkingRecord(models.Model):
-    """Persistent parking record for check-in, checkout, billing, and history."""
+    """Persistent parking record for check-in, checkout, and history."""
 
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
@@ -25,23 +24,30 @@ class ParkingRecord(models.Model):
     )
 
     operator = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="parking_records",
+    settings.AUTH_USER_MODEL,
+    on_delete=models.PROTECT,
+    related_name="parking_records",
+    null=True,
+    blank=True,
+    )
+
+    check_in_time = models.DateTimeField(
+        default=timezone.now,
+        db_index=True,
+    )
+
+    check_out_time = models.DateTimeField(
         null=True,
         blank=True,
     )
 
-    # Snapshot values preserve display details as they were at check-in.
-    # The data migration backfills these fields for existing records.
+    # Nullable so historical records are retained without inventing past charges.
+    fee_amount = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    hourly_rate_snapshot = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    grace_period_minutes_snapshot = models.PositiveIntegerField(null=True, blank=True)
+    vehicle_type_snapshot = models.CharField(max_length=20, null=True, blank=True)
     registration_number_snapshot = models.CharField(
         max_length=20,
-        null=True,
-        blank=True,
-        editable=False,
-    )
-    vehicle_type_snapshot = models.CharField(
-        max_length=30,
         null=True,
         blank=True,
         editable=False,
@@ -59,24 +65,6 @@ class ParkingRecord(models.Model):
         editable=False,
     )
 
-    check_in_time = models.DateTimeField(
-        default=timezone.now,
-        db_index=True,
-    )
-
-    check_out_time = models.DateTimeField(
-        null=True,
-        blank=True,
-    )
-
-    fee_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0)],
-        null=True,
-        blank=True,
-    )
-
     status = models.CharField(
         max_length=12,
         choices=Status.choices,
@@ -85,6 +73,7 @@ class ParkingRecord(models.Model):
     )
 
     # Populated after the record receives its database ID.
+    # Check-in will create the signed token within the same transaction.
     ticket_qr_token = models.CharField(
         max_length=512,
         unique=True,
@@ -95,6 +84,7 @@ class ParkingRecord(models.Model):
 
     class Meta:
         ordering = ["-check_in_time", "-pk"]
+
         constraints = [
             models.UniqueConstraint(
                 fields=["vehicle"],
@@ -107,6 +97,7 @@ class ParkingRecord(models.Model):
                 name="uniq_active_record_slot",
             ),
         ]
+
         indexes = [
             models.Index(
                 fields=["vehicle", "status"],

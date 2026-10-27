@@ -4,11 +4,14 @@ from django.core.signing import Signer
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from common.exceptions import Conflict
 from parking_slots.models import ParkingSlot
 from parking_slots.services import occupy_slot, release_slot
+from parking_slots.permissions import can_manage_parking
+from rates.calculations import calculate_parking_fee
+from rates.models import ParkingRate
 from vehicles.models import Vehicle
 from vehicles.services import normalize_registration_number
 
@@ -22,15 +25,27 @@ class _SlotCompatibilityChanged(Exception):
     """Raised when a slot becomes incompatible during allocation."""
 
 
+class IncompatibleSlot(ValidationError):
+    """US-12 semantic assignment failure; retain US-31 field-error details."""
+
+    status_code = 422
+
+
 def _is_compatible_slot(slot, vehicle):
     """Check whether a parking slot supports the requested vehicle type."""
     slot_type = (slot.vehicle_type or "").strip().casefold()
     vehicle_type = (vehicle.vehicle_type or "").strip().casefold()
+
     return slot_type in {"any", vehicle_type}
 
 
 def _raise_duplicate_active_record_conflict(vehicle):
-    """Reject duplicate check-in with details of the existing active session."""
+    """
+    Reject duplicate check-in with details of the existing active session.
+
+    Returns normally if no active record exists.
+    Raises Conflict if an active record is found.
+    """
     existing_record = (
         ParkingRecord.objects.select_related("slot")
         .filter(
@@ -58,7 +73,12 @@ def _raise_duplicate_active_record_conflict(vehicle):
 
 
 def create_signed_ticket(record):
-    """Generate a signed QR-ready ticket payload."""
+    """
+    Generate a signed QR-ready ticket payload.
+
+    The token contains:
+    sessionId, vehiclePlate, slotNumber, checkInTime, signature.
+    """
     payload = {
         "sessionId": record.pk,
         "vehiclePlate": (
@@ -76,6 +96,7 @@ def create_signed_ticket(record):
         sort_keys=True,
         separators=(",", ":"),
     )
+
     signer = Signer(salt=TICKET_SIGNING_SALT)
     payload["signature"] = signer.signature(canonical_payload)
 
@@ -88,30 +109,53 @@ def create_signed_ticket(record):
 
 @transaction.atomic
 def check_in_vehicle(registration_number, operator, slot_id=None):
-    """Check in a registered vehicle and allocate a compatible parking slot."""
+    """
+    Check in a registered vehicle and allocate a compatible parking slot.
+
+    Args:
+        registration_number: Registered vehicle's license plate.
+        operator: Authenticated user performing the check-in.
+        slot_id: Optional manually selected parking slot primary key.
+
+    Returns:
+        The newly created ParkingRecord.
+
+    Raises:
+        NotFound: Vehicle or explicitly selected slot does not exist.
+        ValidationError: Invalid vehicle registration.
+        IncompatibleSlot: Selected slot cannot accommodate the vehicle (422).
+        Conflict: Duplicate active record, unavailable slot, or no
+                  compatible available slot.
+    """
     if operator is None or not getattr(operator, "is_authenticated", False):
         raise ValidationError(
             {"operator": "An authenticated operator is required."}
         )
 
     plate = normalize_registration_number(registration_number)
+
     if not plate:
         raise ValidationError(
-            {"registration_number": "A vehicle registration number is required."}
+            {
+                "registration_number":
+                    "A vehicle registration number is required."
+            }
         )
 
-    # Lock the vehicle row to serialize same-vehicle check-ins on databases
-    # that support SELECT FOR UPDATE.
+    # Lock the vehicle row to serialize same-vehicle check-ins on
+    # databases that support SELECT FOR UPDATE.
     vehicle = (
         Vehicle.objects.select_for_update()
         .filter(registration_number=plate)
         .first()
     )
+
     if vehicle is None:
         raise NotFound(
             "No registered vehicle was found with this registration number."
         )
 
+    # 4. Reject a duplicate check-in and return existing session details.
     _raise_duplicate_active_record_conflict(vehicle)
 
     compatible_slots = ParkingSlot.objects.filter(
@@ -125,17 +169,30 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
             .filter(pk=slot_id)
             .first()
         )
+
         if candidate is None:
             raise NotFound("The selected parking slot does not exist.")
+
         if not candidate.is_active or not candidate.zone.is_active:
-            raise Conflict("The selected slot or its zone is inactive.")
-        if candidate.status != ParkingSlot.Status.AVAILABLE:
-            raise Conflict("The selected parking slot is not available.")
-        if not _is_compatible_slot(candidate, vehicle):
-            raise ValidationError(
-                {"slot_id": "The selected slot is incompatible with this vehicle."}
+            raise Conflict(
+                "The selected slot or its zone is inactive."
             )
+
+        if candidate.status != ParkingSlot.Status.AVAILABLE:
+            raise Conflict(
+                "The selected parking slot is not available."
+            )
+
+        if not _is_compatible_slot(candidate, vehicle):
+            raise IncompatibleSlot(
+                {
+                    "slot_id":
+                        "The selected slot is incompatible with this vehicle."
+                }
+            )
+
         candidate_ids = [candidate.pk]
+
     else:
         candidate_ids = list(
             compatible_slots.filter(
@@ -154,15 +211,13 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                 # Locks and updates the slot within the transaction.
                 slot = occupy_slot(candidate_id)
 
-                # Recheck compatibility after the slot lifecycle service has
-                # locked and refreshed the slot.
+                # Recheck compatibility after the slot lifecycle service
+                # has locked and refreshed the slot.
                 if not _is_compatible_slot(slot, vehicle):
                     raise _SlotCompatibilityChanged(
                         "The slot is no longer compatible."
                     )
 
-                # Capture display details at check-in so later edits to the
-                # vehicle, slot, or zone do not rewrite the historical record.
                 record = ParkingRecord.objects.create(
                     vehicle=vehicle,
                     slot=slot,
@@ -174,7 +229,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     status=ParkingRecord.Status.ACTIVE,
                 )
 
-                # Generate the signed ticket after the database ID exists.
+                # 8. Generate the signed ticket after the database ID exists.
                 # Keep token creation in the same transaction.
                 record.ticket_qr_token = create_signed_ticket(record)
                 record.save(update_fields=["ticket_qr_token"])
@@ -184,26 +239,28 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
         except _SlotCompatibilityChanged:
             # The nested transaction rolls back the slot occupation.
             if slot_id is not None:
-                raise ValidationError(
+                raise IncompatibleSlot(
                     {
-                        "slot_id": (
-                            "The selected slot is no longer compatible with "
-                            "this vehicle. Please choose another slot."
-                        )
+                        "slot_id":
+                            "The selected slot is no longer compatible "
+                            "with this vehicle. Please choose another slot."
                     }
                 ) from None
+
             # Automatic allocation can try another candidate.
             continue
 
         except Conflict:
             if slot_id is not None:
                 raise
+
             continue
 
         except IntegrityError:
-            # The inner transaction/savepoint has rolled back. Check whether
-            # another request created an active record.
+            # The inner transaction/savepoint has rolled back.
+            # Check whether another request created an active record.
             _raise_duplicate_active_record_conflict(vehicle)
+
             if ParkingRecord.objects.filter(
                 slot_id=candidate_id,
                 status=ParkingRecord.Status.ACTIVE,
@@ -212,7 +269,9 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     raise Conflict(
                         "The selected slot was allocated by another request."
                     ) from None
+
                 continue
+
             # Do not hide unexpected integrity errors.
             raise
 
@@ -223,56 +282,44 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
 @transaction.atomic
 def check_out_vehicle(registration_number, operator):
-    """Complete the active parking session for a registered vehicle."""
-    if operator is None or not getattr(operator, "is_authenticated", False):
-        raise ValidationError(
-            {"operator": "An authenticated operator is required."}
-        )
-
+    if not can_manage_parking(operator):
+        raise PermissionDenied('An active Admin or Operator account is required.')
     plate = normalize_registration_number(registration_number)
-    if not plate:
-        raise ValidationError(
-            {"registration_number": "A vehicle registration number is required."}
-        )
+    if not plate or len(plate) > 20:
+        raise ValidationError({'registration_number': 'Use a valid registration number.'})
 
-    # Lock the vehicle to serialize checkout and check-in operations on
-    # databases supporting row-level locks.
-    vehicle = (
-        Vehicle.objects.select_for_update()
-        .filter(registration_number=plate)
-        .first()
-    )
+    # Match check-in's vehicle-first order. Never lock a slot before its zone.
+    vehicle = Vehicle.objects.select_for_update().filter(registration_number=plate).first()
     if vehicle is None:
-        raise NotFound(
-            "No registered vehicle was found with this registration number."
-        )
-
-    record = (
-        ParkingRecord.objects.select_for_update()
-        .filter(
-            vehicle=vehicle,
-            status=ParkingRecord.Status.ACTIVE,
-        )
-        .order_by("-check_in_time", "-pk")
-        .first()
-    )
+        raise NotFound('No active parking record was found for this vehicle.')
+    record = ParkingRecord.objects.select_for_update().filter(
+        vehicle=vehicle, status=ParkingRecord.Status.ACTIVE,
+    ).first()
     if record is None:
-        raise NotFound(
-            "No active parking session was found for this vehicle."
-        )
+        raise NotFound('No active parking record was found for this vehicle.')
+    if record.check_out_time is not None:
+        raise Conflict('The active parking record already has a checkout timestamp.')
 
-    checkout_time = timezone.now()
-    if checkout_time < record.check_in_time:
-        raise Conflict("Checkout time cannot be earlier than the check-in time.")
-
-    # Fee calculation remains a documented billing follow-up. Do not populate
-    # fee_amount until the tariff and penalty rules are agreed and integrated.
-    record.check_out_time = checkout_time
+    # One read captures the tariff tuple; snapshots preserve it if the admin edits later.
+    # Tariff writers need not wait for checkout to finish.
+    rate = ParkingRate.objects.filter(vehicle_type=vehicle.vehicle_type).first()
+    if rate is None:
+        raise Conflict('Configure a parking rate for this vehicle type before checkout.')
+    exit_time = timezone.now()
+    amount = calculate_parking_fee(
+        exit_time - record.check_in_time, rate.hourly_rate, rate.grace_period_minutes,
+    )
+    record.fee_amount = amount
+    record.hourly_rate_snapshot = rate.hourly_rate
+    record.grace_period_minutes_snapshot = rate.grace_period_minutes
+    record.check_out_time = exit_time
     record.status = ParkingRecord.Status.COMPLETED
-    record.save(update_fields=["check_out_time", "status"])
-
-    # The slot release is in the same outer transaction, so a failure rolls
-    # both the record completion and slot change back.
-    release_slot(record.slot_id)
-    record.refresh_from_db()
+    record.save(update_fields=[
+        'fee_amount', 'hourly_rate_snapshot', 'grace_period_minutes_snapshot',
+        'check_out_time', 'status',
+    ])
+    # The active-record guard now sees our completed record in this transaction.
+    # A release failure rolls the fee, completion and timestamp back together.
+    record.slot = release_slot(record.slot_id)
+    record.vehicle = vehicle
     return record

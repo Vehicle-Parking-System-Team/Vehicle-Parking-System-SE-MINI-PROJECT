@@ -8,6 +8,7 @@ from django.test import TransactionTestCase
 class ExistingDataMigrationTests(TransactionTestCase):
     def test_pr64_rows_survive_additive_floor_migration(self):
         executor = MigrationExecutor(connection)
+        restore_targets = executor.loader.graph.leaf_nodes()
         before = [('parking_slots', '0001_initial')]
         after = [('parking_slots', '0002_parkingslot_floor')]
         executor.migrate(before)
@@ -40,4 +41,6 @@ class ExistingDataMigrationTests(TransactionTestCase):
             )
             self.assertEqual(list(Slot.objects.values_list('floor', flat=True)), [None] * 4)
         finally:
-            MigrationExecutor(connection).migrate(after)
+            # Rewinding slots also rewinds dependent operations migrations.
+            # Restore the complete graph so later tests see the current schema.
+            MigrationExecutor(connection).migrate(restore_targets)

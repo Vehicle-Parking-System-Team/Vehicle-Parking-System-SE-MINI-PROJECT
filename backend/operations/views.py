@@ -7,22 +7,16 @@ from rest_framework.views import APIView
 from parking_slots.permissions import CanManageParking
 
 from .models import ParkingRecord
+
 from .serializers import (
     CheckInRequestSerializer,
     CheckOutRequestSerializer,
+    CheckOutRecordSerializer,
     ParkingHistoryQuerySerializer,
     ParkingHistoryRecordSerializer,
     ParkingRecordSerializer,
 )
 from .services import check_in_vehicle, check_out_vehicle
-
-
-class ParkingHistoryPagination(PageNumberPagination):
-    """Bounded pagination for parking history."""
-
-    page_size = 20
-    page_size_query_param = "page_size"
-    max_page_size = 100
 
 
 class VehicleCheckInView(APIView):
@@ -33,13 +27,15 @@ class VehicleCheckInView(APIView):
     def post(self, request):
         request_serializer = CheckInRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
+
         record = check_in_vehicle(
-            registration_number=request_serializer.validated_data[
-                "registration_number"
-            ],
+            registration_number=(
+                request_serializer.validated_data["registration_number"]
+            ),
             operator=request.user,
             slot_id=request_serializer.validated_data.get("slot_id"),
         )
+
         return Response(
             ParkingRecordSerializer(record).data,
             status=status.HTTP_201_CREATED,
@@ -47,23 +43,33 @@ class VehicleCheckInView(APIView):
 
 
 class VehicleCheckOutView(APIView):
-    """Check out a vehicle and release its parking slot."""
+    """Complete an active parking session and release its parking slot."""
 
     permission_classes = [IsAuthenticated, CanManageParking]
 
     def post(self, request):
         request_serializer = CheckOutRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
+
         record = check_out_vehicle(
-            registration_number=request_serializer.validated_data[
-                "registration_number"
-            ],
+            registration_number=(
+                request_serializer.validated_data["registration_number"]
+            ),
             operator=request.user,
         )
+
         return Response(
-            ParkingRecordSerializer(record).data,
+            CheckOutRecordSerializer(record).data,
             status=status.HTTP_200_OK,
         )
+
+
+class ParkingHistoryPagination(PageNumberPagination):
+    """Bounded pagination for parking history."""
+
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 
 class ParkingHistoryView(APIView):
@@ -90,7 +96,6 @@ class ParkingHistoryView(APIView):
 
         registration_number = filters.get("registration_number")
         if registration_number:
-            # Search the historical snapshot, not a mutable live plate value.
             records = records.filter(
                 registration_number_snapshot=registration_number
             )

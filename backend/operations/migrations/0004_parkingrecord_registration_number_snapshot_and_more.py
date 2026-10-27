@@ -70,16 +70,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="parkingrecord",
-            name="vehicle_type_snapshot",
-            field=models.CharField(
-                blank=True,
-                editable=False,
-                max_length=30,
-                null=True,
-            ),
-        ),
-        migrations.AddField(
-            model_name="parkingrecord",
             name="zone_name_snapshot",
             field=models.CharField(
                 blank=True,

@@ -6,6 +6,7 @@ from .views import (
     VehicleCheckOutView,
 )
 
+
 app_name = "operations"
 
 urlpatterns = [

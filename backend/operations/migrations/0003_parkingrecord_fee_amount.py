@@ -1,27 +1,15 @@
+"""Compatibility step after main's checkout fee snapshot migration.
 
-from django.core.validators import MinValueValidator
-from django.db import migrations, models
+The checkout integration merged into main now creates fee_amount and the
+billing snapshot fields. This migration remains in the US-20 chain so the
+existing US-20 0004 migration filename and dependency are preserved.
+"""
+from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        (
-            "operations",
-            "0002_parkingrecord_delete_parkingsession_and_more",
-        ),
+        ("operations", "0003_checkout_fee_snapshots"),
     ]
 
-    operations = [
-        migrations.AddField(
-            model_name="parkingrecord",
-            name="fee_amount",
-            field=models.DecimalField(
-                blank=True,
-                decimal_places=2,
-                max_digits=10,
-                null=True,
-                validators=[MinValueValidator(0)],
-            ),
-        ),
-    ]
+    operations = []
