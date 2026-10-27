@@ -1,4 +1,6 @@
 
+from decimal import Decimal
+
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -24,6 +26,12 @@ class ParkingRate(models.Model):
     hourly_rate = models.DecimalField(
         max_digits=10,
         decimal_places=2,
+        validators=[MinValueValidator(0)],
+    )
+    vehicle_multiplier = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('1.00'),
         validators=[MinValueValidator(0)],
     )
     grace_period_minutes = models.PositiveIntegerField(default=15)
