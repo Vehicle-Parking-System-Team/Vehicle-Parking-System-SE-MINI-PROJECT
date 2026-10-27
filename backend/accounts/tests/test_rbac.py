@@ -368,6 +368,8 @@ class RBACTests(TestCase):
     # -------------------------------------------------------------------------
     # 8. Reusable permission classes unit checks
     # -------------------------------------------------------------------------
+    # 8. Reusable permission classes unit checks & regression tests
+    # -------------------------------------------------------------------------
     def test_has_roles_factory_creates_correct_permission_class(self):
         """has_roles correctly dynamically validates custom combinations of roles."""
         AdminOrCustomer = has_roles('Admin', 'Customer')
@@ -383,6 +385,50 @@ class RBACTests(TestCase):
 
         # Denied roles
         self.assertFalse(perm.has_permission(MockRequest(self.operator_user), None))
+
+    def test_has_roles_rejects_empty_configuration(self):
+        """Regression (Finding 1): has_roles() must reject empty role configurations with ValueError."""
+        with self.assertRaises(ValueError) as ctx:
+            has_roles()
+        self.assertIn('at least one role', str(ctx.exception).lower())
+
+    def test_has_roles_rejects_invalid_or_unsupported_roles(self):
+        """Regression (Finding 1): has_roles() must reject configurations containing invalid role names."""
+        # All invalid
+        with self.assertRaises(ValueError) as ctx1:
+            has_roles('Superuser', 'Guest')
+        self.assertIn('invalid role', str(ctx1.exception).lower())
+
+        # Mixed valid and invalid
+        with self.assertRaises(ValueError) as ctx2:
+            has_roles('Admin', 'Manager')
+        self.assertIn('invalid role', str(ctx2.exception).lower())
+
+    def test_base_role_permission_fails_closed_on_empty_or_invalid_allowed_roles(self):
+        """Regression (Finding 1): BaseRolePermission must fail closed (deny access) if allowed_roles is empty or invalid."""
+        class MockRequest:
+            def __init__(self, user):
+                self.user = user
+
+        req_admin = MockRequest(self.admin_user)
+
+        # Empty allowed_roles
+        class EmptyRolesPermission(BaseRolePermission):
+            allowed_roles = ()
+
+        self.assertFalse(EmptyRolesPermission().has_permission(req_admin, None))
+
+        # None allowed_roles
+        class NoneRolesPermission(BaseRolePermission):
+            allowed_roles = None
+
+        self.assertFalse(NoneRolesPermission().has_permission(req_admin, None))
+
+        # Invalid/unrecognized role in allowed_roles
+        class InvalidRolesPermission(BaseRolePermission):
+            allowed_roles = ('NonExistentRole',)
+
+        self.assertFalse(InvalidRolesPermission().has_permission(req_admin, None))
 
     def test_object_level_owner_permission_helpers(self):
         """IsOwnerOrAdmin and IsOwnerOrAdminOrOperator helper behavior."""
@@ -418,3 +464,67 @@ class RBACTests(TestCase):
         req_admin = MockRequest(self.admin_user)
         self.assertTrue(perm_owner_admin.has_object_permission(req_admin, None, res1))
         self.assertTrue(perm_owner_ops.has_object_permission(req_admin, None, res1))
+
+    def test_unrelated_resource_matching_user_id_denies_ownership(self):
+        """Regression (Finding 2): Unrelated resources sharing the same ID as a user must be denied ownership."""
+        class UnrelatedResource:
+            def __init__(self, resource_id):
+                self.id = resource_id  # Has an id attribute matching customer1, but NO owner/user field
+
+        unrelated = UnrelatedResource(self.customer1.id)
+
+        perm_owner_admin = IsOwnerOrAdmin()
+        perm_owner_ops = IsOwnerOrAdminOrOperator()
+
+        class MockRequest:
+            def __init__(self, user):
+                self.user = user
+
+        # Customer must be DENIED access to unrelated resource even though id matches user.id
+        req_c1 = MockRequest(self.customer1)
+        self.assertFalse(perm_owner_admin.has_object_permission(req_c1, None, unrelated))
+        self.assertFalse(perm_owner_ops.has_object_permission(req_c1, None, unrelated))
+
+        # Admin override still permitted
+        req_admin = MockRequest(self.admin_user)
+        self.assertTrue(perm_owner_admin.has_object_permission(req_admin, None, unrelated))
+        self.assertTrue(perm_owner_ops.has_object_permission(req_admin, None, unrelated))
+
+        # Operator override permitted only in IsOwnerOrAdminOrOperator
+        req_op = MockRequest(self.operator_user)
+        self.assertFalse(perm_owner_admin.has_object_permission(req_op, None, unrelated))
+        self.assertTrue(perm_owner_ops.has_object_permission(req_op, None, unrelated))
+
+    def test_explicit_owner_attribute_and_custom_predicate_ownership(self):
+        """Regression (Finding 2): Validates explicit owner attribute and is_owned_by predicate."""
+        class ExplicitOwnerResource:
+            def __init__(self, owner):
+                self.owner = owner
+
+        class PredicateResource:
+            def __init__(self, owner):
+                self._owner = owner
+
+            def is_owned_by(self, user):
+                return user == self._owner
+
+        res_owner = ExplicitOwnerResource(self.customer1)
+        res_pred = PredicateResource(self.customer1)
+
+        perm = IsOwnerOrAdmin()
+
+        class MockRequest:
+            def __init__(self, user):
+                self.user = user
+
+        req_c1 = MockRequest(self.customer1)
+        req_c2 = MockRequest(self.customer2)
+
+        # Owner has access
+        self.assertTrue(perm.has_object_permission(req_c1, None, res_owner))
+        self.assertTrue(perm.has_object_permission(req_c1, None, res_pred))
+
+        # Non-owner is denied
+        self.assertFalse(perm.has_object_permission(req_c2, None, res_owner))
+        self.assertFalse(perm.has_object_permission(req_c2, None, res_pred))
+

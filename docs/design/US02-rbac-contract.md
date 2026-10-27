@@ -33,9 +33,9 @@ All classes are located in [`backend/accounts/permissions.py`](file:///c:/Users/
 | `IsOperator` | Restricted strictly to users with `role == 'Operator'`. | 403 Forbidden |
 | `IsCustomer` | Restricted strictly to users with `role == 'Customer'`. | 403 Forbidden |
 | `IsAdminOrOperator` | Grants access to both `Admin` and `Operator` staff. | 403 Forbidden |
-| `has_roles(*roles)` | Factory returning custom permission class checking any of specified roles. | 403 Forbidden |
-| `IsOwnerOrAdmin` | Object-level permission: allows if user is owner (`obj.owner` or `obj.user` or `obj`) or `role == 'Admin'`. | 403 Forbidden |
-| `IsOwnerOrAdminOrOperator`| Object-level permission: allows if owner or staff member (`Admin`/`Operator`). | 403 Forbidden |
+| `has_roles(*roles)` | Factory returning custom permission class checking specified roles. Fails closed on empty/invalid roles (raises ValueError). | 403 Forbidden |
+| `IsOwnerOrAdmin` | Object-level permission: allows if user has explicit ownership (`obj.owner`, `obj.user`, `obj.is_owned_by()`, or User self-access) or `role == 'Admin'`. Denies unrelated resources with coincidentally matching IDs. | 403 Forbidden |
+| `IsOwnerOrAdminOrOperator`| Object-level permission: allows if explicit owner or staff member (`Admin`/`Operator`). | 403 Forbidden |
 
 ### 2.2 Error Envelope Guarantee
 
