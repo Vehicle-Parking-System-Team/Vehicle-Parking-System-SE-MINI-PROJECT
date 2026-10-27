@@ -78,6 +78,30 @@ class BillingReceiptAPITests(TestCase):
             payload = {'record_id': self.record.pk}
         return self.client.post(RECEIPTS_URL, payload, format='json')
 
+    def test_checkout_api_generates_receipt_atomically(self):
+        active = check_in_vehicle(
+            self.vehicle.registration_number,
+            self.operator,
+            self.slot.pk,
+        )
+        self.client.force_authenticate(user=self.operator)
+        exit_time = active.check_in_time + timedelta(hours=2)
+
+        with patch('operations.services.timezone.now', return_value=exit_time):
+            response = self.client.post(
+                '/api/parking/check-out/',
+                {'registration_number': self.vehicle.registration_number},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['receipt']['parking_record_id'], active.pk)
+        self.assertEqual(response.data['receipt']['total_fee'], '160.00')
+        self.assertTrue(response.data['receipt']['invoice_number'].startswith('INV-'))
+        self.assertTrue(
+            BillingReceipt.objects.filter(parking_record_id=active.pk).exists()
+        )
+
     def test_generated_receipt_has_unique_invoice_and_itemized_snapshots(self):
         response = self.generate()
 
