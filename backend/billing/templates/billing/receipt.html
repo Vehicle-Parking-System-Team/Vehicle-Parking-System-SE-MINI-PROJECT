@@ -49,8 +49,8 @@
     <table>
       <thead><tr><th>Description</th><th>Calculation</th><th>Amount</th></tr></thead>
       <tbody>
-        <tr><td>Parking time</td><td>{{ receipt.billable_hours }} hour(s) × {{ receipt.currency }} {{ receipt.hourly_rate|floatformat:2 }}</td><td>{{ receipt.currency }} {{ receipt.hourly_rate|floatformat:2 }}</td></tr>
-        <tr><td>Vehicle multiplier</td><td>× {{ receipt.vehicle_multiplier|floatformat:2 }}</td><td>Applied</td></tr>
+        <tr><td>Base parking charge</td><td>{{ receipt.billable_hours }} hour(s) × {{ receipt.currency }} {{ receipt.hourly_rate|floatformat:2 }}</td><td>{{ receipt.currency }} {{ receipt.base_amount|floatformat:2 }}</td></tr>
+        <tr><td>Vehicle multiplier adjustment</td><td>× {{ receipt.vehicle_multiplier|floatformat:2 }}</td><td>{{ receipt.currency }} {{ receipt.multiplier_adjustment|floatformat:2 }}</td></tr>
         <tr><td>Grace period</td><td>{{ receipt.grace_period_minutes }} minute(s)</td><td>Included</td></tr>
         <tr class="total"><td colspan="2">Total fee</td><td>{{ receipt.currency }} {{ receipt.fee_amount|floatformat:2 }}</td></tr>
       </tbody>
