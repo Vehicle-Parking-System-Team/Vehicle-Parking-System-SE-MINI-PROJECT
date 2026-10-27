@@ -19,7 +19,7 @@ class GenerateReceiptRequestSerializer(serializers.Serializer):
 class BillingReceiptSerializer(serializers.ModelSerializer):
     receipt_id = serializers.UUIDField(source='receipt_number', read_only=True)
     invoice_number = serializers.CharField(read_only=True)
-    parking_record_id = serializers.IntegerField(source='parking_record_id', read_only=True)
+    parking_record_id = serializers.IntegerField(read_only=True)
     total_fee = serializers.DecimalField(
         source='fee_amount', max_digits=14, decimal_places=2, read_only=True,
     )
@@ -32,8 +32,9 @@ class BillingReceiptSerializer(serializers.ModelSerializer):
             'receipt_id', 'invoice_number', 'parking_record_id',
             'registration_number', 'vehicle_type', 'slot_number', 'zone_name',
             'check_in_time', 'check_out_time', 'duration_seconds',
-            'duration_display', 'billable_hours', 'hourly_rate',
-            'vehicle_multiplier', 'grace_period_minutes', 'total_fee',
+            'duration_display', 'billable_hours', 'hourly_rate', 'base_amount',
+            'vehicle_multiplier', 'multiplier_adjustment', 'grace_period_minutes',
+            'total_fee',
             'currency', 'created_at', 'print_url',
         ]
         read_only_fields = fields
