@@ -1,5 +1,7 @@
 # US-11 verification evidence
 
+> **Historical story evidence:** Results and limitations below describe the original story verification. For the integrated 27 October application baseline, use [the current test summary](SPRINT1_TEST_SUMMARY.md). Later module additions do not invalidate these results or retroactively expand what this execution proved.
+
 Verified on 25 October 2026 against the implementation based on `335788c`.
 Requirement: FR-10; story: #31; system reference: TC-UC03-SYS-002.
 

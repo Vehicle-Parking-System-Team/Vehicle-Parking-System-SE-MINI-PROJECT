@@ -54,7 +54,10 @@ All failures use the shared `{error, code, details}` envelope.
 
 ## Fee policy
 
-The vehicle's current class selects its configured ParkingRate at checkout.
+The check-in vehicle-class snapshot selects its configured ParkingRate at checkout.
+Legacy records without that snapshot fall back to the vehicle's current class.
+This matches the US-20 history integration merged in PR #75 and preserves the
+class under which the session began when a vehicle profile is later edited.
 No default rate is invented if it is missing. The configured grace period
 applies inclusively: elapsed time <= grace is free. Otherwise the **full elapsed
 duration**, without subtracting grace, is rounded up to whole hours and

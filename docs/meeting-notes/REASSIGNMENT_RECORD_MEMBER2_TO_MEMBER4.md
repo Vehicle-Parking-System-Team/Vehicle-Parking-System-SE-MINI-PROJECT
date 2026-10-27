@@ -1,12 +1,14 @@
 # Agile User Story Reassignment Record: Member 2 to Member 4
 
-**Project:** Vehicle Parking System (SE Mini-Project)  
-**Date of Record:** 25 October 2026  
-**Effective Date:** 25 October 2026  
-**Scrum Master & Integration Lead:** Member 1  
-**Authoritative Scope:** Documentation Baseline Synchronization  
+**Project:** Vehicle Parking System (SE Mini-Project)<br>
+**Date of Record:** 25 October 2026<br>
+**Effective Date:** 25 October 2026<br>
+**Scrum Master & Integration Lead:** Member 1<br>
+**Authoritative Scope:** Documentation Baseline Synchronization<br>
 
 ---
+
+> **Current-status correction, 27 October 2026:** The body below is the 25 October reassignment snapshot, not the current implementation contract. US-11 and US-12 are now assigned to Member 4, closed and merged in PRs #71/#72, and currently allocated to Sprint 1. US-11 intentionally provides public read-only availability; its historical authenticated-only criterion below is superseded by the [delivered contract](../design/US11-parking-availability.md). The implemented UI is `frontend/src/pages/Slots.jsx`, not a separate Dashboard page. See the [Sprint 1 review](SPRINT1_REVIEW.md) for exact closure dates and outstanding tracker discrepancies. No requirement for public disclosure of vehicle identities is introduced.
 
 ## 1. Executive Summary & Context
 
@@ -37,7 +39,7 @@ This update constitutes an **ownership and responsibility reassignment only**. T
 - **Architectural Reference:** `docs/SAD/Vehicle_Parking_System_SAD.md` §3.4.4 (Slot Allocation Engine & Occupancy Dashboard)
 - **Planned Target Files:** `frontend/src/pages/Dashboard.jsx`, `backend/parking_slots/views.py`
 - **Verification Case ID:** `TC-UC03-SYS-002` (Live Occupancy Dashboard Verification)
-- **Dependencies:** 
+- **Dependencies:**
   - Depends on `US-09` (Slot & Zone CRUD) and `US-10` (Slot State Management) — both completed and merged in PR #64.
   - Reuses shared validation and error handling contracts (`US-31`).
 - **Acceptance Criteria (Unchanged):**
