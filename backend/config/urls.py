@@ -12,5 +12,6 @@ urlpatterns = [
     path('api/parking/', include('parking_slots.urls')),
     path('api/vehicles/', VehicleRegistrationView.as_view(), name='vehicles_root'),
     path('api/v1/rates/', include('rates.urls')),
+    path('api/parking/receipts/', include('billing.urls')),
     path("api/parking/", include("operations.urls")),
 ]
