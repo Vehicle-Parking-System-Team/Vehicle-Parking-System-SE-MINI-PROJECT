@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -31,6 +30,33 @@ class ParkingRecord(models.Model):
         related_name="parking_records",
         null=True,
         blank=True,
+    )
+
+    # Snapshot values preserve display details as they were at check-in.
+    # The data migration backfills these fields for existing records.
+    registration_number_snapshot = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    vehicle_type_snapshot = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    slot_number_snapshot = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    zone_name_snapshot = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        editable=False,
     )
 
     check_in_time = models.DateTimeField(
@@ -69,7 +95,6 @@ class ParkingRecord(models.Model):
 
     class Meta:
         ordering = ["-check_in_time", "-pk"]
-
         constraints = [
             models.UniqueConstraint(
                 fields=["vehicle"],
@@ -82,7 +107,6 @@ class ParkingRecord(models.Model):
                 name="uniq_active_record_slot",
             ),
         ]
-
         indexes = [
             models.Index(
                 fields=["vehicle", "status"],
@@ -91,4 +115,8 @@ class ParkingRecord(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.vehicle.registration_number} - {self.status}"
+        registration_number = (
+            self.registration_number_snapshot
+            or self.vehicle.registration_number
+        )
+        return f"{registration_number} - {self.status}"

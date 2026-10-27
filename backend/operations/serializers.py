@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 
 from vehicles.services import normalize_registration_number
@@ -11,19 +10,14 @@ class CheckInRequestSerializer(serializers.Serializer):
         max_length=20,
         trim_whitespace=True,
     )
-    slot_id = serializers.IntegerField(
-        required=False,
-        min_value=1,
-    )
+    slot_id = serializers.IntegerField(required=False, min_value=1)
 
     def validate_registration_number(self, value):
         plate = normalize_registration_number(value)
-
         if not plate:
             raise serializers.ValidationError(
                 "A valid vehicle registration number is required."
             )
-
         return plate
 
 
@@ -35,12 +29,10 @@ class CheckOutRequestSerializer(serializers.Serializer):
 
     def validate_registration_number(self, value):
         plate = normalize_registration_number(value)
-
         if not plate:
             raise serializers.ValidationError(
                 "A valid vehicle registration number is required."
             )
-
         return plate
 
 
@@ -50,42 +42,31 @@ class ParkingHistoryQuerySerializer(serializers.Serializer):
         max_length=20,
         trim_whitespace=True,
     )
-    vehicle_id = serializers.IntegerField(
-        required=False,
-        min_value=1,
-    )
-    slot_id = serializers.IntegerField(
-        required=False,
-        min_value=1,
-    )
+    vehicle_id = serializers.IntegerField(required=False, min_value=1)
+    slot_id = serializers.IntegerField(required=False, min_value=1)
     start_date = serializers.DateField(required=False)
     end_date = serializers.DateField(required=False)
 
     def validate_registration_number(self, value):
         plate = normalize_registration_number(value)
-
         if not plate:
             raise serializers.ValidationError(
                 "A valid vehicle registration number is required."
             )
-
         return plate
 
     def validate(self, attrs):
         start_date = attrs.get("start_date")
         end_date = attrs.get("end_date")
-
         if start_date and end_date and start_date > end_date:
             raise serializers.ValidationError({
                 "end_date": "End date must be on or after start date."
             })
-
         return attrs
 
 
 class ParkingRecordSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(read_only=True)
-
     registration_number = serializers.CharField(
         source="vehicle.registration_number",
         read_only=True,
@@ -127,35 +108,30 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_duration_seconds(self, obj):
-        """Return the completed session duration in whole seconds."""
+        """Return completed session duration in whole seconds, or None."""
         if obj.check_out_time is None:
             return None
-
-        duration = (
-            obj.check_out_time - obj.check_in_time
-        ).total_seconds()
-
+        duration = (obj.check_out_time - obj.check_in_time).total_seconds()
         return max(0, int(duration))
 
 
 class ParkingHistoryRecordSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(read_only=True)
-
     registration_number = serializers.CharField(
-        source="vehicle.registration_number",
+        source="registration_number_snapshot",
         read_only=True,
     )
     vehicle_type = serializers.CharField(
-        source="vehicle.vehicle_type",
+        source="vehicle_type_snapshot",
         read_only=True,
     )
     slot_id = serializers.IntegerField(read_only=True)
     slot_number = serializers.CharField(
-        source="slot.slot_number",
+        source="slot_number_snapshot",
         read_only=True,
     )
     zone_name = serializers.CharField(
-        source="slot.zone.name",
+        source="zone_name_snapshot",
         read_only=True,
     )
     operator_id = serializers.IntegerField(read_only=True)

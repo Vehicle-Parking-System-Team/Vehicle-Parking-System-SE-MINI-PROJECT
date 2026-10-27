@@ -1,4 +1,3 @@
-
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -34,15 +33,13 @@ class VehicleCheckInView(APIView):
     def post(self, request):
         request_serializer = CheckInRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
-
         record = check_in_vehicle(
-            registration_number=(
-                request_serializer.validated_data["registration_number"]
-            ),
+            registration_number=request_serializer.validated_data[
+                "registration_number"
+            ],
             operator=request.user,
             slot_id=request_serializer.validated_data.get("slot_id"),
         )
-
         return Response(
             ParkingRecordSerializer(record).data,
             status=status.HTTP_201_CREATED,
@@ -57,14 +54,12 @@ class VehicleCheckOutView(APIView):
     def post(self, request):
         request_serializer = CheckOutRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
-
         record = check_out_vehicle(
-            registration_number=(
-                request_serializer.validated_data["registration_number"]
-            ),
+            registration_number=request_serializer.validated_data[
+                "registration_number"
+            ],
             operator=request.user,
         )
-
         return Response(
             ParkingRecordSerializer(record).data,
             status=status.HTTP_200_OK,
@@ -86,12 +81,7 @@ class ParkingHistoryView(APIView):
 
         records = (
             ParkingRecord.objects
-            .select_related(
-                "vehicle",
-                "slot",
-                "slot__zone",
-                "operator",
-            )
+            .select_related("vehicle", "slot", "slot__zone", "operator")
             .filter(
                 status=ParkingRecord.Status.COMPLETED,
                 check_out_time__isnull=False,
@@ -100,8 +90,9 @@ class ParkingHistoryView(APIView):
 
         registration_number = filters.get("registration_number")
         if registration_number:
+            # Search the historical snapshot, not a mutable live plate value.
             records = records.filter(
-                vehicle__registration_number=registration_number
+                registration_number_snapshot=registration_number
             )
 
         vehicle_id = filters.get("vehicle_id")
@@ -114,23 +105,13 @@ class ParkingHistoryView(APIView):
 
         start_date = filters.get("start_date")
         if start_date:
-            records = records.filter(
-                check_in_time__date__gte=start_date
-            )
+            records = records.filter(check_in_time__date__gte=start_date)
 
         end_date = filters.get("end_date")
         if end_date:
-            records = records.filter(
-                check_in_time__date__lte=end_date
-            )
+            records = records.filter(check_in_time__date__lte=end_date)
 
         paginator = self.pagination_class()
-        page = paginator.paginate_queryset(
-            records,
-            request,
-            view=self,
-        )
-
+        page = paginator.paginate_queryset(records, request, view=self)
         serializer = ParkingHistoryRecordSerializer(page, many=True)
-
         return paginator.get_paginated_response(serializer.data)
