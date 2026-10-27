@@ -3,9 +3,13 @@ Automated backend tests for US-01: Authenticate and logout.
 Traceability: FR-15, FR-16, FR-17 | UC-01 (TC-UC01-UNIT-001, TC-UC01-API-001)
 """
 
+from unittest.mock import patch
+
+import django.db
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 User = get_user_model()
@@ -57,7 +61,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 401)
         data = response.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertEqual(data['error'], 'Invalid username or password.')
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_login_unknown_user_returns_401_with_identical_generic_message(self):
         """Non-existent username returns the exact same 401 message (anti-enumeration)."""
@@ -69,7 +73,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(response.status_code, 401)
         data = response.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertEqual(data['error'], 'Invalid username or password.')
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_login_missing_credentials_returns_400(self):
         """Missing username or password returns 400 validation error."""
@@ -229,7 +233,7 @@ class AuthenticationTests(TestCase):
         self.assertEqual(post_logout_resp.status_code, 401)
         data = post_logout_resp.json()
         self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
-        self.assertIn('revoked', data['error'].lower())
+        self.assertEqual(data['error'], 'Authentication failed.')
 
     def test_logout_missing_refresh_token_returns_400(self):
         """Logout request without refresh token returns 400."""
@@ -243,3 +247,750 @@ class AuthenticationTests(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
         response = self.client.post('/api/auth/logout/', {}, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_logout_cross_user_token_rejected_without_state_change(self):
+        """
+        Cross-user logout security: User A cannot blacklist User B's refresh token.
+        User B's token remains valid, B's state is untouched, and A's session is unaffected.
+        """
+        user_b = User.objects.create_user(
+            username='user_b',
+            email='user_b@parking.local',
+            password='PasswordB123!',
+            role='Customer',
+            status='active',
+        )
+
+        login_a = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_a = login_a.json()['access']
+        refresh_a = login_a.json()['refresh']
+
+        login_b = self.client.post(
+            '/api/auth/login/',
+            {'username': 'user_b', 'password': 'PasswordB123!'},
+            format='json',
+        )
+        refresh_b = login_b.json()['refresh']
+        access_b = login_b.json()['access']
+
+        initial_b_version = user_b.token_version
+        initial_a_version = self.user.token_version
+
+        # User A attempts to log out with User B's refresh token
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_a}')
+        cross_logout_resp = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_b},
+            format='json',
+        )
+        self.assertEqual(cross_logout_resp.status_code, 401)
+        data = cross_logout_resp.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # Verify User B's state was NOT modified
+        user_b.refresh_from_db()
+        self.assertEqual(user_b.token_version, initial_b_version)
+        self.assertEqual(user_b.status, 'active')
+
+        # Verify User B's refresh token was NOT blacklisted (can still be refreshed)
+        self.client.credentials()  # clear credentials
+        refresh_resp = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': refresh_b},
+            format='json',
+        )
+        self.assertEqual(refresh_resp.status_code, 200)
+
+        # Verify User B's access token is still valid
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_b}')
+        me_resp_b = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp_b.status_code, 200)
+
+        # Verify User A's session and state were NOT revoked or changed
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_a_version)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_a}')
+        me_resp_a = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp_a.status_code, 200)
+
+    def test_logout_with_malformed_token_returns_401(self):
+        """Malformed refresh token in logout returns 401 and leaves state unchanged."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': 'malformed.garbage.token'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # State unchanged, access token still valid
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+        me_resp = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp.status_code, 200)
+
+    def test_logout_with_already_blacklisted_token_returns_401(self):
+        """Supplying an already blacklisted refresh token returns 401."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        # First legitimate logout
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        logout1 = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(logout1.status_code, 200)
+
+        # Clear credentials and login again to get new session
+        self.client.credentials()
+        login_resp2 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(login_resp2.status_code, 200)
+        access_token2 = login_resp2.json()['access']
+        self.user.refresh_from_db()
+        version_before = self.user.token_version
+
+        # Attempt to reuse old blacklisted refresh token
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token2}')
+        logout2 = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(logout2.status_code, 401)
+        data = logout2.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # State untouched, second session still active
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, version_before)
+        me_resp = self.client.get('/api/auth/me/')
+        self.assertEqual(me_resp.status_code, 200)
+
+    def test_logout_with_superseded_token_version_rejected(self):
+        """A refresh token from an older token_version is rejected even if not yet blacklisted."""
+        # Create token with old token_version
+        old_refresh = RefreshToken.for_user(self.user)
+        old_refresh['token_version'] = self.user.token_version
+
+        # Increment token_version on user
+        self.user.token_version += 1
+        self.user.save(update_fields=['token_version'])
+
+        # Issue new valid access token for current version
+        new_refresh = RefreshToken.for_user(self.user)
+        new_refresh['token_version'] = self.user.token_version
+        current_access = str(new_refresh.access_token)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {current_access}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': str(old_refresh)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_logout_unexpected_server_failure_returns_sanitized_500(self):
+        """
+        Unexpected server exceptions during blacklist/revocation are NOT converted
+        into 401 auth errors. They propagate to produce a sanitized 500 INTERNAL_ERROR
+        without leaking secrets or tokens into responses or logs.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+        secret_leak = 'RAW_DB_PASSWORD_LEAK_SECRET_98765'
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        initial_version = self.user.token_version
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=RuntimeError(secret_leak)):
+            with self.assertLogs('common.exceptions', level='ERROR') as captured_logs:
+                response = self.client.post(
+                    '/api/auth/logout/',
+                    {'refresh': refresh_token},
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+        self.assertEqual(data['error'], 'An unexpected error occurred.')
+        self.assertEqual(data['details'], {})
+
+        # Assert secret value does NOT appear in response body
+        self.assertNotIn(secret_leak, response.content.decode())
+
+        # Assert diagnostic log does NOT contain the secret string (safe traceback policy)
+        full_log = '\n'.join(captured_logs.output)
+        self.assertNotIn(secret_leak, full_log)
+        self.assertIn('LogoutView', full_log)
+
+        # Assert user token_version was NOT incremented on failed logout
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+
+    def test_token_refresh_unexpected_server_failure_returns_sanitized_500(self):
+        """
+        Unexpected server exceptions during token refresh are NOT converted into
+        401 auth errors.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        refresh_token = login_resp.json()['refresh']
+        secret_leak = 'REFRESH_DB_DISASTER_SECRET_54321'
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=RuntimeError(secret_leak)):
+            with self.assertLogs('common.exceptions', level='ERROR') as captured_logs:
+                response = self.client.post(
+                    '/api/auth/token/refresh/',
+                    {'refresh': refresh_token},
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+        self.assertEqual(data['error'], 'An unexpected error occurred.')
+        self.assertNotIn(secret_leak, response.content.decode())
+        self.assertNotIn(secret_leak, '\n'.join(captured_logs.output))
+
+    def test_logout_with_missing_token_version_rejected(self):
+        """Logout rejects refresh tokens missing the required token_version claim."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+
+        # Craft a refresh token missing token_version
+        token = RefreshToken.for_user(self.user)
+        token.payload.pop('token_version', None)
+        jti = token.payload['jti']
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.post(
+            '/api/auth/logout/',
+            {'refresh': str(token)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+        # Ensure state unchanged
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+    def test_refresh_with_missing_token_version_rejected(self):
+        """Token refresh rejects refresh tokens missing the required token_version claim."""
+        token = RefreshToken.for_user(self.user)
+        token.payload.pop('token_version', None)
+
+        response = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': str(token)},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        data = response.json()
+        self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_logout_with_malformed_token_version_claims_rejected(self):
+        """Logout rejects tokens with null, string, boolean, or mismatched token_version claims."""
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'testoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        initial_version = self.user.token_version
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        malformed_values = [None, 'invalid_str', True, 999]
+        for val in malformed_values:
+            with self.subTest(token_version=val):
+                token = RefreshToken.for_user(self.user)
+                token['token_version'] = val
+
+                response = self.client.post(
+                    '/api/auth/logout/',
+                    {'refresh': str(token)},
+                    format='json',
+                )
+                self.assertEqual(response.status_code, 401)
+                data = response.json()
+                self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+                self.assertEqual(data['error'], 'Authentication failed.')
+
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.token_version, initial_version)
+
+    def test_refresh_with_malformed_token_version_claims_rejected(self):
+        """Token refresh rejects tokens with null, string, boolean, or mismatched token_version claims."""
+        malformed_values = [None, 'invalid_str', True, 999]
+        for val in malformed_values:
+            with self.subTest(token_version=val):
+                token = RefreshToken.for_user(self.user)
+                token['token_version'] = val
+
+                response = self.client.post(
+                    '/api/auth/token/refresh/',
+                    {'refresh': str(token)},
+                    format='json',
+                )
+                self.assertEqual(response.status_code, 401)
+                data = response.json()
+                self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+                self.assertEqual(data['error'], 'Authentication failed.')
+
+    def test_protected_route_with_missing_or_malformed_token_version_rejected(self):
+        """Access token authentication rejects tokens missing or carrying malformed token_version."""
+        # 1. Missing token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access.payload.pop('token_version', None)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 2. String token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = 'bad_version'
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 3. Boolean token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = True
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+        # 4. Mismatched token_version
+        token = RefreshToken.for_user(self.user)
+        access = token.access_token
+        access['token_version'] = 999
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        resp = self.client.get('/api/auth/me/')
+        self.assertEqual(resp.status_code, 401)
+        self.assertEqual(resp.json()['code'], 'AUTHENTICATION_FAILED')
+
+
+class LogoutAtomicityTests(TransactionTestCase):
+    """
+    TransactionTestCase suite to verify genuine database rollback behavior
+    for atomic logout and error scenarios.
+    """
+
+    def setUp(self):
+        self.client = APIClient()
+        self.password = 'SecurePass123!'
+        self.user = User.objects.create_user(
+            username='atomicoperator',
+            email='atomic@parking.local',
+            password=self.password,
+            role='Operator',
+            status='active',
+        )
+
+    def test_logout_atomic_rollback_when_user_save_fails(self):
+        """
+        Verify atomicity: If user.save fails after token.blacklist() in LogoutView,
+        the transaction rolls back completely. Neither the blacklist record nor
+        the token_version update persists in the actual database.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'atomicoperator', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(login_resp.status_code, 200)
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        jti = RefreshToken(refresh_token).payload['jti']
+        initial_version = self.user.token_version
+
+        # Verify not yet blacklisted
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        with patch.object(User, 'save', side_effect=django.db.DatabaseError('SIMULATED_DB_WRITE_FAILURE')):
+            response = self.client.post(
+                '/api/auth/logout/',
+                {'refresh': refresh_token},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 500)
+        data = response.json()
+        self.assertEqual(data['code'], 'INTERNAL_ERROR')
+
+        # CRITICAL ATOMICITY ASSERTIONS:
+        # 1. token_version in the database was NOT incremented
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+
+        # 2. BlacklistedToken record was rolled back from the database
+        self.assertFalse(BlacklistedToken.objects.filter(token__jti=jti).exists())
+
+        # 3. Refresh token can still be used because blacklist was rolled back
+        self.client.credentials()
+        refresh_resp = self.client.post(
+            '/api/auth/token/refresh/',
+            {'refresh': refresh_token},
+            format='json',
+        )
+        self.assertEqual(refresh_resp.status_code, 200)
+        self.assertIn('access', refresh_resp.json())
+
+    def test_logout_atomic_rollback_when_blacklisting_fails(self):
+        """
+        Verify atomicity: If blacklisting fails, user.save is never reached,
+        and user state is unaffected.
+        """
+        login_resp = self.client.post(
+            '/api/auth/login/',
+            {'username': 'atomicoperator', 'password': self.password},
+            format='json',
+        )
+        access_token = login_resp.json()['access']
+        refresh_token = login_resp.json()['refresh']
+
+        initial_version = self.user.token_version
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+
+        with patch.object(RefreshToken, 'blacklist', side_effect=django.db.DatabaseError('SIMULATED_BLACKLIST_FAILURE')):
+            response = self.client.post(
+                '/api/auth/logout/',
+                {'refresh': refresh_token},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(response.json()['code'], 'INTERNAL_ERROR')
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_version, initial_version)
+
+
+class SeedDemoUsersCommandTests(TestCase):
+    """Verifies that seed_demo_users correctly and idempotently seeds evaluation users."""
+
+    def test_seed_demo_users_creates_accounts(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        out = StringIO()
+        call_command('seed_demo_users', force=True, stdout=out)
+        output = out.getvalue()
+        self.assertIn('5 users created', output)
+
+        operator = User.objects.get(username='operator1')
+        self.assertEqual(operator.role, 'Operator')
+        self.assertEqual(operator.status, 'active')
+        self.assertTrue(operator.is_active)
+        self.assertTrue(operator.check_password('SecurePass123!'))
+
+        admin = User.objects.get(username='admin')
+        self.assertEqual(admin.role, 'Admin')
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
+
+        suspended = User.objects.get(username='suspended_user')
+        self.assertEqual(suspended.status, 'suspended')
+
+        inactive = User.objects.get(username='inactive_user')
+        self.assertFalse(inactive.is_active)
+
+    def test_seed_demo_users_is_idempotent(self):
+        from io import StringIO
+        from django.core.management import call_command
+
+        call_command('seed_demo_users', force=True)
+        out = StringIO()
+        call_command('seed_demo_users', force=True, stdout=out)
+        self.assertIn('5 users updated', out.getvalue())
+
+
+class CustomerRegistrationTests(TestCase):
+    """Integration test suite for public customer self-registration (DEC-13 / SAD §3.4.2 & §5.1)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.valid_payload = {
+            'username': 'newcustomer',
+            'email': 'newcustomer@example.com',
+            'password': 'SecurePass123!',
+            'password_confirm': 'SecurePass123!',
+        }
+
+    def test_customer_registration_success(self):
+        """Valid customer registration returns 201, JWT pair, and Customer user profile."""
+        response = self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        data = response.json()
+        self.assertIn('access', data)
+        self.assertIn('refresh', data)
+        self.assertIn('user', data)
+        self.assertEqual(data['user']['username'], 'newcustomer')
+        self.assertEqual(data['user']['email'], 'newcustomer@example.com')
+        self.assertEqual(data['user']['role'], 'Customer')
+        self.assertEqual(data['user']['status'], 'active')
+
+        # Verify DB record
+        user = User.objects.get(username='newcustomer')
+        self.assertEqual(user.role, 'Customer')
+        self.assertEqual(user.status, 'active')
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertTrue(user.check_password('SecurePass123!'))
+
+    def test_registration_enforces_customer_role_safeguard(self):
+        """Attempts to register with Admin or Operator roles are overridden to Customer (DEC-13 / NFR-SEC-02)."""
+        malicious_payload = {
+            **self.valid_payload,
+            'username': 'attacker',
+            'email': 'attacker@example.com',
+            'role': 'Admin',
+            'is_staff': True,
+            'is_superuser': True,
+            'status': 'suspended',
+        }
+        response = self.client.post('/api/auth/register/', malicious_payload, format='json')
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(username='attacker')
+        self.assertEqual(user.role, 'Customer')
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+        self.assertEqual(user.status, 'active')
+
+    def test_registration_duplicate_username_rejected(self):
+        """Duplicate username registration returns 400 validation error."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        duplicate_payload = {
+            **self.valid_payload,
+            'email': 'different@example.com',
+        }
+        response = self.client.post('/api/auth/register/', duplicate_payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('username', data['details'])
+
+    def test_registration_duplicate_email_rejected(self):
+        """Duplicate email registration returns 400 validation error."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+        duplicate_payload = {
+            **self.valid_payload,
+            'username': 'differentuser',
+        }
+        response = self.client.post('/api/auth/register/', duplicate_payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('email', data['details'])
+
+    def test_registration_password_mismatch_rejected(self):
+        """Mismatched password_confirm returns 400 validation error."""
+        payload = {
+            **self.valid_payload,
+            'password_confirm': 'DifferentPass123!',
+        }
+        response = self.client.post('/api/auth/register/', payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('password_confirm', data['details'])
+
+    def test_registration_password_policy_enforcement(self):
+        """Weak passwords missing required complexity rules are rejected (SAD §5.1)."""
+        weak_passwords = [
+            'short1!',       # < 8 chars
+            'nouppercase1!', # no uppercase
+            'NOLOWERCASE1!', # no lowercase
+            'NoDigitsHere!', # no digit
+            'NoSpecial1234', # no special char
+        ]
+        for weak in weak_passwords:
+            payload = {
+                'username': f'user_{weak[:6]}',
+                'email': f'{weak[:6]}@example.com',
+                'password': weak,
+                'password_confirm': weak,
+            }
+            response = self.client.post('/api/auth/register/', payload, format='json')
+            self.assertEqual(response.status_code, 400, f'Expected 400 for password: {weak}')
+            self.assertEqual(response.json()['code'], 'VALIDATION_ERROR')
+
+    def test_login_with_newly_registered_customer(self):
+        """Newly registered customer can authenticate via both username and email."""
+        self.client.post('/api/auth/register/', self.valid_payload, format='json')
+
+        # Login by username
+        res1 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'newcustomer', 'password': 'SecurePass123!'},
+            format='json',
+        )
+        self.assertEqual(res1.status_code, 200)
+
+        # Login by email
+        res2 = self.client.post(
+            '/api/auth/login/',
+            {'username': 'newcustomer@example.com', 'password': 'SecurePass123!'},
+            format='json',
+        )
+        self.assertEqual(res2.status_code, 200)
+
+
+class EmailAuthenticationTests(TestCase):
+    """Tests verifying email or username login flexibility."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.password = 'SecurePass123!'
+        self.user = User.objects.create_user(
+            username='janedoe',
+            email='jane.doe@parking.local',
+            password=self.password,
+            role='Customer',
+            status='active',
+        )
+
+    def test_login_with_email_success(self):
+        """Users can sign in using their registered email address."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'jane.doe@parking.local', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_case_insensitive_email(self):
+        """Email login is case-insensitive."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'JANE.DOE@PARKING.LOCAL', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_nonexistent_email_returns_generic_401(self):
+        """Nonexistent email returns generic 401 without user enumeration."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'nonexistent@example.com', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_login_with_valid_email_and_incorrect_password_returns_generic_401(self):
+        """Valid email with incorrect password returns generic 401 error."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword999!'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json()['code'], 'AUTHENTICATION_FAILED')
+        self.assertEqual(response.json()['error'], 'Authentication failed.')
+
+    def test_generic_authentication_failure_consistency_prevents_user_enumeration(self):
+        """
+        Verify that unknown email, valid email with wrong password, unknown username,
+        and valid username with wrong password all yield identical HTTP 401 response envelopes.
+        """
+        scenarios = [
+            {'username': 'unknown.user@parking.local', 'password': 'AnyPassword123!'},
+            {'username': 'jane.doe@parking.local', 'password': 'WrongPassword123!'},
+            {'username': 'unknown_username', 'password': 'AnyPassword123!'},
+            {'username': 'janedoe', 'password': 'WrongPassword123!'},
+        ]
+        responses = [
+            self.client.post('/api/auth/login/', payload, format='json')
+            for payload in scenarios
+        ]
+
+        for resp in responses:
+            self.assertEqual(resp.status_code, 401)
+            data = resp.json()
+            self.assertEqual(data['code'], 'AUTHENTICATION_FAILED')
+            self.assertEqual(data['error'], 'Authentication failed.')
+            self.assertEqual(data.get('details'), {})
+
+    def test_login_with_email_whitespace_trimmed(self):
+        """Email identifier with surrounding whitespace is safely trimmed and succeeds."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': '   jane.doe@parking.local   ', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')
+
+    def test_login_with_mixed_case_email(self):
+        """Email lookup handles arbitrary mixed case variations."""
+        response = self.client.post(
+            '/api/auth/login/',
+            {'username': 'JaNe.DoE@PaRkInG.LoCaL', 'password': self.password},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['user']['username'], 'janedoe')

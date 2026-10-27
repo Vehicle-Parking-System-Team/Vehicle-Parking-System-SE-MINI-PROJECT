@@ -1,0 +1,30 @@
+.bay-availability-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.bay-availability-field {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.bay-availability-filters select {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--bay-line);
+  border-radius: 7px;
+  color: inherit;
+  background: var(--bay-paper, white);
+  font: inherit;
+}
+
+.bay-availability-filters p {
+  max-width: 420px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}

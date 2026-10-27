@@ -82,7 +82,7 @@ const FR = {
       'Invalid credentials return HTTP 401 and no token is issued.',
       'An expired access token is rejected on protected endpoints.',
       'After logout, the invalidated token is rejected by protected endpoints.',
-      'Token lifetimes and blacklist mechanism: TBD (UD-09). Role selection at registration: TBD (UD-13).'
+      'DEC-09: 15-minute access and 7-day refresh tokens; logout revokes access using token_version and blacklists refresh. DEC-13: public registration creates Customer only.'
     ],
     'T / TC-UC01-UNIT-001, TC-UC01-SYS-001'
   ],
@@ -161,7 +161,7 @@ const FR = {
       'An authorized user can create a slot with a unique identifier and assign it to a zone.',
       'An authorized user can modify slot properties or deactivate a slot/zone.',
       'Unauthorized attempts are rejected with HTTP 403 (NFR-SEC-01).',
-      'Soft deactivation vs hard deletion semantics for historically referenced slots: TBD (UD-03).'
+      'DEC-03: soft deactivate; active records block destructive changes; historical rows remain referenced.'
     ],
     'T / TC-UC03-UNIT-001'
   ],
@@ -169,10 +169,10 @@ const FR = {
     'The system shall maintain the real-time status of each parking slot (Available, Occupied, Maintenance).',
     'RTM refinement: real-time state tracking across facility bays.',
     [
-      'Each slot has exactly one status at any time.',
+      'Each slot has exactly one status at any time; stored states also include Reserved (DEC-02).',
       'Check-in sets the status to Occupied; check-out releases the slot to Available.',
       'A slot in Maintenance or Occupied status cannot be assigned to arriving vehicles.',
-      'Real-time refresh latency target: TBD (UD-17).'
+      'Availability client polls every 30 seconds and supports manual refresh; this does not establish a production latency target.'
     ],
     'T / TC-UC03-INT-001'
   ],
@@ -191,7 +191,7 @@ const FR = {
     [
       'The dashboard shows slot identifiers, current states, and vehicle plate for occupied slots.',
       'The view dynamically reflects check-in, check-out, and status changes.',
-      'Data scope and filter controls accessible to Customer role: TBD (UD-14).'
+      'Implemented public availability omits vehicle identities, supports zone and exact vehicle-type filters, and refreshes every 30 seconds/manual. Separate authorized vehicle identity display remains undelivered; see Section 14.'
     ],
     'T, D / TC-UC03-SYS-002'
   ],
@@ -386,7 +386,7 @@ const FR = {
     [
       'Every failure returns a structured JSON payload ({error, code, details}) and standard HTTP code.',
       'User interface renders human-readable feedback from response payload.',
-      'Standard error code enum mapping: TBD (Section 10).'
+      'Implemented error code/status mappings are documented in docs/design/US31-error-contract.md.'
     ],
     'T / TC-UC10-API-001'
   ]
@@ -405,38 +405,16 @@ function frTable(ids) {
 }
 
 // ---------- RTM data ----------
-const RTM = [
-  ['FR-01','Register vehicle with plate number, vehicle type, and owner information','US-05 (#25)','Vehicle Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.3 Vehicle Management','backend/vehicles/models.py; frontend/src/pages/Vehicles.jsx','TC-UC02-UNIT-001; TC-UC02-API-001'],
-  ['FR-02','View and update vehicle profile and registration details','US-06 (#26)','Vehicle Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.3 Vehicle Management','backend/vehicles/views.py; frontend/src/pages/Vehicles.jsx','TC-UC02-API-002'],
-  ['FR-03','Add, modify, and deactivate parking slots and zones','US-09 (#29)','Parking Facility & Availability','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.4 Slot Allocation Engine','backend/slots/models.py; frontend/src/pages/Slots.jsx','TC-UC03-UNIT-001'],
-  ['FR-04','Maintain real-time slot state (Available, Occupied, Maintenance)','US-10 (#30)','Parking Facility & Availability','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.4 Slot Allocation Engine','backend/slots/services.py','TC-UC03-INT-001'],
-  ['FR-05','Check-in vehicle and allocate an available compatible parking slot','US-17 (#37)','Parking Operations','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.5 Parking Operations','backend/operations/views.py','TC-UC05-UNIT-001; TC-UC05-INT-001'],
-  ['FR-06','Enforce single-active-session constraint per vehicle','US-18 (#38)','Parking Operations','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.5 Parking Operations','backend/operations/services.py','TC-UC05-INT-002'],
-  ['FR-07','Prevent assignment to occupied or unavailable parking slot','US-12 (#32); US-17 (#37)','Parking Facility / Operations','Member 2 / Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.4, §3.4.5','backend/operations/services.py','TC-UC03-SYS-002; TC-UC05-INT-001'],
-  ['FR-08','Check-out vehicle upon operator request or exit verification','US-19 (#39)','Parking Operations','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.5 Parking Operations','backend/operations/views.py','TC-UC06-INT-001'],
-  ['FR-09','Automatically release parking slot to Available upon checkout','US-19 (#39)','Parking Operations','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.5 Parking Operations','backend/operations/services.py','TC-UC06-INT-002'],
-  ['FR-10','Live parking occupancy status dashboard for operators and users','US-11 (#31)','Parking Facility & Availability','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.4 Slot Allocation Engine','frontend/src/pages/Dashboard.jsx','TC-UC03-SYS-002'],
-  ['FR-11','Search vehicle by license plate and inspect current parking status','US-07 (#27)','Vehicle Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.3 Vehicle Management','backend/vehicles/views.py; frontend/src/pages/Search.jsx','TC-UC02-API-001; TC-UC02-API-002'],
-  ['FR-12','Maintain persistent historical audit trail of parking sessions','US-20 (#40)','Parking Operations','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.5 Parking Operations','backend/operations/models.py; frontend/src/pages/History.jsx','TC-UC06-SYS-001'],
-  ['FR-13','Backend data validation for all client-submitted payload fields','US-08 (#28); US-31 (#51)','Validation & Common','Member 1 / Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.9, §4.5 Validation','backend/common/serializers.py','TC-UC10-API-001'],
-  ['FR-14','Uniform structured error messaging and standard HTTP error codes','US-08 (#28); US-31 (#51)','Validation & Common','Member 1 / Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.9, §4.5 Validation','backend/common/exceptions.py','TC-UC10-API-001'],
-  ['FR-15','User authentication, token issuance, and secure logout','US-01 (#1)','Identity & Access Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.2 Auth, §3.9 Security','backend/accounts/views.py; frontend/src/context/AuthContext.jsx','TC-UC01-UNIT-001; TC-UC01-SYS-001'],
-  ['FR-16','Role-Based Access Control enforcement (Admin, Operator, Customer)','US-02 (#22)','Identity & Access Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.2 Auth, §3.9 Security','backend/accounts/permissions.py; frontend/src/routes/ProtectedRoute.jsx','TC-UC01-API-002'],
-  ['FR-17','Administrative management of user status (active, suspended, deactivated)','US-03 (#23)','Identity & Access Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.2 Auth, §3.9 Security','backend/accounts/views.py','TC-UC04-API-001'],
-  ['FR-18','User profile inspection, contact details update, and password change','US-04 (#24)','Identity & Access Management','Member 1','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.2 Auth, §3.9 Security','backend/accounts/serializers.py; frontend/src/pages/Profile.jsx','TC-UC04-API-002; TC-UC04-SYS-001'],
-  ['FR-19','Advance parking reservation creation and scheduling','US-13 (#33)','Reservation Management','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.7 Reservation Module','backend/reservations/models.py; frontend/src/pages/Reservations.jsx','TC-UC04-API-001'],
-  ['FR-20','Prevent reservation conflicts and overlapping slot commitments','US-15 (#35)','Reservation Management','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.7 Reservation Module','backend/reservations/services.py','TC-UC04-SYS-001'],
-  ['FR-21','Modify or cancel an existing future reservation','US-14 (#34)','Reservation Management','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.7 Reservation Module','backend/reservations/views.py','TC-UC04-API-001'],
-  ['FR-22','Link valid reservation to check-in session and release upon expiry','US-16 (#36)','Reservation Management','Member 2','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.7 Reservation Module','backend/reservations/services.py','TC-UC04-SYS-001'],
-  ['FR-23','Configure vehicle-class rates and parking tariff models','US-21 (#41)','Pricing, Billing & Payment','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.6 Billing & Pricing','backend/billing/models.py','TC-UC07-UNIT-001'],
-  ['FR-24','Automatic duration calculation and parking fee computation','US-22 (#42)','Pricing, Billing & Payment','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.6 Billing & Pricing','backend/billing/services.py','TC-UC07-API-002'],
-  ['FR-25','Digital parking slip issuance, QR token generation, and receipts','US-23 (#43)','Pricing, Billing & Payment','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.6 Billing & Pricing','backend/billing/services.py','TC-UC07-SYS-001'],
-  ['FR-26','Record payment transaction status (Cash, Card, UPI)','US-24 (#44)','Pricing, Billing & Payment','Member 3','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.6 Billing & Pricing','backend/billing/views.py','TC-UC08-SYS-001'],
-  ['FR-27','Administrative dashboard summary metrics (occupancy, active sessions)','US-25 (#45)','Admin Dashboard & Reporting','Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.8 Reporting & Analytics','frontend/src/pages/AdminDashboard.jsx','TC-UC08-API-001'],
-  ['FR-28','Occupancy, parking usage, and revenue reporting with date filters','US-26 (#46); US-27 (#47); US-28 (#48)','Admin Dashboard & Reporting','Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.8 Reporting & Analytics','backend/reports/views.py; frontend/src/pages/Reports.jsx','TC-UC08-API-002; TC-UC08-SYS-001'],
-  ['FR-29','Persistent system audit log tracking security and domain events','US-29 (#49)','Audit, Notifications & Quality','Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.9 Audit & Notifications','backend/common/models.py','TC-UC09-INT-001; TC-UC09-SYS-001'],
-  ['FR-30','In-app notification delivery for parking and reservation milestones','US-30 (#50)','Audit, Notifications & Quality','Member 4','docs/SAD/Vehicle_Parking_System_SAD.md §3.4.9 Audit & Notifications','backend/notifications/models.py; frontend/src/components/Notifications.jsx','TC-UC09-SYS-002'],
-];
+// Read the canonical matrix so paths, owners and implementation status cannot drift.
+const matrixPath = path.resolve(__dirname, '../docs/requirements/traceability_matrix.md');
+const RTM = fs.readFileSync(matrixPath, 'utf8').split(/\r?\n/)
+  .filter(line => /^\| \*\*FR-\d+\*\*/.test(line))
+  .map(line => line.split('|').slice(1, -1).map(value => value.trim()
+    .replace(/\*\*/g, '').replace(/<br>/g, '; ')));
+if (RTM.length !== 30 || RTM.some(row => row.length !== 11)) {
+  throw new Error('Expected 30 functional requirements with 11 columns in the canonical RTM.');
+}
+
 const NFR = [
   ['NFR-PERF-01','Performance','API interactive response time under standard load','Automated API benchmark tests','< 500 ms p95 response time for CRUD endpoints'],
   ['NFR-PERF-02','Concurrency','Concurrent check-in/out consistency without race conditions','Database transactions and isolation tests','ACID transactional consistency under 50+ concurrent requests'],
@@ -449,28 +427,16 @@ const NFR = [
   ['NFR-SEC-03','Security','Strict server-side payload validation','DRF serializer validation tests','Rejection of malformed input with HTTP 400'],
   ['NFR-SEC-04','Security','Transport Layer Security (HTTPS) and secure CORS origin policy','CI/CD configuration check and CORS whitelist','Restricted to trusted client origins'],
   ['NFR-SEC-05','Security','Cryptographic password hashing (Argon2 / PBKDF2) and JWT expiry','Django password validation settings and token unit tests','Zero plain-text credentials stored or transmitted'],
+  ['NFR-SEC-06','Security','Cross-Site Scripting (XSS) and SQL Injection prevention','Django ORM parameterized queries and React sanitization','0 injection vulnerabilities'],
+  ['NFR-SEC-07','Security','Audit logging of privileged actions and sensitive data changes','Audit trail verification tests','100% privileged state modifications logged'],
 ];
 
 // ---------- front matter & images ----------
-const img1Path = path.resolve(__dirname, 'word/media/image1.png');
-const img2Path = path.resolve(__dirname, 'word/media/image2.png');
-let img1 = null;
-let img2 = null;
-
-if (fs.existsSync(img1Path)) {
-  try {
-    img1 = fs.readFileSync(img1Path);
-  } catch (err) {
-    console.warn('Warning: Could not read image1.png:', err.message);
-  }
-}
-if (fs.existsSync(img2Path)) {
-  try {
-    img2 = fs.readFileSync(img2Path);
-  } catch (err) {
-    console.warn('Warning: Could not read image2.png:', err.message);
-  }
-}
+const img1Path = path.resolve(__dirname, 'assets/srs-use-cases.png');
+const img2Path = path.resolve(__dirname, 'assets/srs-data-model.png');
+// Diagrams are tracked source assets; fail rather than silently omit figures.
+const img1 = fs.readFileSync(img1Path);
+const img2 = fs.readFileSync(img2Path);
 
 const cover = [
   new Paragraph({ spacing: { before: 1000 }, alignment: AlignmentType.CENTER, children: [run('PES UNIVERSITY, BANGALORE', { bold: true, size: 26 })] }),
@@ -479,7 +445,7 @@ const cover = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run('for', { italics: true, size: 24 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 300 }, border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: NAVY, space: 12 } },
     children: [run('VEHICLE PARKING SYSTEM', { bold: true, size: 48, color: NAVY })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300, after: 800 }, children: [run('Version 1.1 (Consolidated & Expanded Specification)', { bold: true, size: 26 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300, after: 800 }, children: [run('Version 1.2.0 (Implementation Alignment)', { bold: true, size: 26 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Prepared and Edited by (Lead Editor):', { italics: true, size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [run('Trisha Vallamkonda Prathap (Member 1)', { bold: true, size: 28, color: NAVY })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [run('Scrum Master & Project Integration Lead', { size: 22, italics: true })] }),
@@ -487,7 +453,7 @@ const cover = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [run('Vishwas Gowda S (Member 4)', { bold: true, size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Course: UE24CS341A Software Engineering (Mini-Project)', { size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Repository: Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT', { size: 20 })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [run('12 October 2026', { size: 24 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [run('27 October 2026', { size: 24 })] }),
 ];
 
 const revision = [
@@ -495,6 +461,8 @@ const revision = [
   table(['Version', 'Date', 'Author / Editor', 'Reason for Changes'], [
     ['1.0', '01 Oct 2026', 'Vishwas Gowda S (Member 4)', 'Initial baseline requirements specification (FR-01 to FR-14; preliminary NFRs).'],
     ['1.1', '12 Oct 2026', 'Trisha Vallamkonda Prathap (Member 1)', 'Consolidated & Expanded SRS (Lead Editor): Expands and revises the v1.0 baseline. Incorporated full agreed scope FR-15 to FR-30 (Identity & Access Management, advanced slot management, check-in/out ticketing, tariff calculation, and analytics reporting), synchronized with RTM v1.0.0, added formal acceptance criteria, data definitions, uniform error handling, verification criteria, and unresolved decision (TBD) register.'],
+    ['1.1.1', '25 Oct 2026', 'Trisha Vallamkonda Prathap (Member 1)', 'Workload Balancing & Story Reassignment: Documented transfer of unfinished stories US-11 (#31, FR-10) and US-12 (#32, FR-07) from Member 2 to Member 4 due to Member 2 availability constraints. Member 2 retains completed stories US-09, US-10 and Epic E4 (US-13..16); Member 4 assumes US-11 and US-12 in addition to Epics E7 and E8.'],
+    ['1.2.0', '27 Oct 2026', 'Project documentation maintenance', 'Added implementation snapshot and verification references; corrected actual paths and stale FR cross-references. Preserved unmet requirements and recorded functionality gaps rather than declaring full acceptance.'],
   ], [1000, 1400, 2200, 4426]),
   gap(),
   new Paragraph({ children: [run('Source baseline: ', { bold: true, size: 20 }), run('Vehicle_Parking_System_SRS.docx (v1.0 authored by Vishwas Gowda S) and Requirements Traceability Matrix v1.0.0 (prepared by Trisha Vallamkonda Prathap, October 2026).', { size: 20 })] }),
@@ -513,17 +481,17 @@ const add = (...x) => body.push(...x);
 // 1 Introduction
 add(H1('1. Introduction'),
   H2('1.1 Purpose'),
-  P('This Software Requirements Specification (SRS) defines the functional and non-functional requirements of Version 1.0 of the Vehicle Parking System. It covers account and access management, vehicle registration and search, parking-slot and zone management, vehicle check-in and check-out, billing and payments, reporting, and cross-cutting validation and error handling. The document is organized after the IEEE SRS structure used in the course template and is the baseline for design, implementation, and verification.'),
+  P('This Software Requirements Specification (SRS) defines the functional and non-functional requirements of the Vehicle Parking System, with a version 1.2.0 implementation snapshot. It covers account and access management, vehicle registration and search, parking-slot and zone management, vehicle check-in and check-out, billing and payments, reporting, and cross-cutting validation and error handling. The document is organized after the IEEE SRS structure used in the course template and is the baseline for design, implementation, and verification.'),
   H2('1.2 Intended Audience and Reading Suggestions'),
-  P('This document is intended for developers, testers, project team members, evaluators, and other stakeholders. General readers should read Sections 1 and 2. Developers and testers should read Sections 3 to 13 and Appendix B. Evaluators may use Section 12 and Appendix B to check traceability.'),
+  P('This document is intended for developers, testers, project team members, evaluators, and other stakeholders. Section 14 is the current implementation snapshot; earlier shall-statements retain the target requirements. General readers should read Sections 1 and 2. Developers and testers should read Sections 3 to 14 and Appendix B. Evaluators may use Section 12 and Appendix B to check traceability.'),
   H2('1.3 Product Scope'),
   P('The Vehicle Parking System is a web-based application for managing vehicle entry and exit, parking-slot allocation and status, user access, fee computation, payments, and parking reports. In scope:'),
   B('Account registration, JWT-based authentication, logout, role-based access control, profile and password management, user-status administration, and security audit trail (Section 5.1).'),
-  B('Vehicle registration, update, search by license plate, and persistent parking history (Section 5.2).'),
+  B('Vehicle registration, update and search (Section 5.2); completed history is an operations API (Section 5.5).'),
   B('Parking-slot and zone administration, slot status, slot classification and vehicle-type constraints, and the live occupancy dashboard (Section 5.3).'),
-  B('Check-in with compatible slot assignment, single-active-session enforcement, check-out, slot release, digital slip/QR token, and duration and grace-period calculation (Section 5.4).'),
-  B('Tariff computation, payment processing and receipts, summary reports, and CSV/PDF export (Section 5.5).'),
-  B('Input validation and uniform structured error handling (Section 5.6).'),
+  B('Check-in with compatible slot assignment, single-active-session enforcement, check-out, slot release, digital slip/QR token, and duration and grace-period calculation (Section 5.5; printable slip/receipt remains planned).'),
+  B('Rate configuration and ordinary fee calculation implemented; payment, receipts, reports and export remain planned (Sections 5.6, 5.7, 14).'),
+  B('Input validation and uniform structured error handling (Sections 5.8, 10).'),
   P('Hardware integration (for example gate barriers or QR/exit scanners) is not specified in the source documents and is therefore not part of this baseline; see UD-05 and UD-08.'),
   H2('1.4 Definitions, Acronyms, and Abbreviations'),
   P('Terms are defined in Appendix A.'),
@@ -554,7 +522,7 @@ add(H1('2. Overall Description'),
   table(['Epic / Module', 'Summary of Responsibilities', 'Requirements', 'Owner'], [
     ['E1: Identity & Access Management', 'Registration, JWT authentication, logout, RBAC, profile, password change, user status administration.', 'FR-15, FR-16, FR-17, FR-18', 'Member 1'],
     ['E2: Vehicle Management', 'Vehicle registration, profile updates, license plate lookup, and active status search.', 'FR-01, FR-02, FR-11', 'Member 1'],
-    ['E3: Parking Facility & Availability', 'Bay and zone lifecycle, real-time availability states, bay protection, live occupancy dashboard.', 'FR-03, FR-04, FR-07, FR-10', 'Member 2'],
+    ['E3: Parking Facility & Availability', 'Bay and zone lifecycle, real-time availability states, bay protection, live occupancy dashboard.', 'FR-03, FR-04, FR-07, FR-10', 'Member 2 (US-09, US-10) / Member 4 (US-11, US-12)'],
     ['E4: Reservation Management', 'Advance booking scheduling, conflict prevention, reservation modification/cancellation, and hold expiry.', 'FR-19, FR-20, FR-21, FR-22', 'Member 2'],
     ['E5: Parking Operations', 'Vehicle check-in, bay allocation, anti-passback enforcement, check-out, bay release, persistent history.', 'FR-05, FR-06, FR-08, FR-09, FR-12', 'Member 3'],
     ['E6: Pricing, Billing & Payment', 'Tariff configuration, automated duration/fee calculation, digital slip/QR token, payment recording.', 'FR-23, FR-24, FR-25, FR-26', 'Member 3'],
@@ -584,7 +552,7 @@ add(H1('2. Overall Description'),
   B('Each vehicle is uniquely identified by its registration (license plate) number.'),
   B('Each parking slot has a unique identifier and exactly one current status.'),
   B('Network connectivity exists between browser and backend, and the PostgreSQL service is available.'),
-  B('Payment methods Cash, Card, and UPI are in scope (FR-28); any external payment provider is TBD (UD-07).'),
+  B('Payment methods Cash, Card, and UPI are planned (FR-26); any external payment provider is TBD (UD-07).'),
   B('Production capacity targets beyond those in Section 8 and the deployment platform are TBD (UD-17).'),
 );
 
@@ -593,16 +561,16 @@ add(H1('3. External Interface Requirements'),
   H2('3.1 User Interfaces'),
   P('The system shall provide a browser-based graphical interface that presents functions according to the user role and gives feedback for successful and unsuccessful operations (FR-14, FR-18). Layout, branding, and detailed screen design are design-phase concerns.'),
   table(['Interface / View', 'Purpose', 'Related Requirements'], [
-    ['Registration / Login / Logout', 'Create an account, authenticate, and end a session.', 'FR-15, FR-16, FR-17'],
-    ['Profile and Password', 'View/update contact details and change password.', 'FR-19, FR-20'],
-    ['User Administration', 'Set user status to active, suspended, or deactivated.', 'FR-21'],
+    ['Registration / Login / Logout', 'Create an account, authenticate, and end a session.', 'FR-15, FR-16'],
+    ['Profile and Password', 'View/update contact details and change password.', 'FR-18'],
+    ['User Administration', 'Set user status to active, suspended, or deactivated.', 'FR-17'],
     ['Vehicle Registration / Edit', 'Capture and maintain vehicle information.', 'FR-01, FR-02'],
     ['Vehicle Search / History', 'Search by license plate; show current status and previous parking records.', 'FR-11, FR-12'],
-    ['Parking Slot and Zone Management', 'Add, modify, deactivate, and classify slots and zones.', 'FR-03, FR-23, FR-24'],
+    ['Parking Slot and Zone Management', 'Add, modify, deactivate, and classify slots and zones.', 'FR-03, FR-04, FR-07'],
     ['Occupancy Dashboard', 'Show current slot states and occupancy.', 'FR-04, FR-10'],
     ['Vehicle Check-In', 'Select/register a vehicle, assign a compatible available slot, and issue a ticket/QR token.', 'FR-05 to FR-07, FR-25'],
-    ['Vehicle Check-Out and Payment', 'Locate the active record, complete checkout, show duration and fee, record payment, issue receipt.', 'FR-08, FR-09, FR-26 to FR-28'],
-    ['Reports and Export', 'View summary reports and export logs and analytics.', 'FR-29, FR-30'],
+    ['Vehicle Check-Out and Payment', 'Checkout/fee API implemented; payment and receipt flow planned.', 'FR-08, FR-09, FR-24, FR-25, FR-26'],
+    ['Reports and Export', 'Planned summary reports and export logs and analytics.', 'FR-27, FR-28'],
   ], [2500, 4426, 2100]),
   gap(),
   H2('3.2 Software Interfaces'),
@@ -610,12 +578,12 @@ add(H1('3. External Interface Requirements'),
     ['React frontend', 'REST API (Django REST Framework)', 'JSON requests/responses; JWT access token', 'Submit commands; retrieve vehicles, slots, status, history, billing and reports.'],
     ['Django / DRF backend', 'PostgreSQL', 'Structured relational records', 'Persist data and enforce transactional consistency.'],
     ['Django / DRF backend', 'Application services and validation', 'Validated domain objects and errors', 'Apply business rules, role checks, and input validation.'],
-    ['Payment channel (Card, UPI)', 'TBD', 'TBD', 'Process payments (FR-28); provider and interface TBD (UD-07).'],
+    ['Payment channel (Card, UPI)', 'TBD', 'TBD', 'Planned payments (FR-26); provider and interface TBD (UD-07).'],
   ], [2000, 2300, 2300, 2426]),
   gap(),
   H2('3.3 Communications Interfaces'),
   B('The frontend and backend shall communicate over HTTP/HTTPS; production traffic shall use HTTPS and a restricted CORS origin policy (NFR-SEC-04).'),
-  B('API payloads shall use JSON; exports use CSV and PDF files (FR-30).'),
+  B('API payloads shall use JSON; planned exports use CSV and PDF files (FR-28).'),
   B('Hostname, ports, network topology, and API versioning scheme: TBD (UD-17).'),
   H2('3.4 Hardware Interfaces'),
   P('No hardware interface is specified. Devices for reading QR tokens (FR-25) and for exit verification (FR-08) are TBD (UD-05, UD-08).'),
@@ -643,18 +611,18 @@ add(H1('4. Analysis Models'),
   H2('4.3 Conceptual Entity Summary'),
   P('Entity names are the model references used in the RTM design column.'),
   table(['Entity', 'Purpose', 'Requirements'], [
-    ['CustomUser', 'User account with credentials, role, and status.', 'FR-15, FR-16, FR-18, FR-21'],
-    ['Profile', 'Personal contact details of a user.', 'FR-19'],
-    ['AuditLog', 'Authentication events and security changes.', 'FR-22'],
+    ['User (accounts.User)', 'User account with credentials, role, status and token_version.', 'FR-15, FR-16, FR-17, FR-18'],
+    ['Profile (planned)', 'Personal contact details of a user.', 'FR-18'],
+    ['AuditLog (planned)', 'Authentication events and security changes.', 'FR-29'],
     ['Vehicle', 'Registered vehicle: plate number, type, owner information.', 'FR-01, FR-02, FR-11'],
     ['ParkingSlot', 'Parking slot with status and classification.', 'FR-03, FR-04, FR-10'],
-    ['Zone', 'Grouping of slots by zone, floor, and section.', 'FR-03, FR-23'],
-    ['SlotType', 'Slot vehicle-type constraint (Two-Wheeler, Compact, SUV, EV Charging).', 'FR-24'],
-    ['ParkingRecord', 'Active or completed parking session of a vehicle in a slot.', 'FR-05 to FR-09, FR-26'],
+    ['ParkingZone', 'Grouping of bays; floor is stored on ParkingSlot.', 'FR-03'],
+    ['Slot classification', 'Vehicle-type choices on ParkingSlot; no separate SlotType table.', 'FR-03, FR-07'],
+    ['ParkingRecord', 'Active or completed parking session of a vehicle in a slot.', 'FR-05 to FR-09, FR-12, FR-24'],
     ['ParkingHistory', 'Retained history of completed sessions.', 'FR-12'],
     ['Ticket', 'Digital parking slip / QR token issued at check-in.', 'FR-25'],
-    ['Tariff', 'Fee rules (flat-rate and dynamic) by vehicle class.', 'FR-27'],
-    ['Invoice', 'Fee and payment for a session, with receipt.', 'FR-28'],
+    ['ParkingRate', 'Hourly/grace/penalty configuration; ordinary fee calculated at checkout.', 'FR-23, FR-24'],
+    ['Invoice (planned)', 'Payment method/status and receipt are not implemented.', 'FR-26'],
   ], [1800, 5026, 2200]),
   gap(),
 );
@@ -690,7 +658,7 @@ add(H1('5. Functional Requirements'),
 
   H2('5.3 Parking Facility & Availability (Epic E3 / UC-03)'),
   H3('5.3.1 Description and Priority'),
-  P('Maintains parking slots and zones, real-time bay availability status (Available, Occupied, Maintenance), occupied slot protection, and the live occupancy dashboard. Owner: Member 2. Priority: High.'),
+  P('Maintains parking slots and zones, real-time bay availability status (Available, Occupied, Maintenance), occupied slot protection, and the live occupancy dashboard. Owner: Member 2 (US-09, US-10 Done); Member 4 (US-11, US-12 reassigned 25 Oct 2026). Priority: High.'),
   H3('5.3.2 Stimulus/Response Sequences'),
   B('An administrator adds or updates a slot; the system verifies unique identifier and updates configuration.'),
   B('When a slot state changes, the system ensures atomic single-state transition.'),
@@ -802,7 +770,7 @@ add(H1('7. Data Requirements'),
   table(FH, [
     ['Vehicle ID', 'Identifier', 'Unique system identifier', 'Yes', 'FR-01'],
     ['Registration (plate) number', 'String', 'License plate; unique; used for search', 'Yes', 'FR-01, FR-11'],
-    ['Vehicle type', 'Enum / TBD', 'Vehicle class used for slot compatibility and tariff; values TBD (UD-15)', 'Yes', 'FR-01, FR-24, FR-27'],
+    ['Vehicle type', 'Enum / TBD', 'Vehicle class used for slot compatibility and tariff; canonical choices in vehicles.models', 'Yes', 'FR-01, FR-07, FR-23'],
     ['Owner information', 'Structured / TBD', 'Owner details; content TBD', 'Yes', 'FR-01'],
     ['Created At / Updated At', 'Date-Time', 'Creation and last-update times', 'Yes', 'SRS v1.0'],
   ], FW), gap(),
@@ -810,10 +778,10 @@ add(H1('7. Data Requirements'),
   table(FH, [
     ['Slot ID', 'Identifier', 'Unique slot identifier', 'Yes', 'FR-03'],
     ['Slot label / number', 'String', 'Human-readable slot reference', 'Yes', 'SRS v1.0'],
-    ['Status', 'Enum', 'Exactly one of Available / Occupied / Unavailable or Maintenance (UD-02)', 'Yes', 'FR-04'],
-    ['Zone, Floor, Section', 'String / TBD', 'Classification of the slot', 'TBD', 'FR-23'],
-    ['Slot type', 'Enum', 'Two-Wheeler, Compact, SUV, EV Charging', 'TBD', 'FR-24'],
-    ['Active flag / deactivation', 'TBD', 'Representation of deactivation (UD-03)', 'TBD', 'FR-03'],
+    ['Status', 'Enum', 'One lowercase state: available, occupied, maintenance or reserved (DEC-02)', 'Yes', 'FR-04'],
+    ['Zone and floor', 'Foreign key / nullable integer', 'ParkingZone and floor; legacy unknown floors remain NULL', 'Yes / legacy nullable', 'FR-03'],
+    ['Slot type', 'Enum', 'Two-Wheeler, Compact, SUV, EV Charging; legacy values retained', 'Yes for new slots', 'FR-03, FR-07'],
+    ['Active flag / deactivation', 'Boolean', 'is_active=False; active records guard destructive changes (DEC-03)', 'Yes', 'FR-03'],
   ], FW), gap(),
   tcap('Table 7-3. Parking Record, Ticket, Tariff, and Invoice'),
   table(FH, [
@@ -822,25 +790,25 @@ add(H1('7. Data Requirements'),
     ['Check-in time', 'Date-Time', 'Time of check-in', 'Yes', 'FR-05'],
     ['Check-out time', 'Date-Time / NULL', 'Empty while active', 'No while active', 'FR-08'],
     ['Record status', 'Enum / Boolean', 'Active or completed', 'Yes', 'FR-06, FR-12'],
-    ['Duration', 'TBD', 'Computed duration (with grace period)', 'TBD', 'FR-26'],
+    ['Duration', 'TBD', 'Computed duration (with grace period)', 'TBD', 'FR-24'],
     ['Ticket / QR token', 'TBD', 'Slip linked to the record; payload TBD (UD-08)', 'Yes (per FR-25)', 'FR-25'],
-    ['Tariff', 'TBD', 'Rate rules by vehicle class; flat or dynamic (UD-07)', 'TBD', 'FR-27'],
-    ['Invoice / payment', 'TBD', 'Fee, payment method (Cash, Card, UPI), and receipt', 'TBD', 'FR-28'],
+    ['Tariff', 'TBD', 'Rate rules by vehicle class; advanced tariff features planned', 'TBD', 'FR-23'],
+    ['Invoice / payment', 'TBD', 'Planned payment method (Cash, Card, UPI) and receipt; ordinary fee stored on ParkingRecord', 'TBD', 'FR-26'],
   ], FW), gap(),
   tcap('Table 7-4. User, Profile, and Audit Log'),
   table(FH, [
     ['User ID', 'Identifier', 'Unique user identifier', 'Yes', 'FR-15'],
-    ['Credentials', 'Hashed secret', 'Login credentials; stored hashed only', 'Yes', 'FR-15, FR-20'],
-    ['Role', 'Enum', 'Admin, Operator, or Customer', 'Yes', 'FR-15, FR-18'],
-    ['Status', 'Enum', 'active, suspended, or deactivated', 'Yes', 'FR-21'],
-    ['Contact details', 'TBD', 'Personal contact details in the profile', 'TBD', 'FR-19'],
-    ['Audit record', 'TBD', 'Event type, user, and time at minimum (UD-12)', 'Yes', 'FR-22'],
+    ['Credentials', 'Hashed secret', 'Login credentials; stored hashed only', 'Yes', 'FR-15, FR-18'],
+    ['Role', 'Enum', 'Admin, Operator, or Customer', 'Yes', 'FR-16'],
+    ['Status', 'Enum', 'active, suspended, or deactivated', 'Yes', 'FR-17'],
+    ['Contact details', 'TBD', 'Personal contact details in the profile', 'TBD', 'FR-18'],
+    ['Audit record', 'TBD', 'Planned event type, user, IP and timestamp (DEC-12)', 'Yes', 'FR-29'],
   ], FW), gap(),
   H2('7.3 Data Retention'),
   P('Completed parking records shall be retained and remain retrievable after checkout (BR-05, FR-12). Retention periods for parking history, audit records, and exported data: TBD (UD-12).'),
   H2('7.4 Reports and Views'),
   table(['Report / View', 'Required Information', 'Source'], [
-    ['Current Parking Status', 'Slot identifier, slot status, and associated vehicle information for occupied slots.', 'FR-10'],
+    ['Current Parking Status', 'Public: slot/zone/type/state only. Separate authorized identity display is not implemented.', 'FR-10'],
     ['Vehicle Parking History', 'Registration number, slot identifier, check-in time, check-out time, and record status.', 'FR-12'],
     ['Revenue and Occupancy Summary', 'Daily and periodic revenue and slot-occupancy summaries with date-range filters.', 'FR-27, FR-28'],
     ['Export', 'Parking logs and business analytics exportable in CSV and PDF formats.', 'FR-28'],
@@ -874,7 +842,7 @@ add(H1('9. Security Requirements'),
   H2('9.1 Security Requirements'),
   table(['ID', 'Requirement', 'Target', 'Verification'], NFR.slice(6).map(n => [`**${n[0]}**`, n[2], n[4], n[3]]), [1300, 3226, 2500, 2000]),
   gap(),
-  P('Related functional requirements: FR-15 to FR-22 (identity, authentication, authorization, audit) and FR-13 (validation). Details not fixed by the source documents are TBD: hashing algorithm choice between Argon2 and PBKDF2 (UD-09), JWT lifetimes and invalidation mechanism (UD-09), password rules (UD-10), and account recovery (UD-10).'),
+  P('Related requirements: FR-15 to FR-18 (identity/access), FR-29 (audit) and FR-13 (validation). DEC-09/10 specify token/password policy. Current code uses PBKDF2 and token_version revocation plus refresh blacklisting. Audit, account recovery and full profile administration are not delivered.'),
   H2('9.2 Role-Based Access Control (Preliminary)'),
   P('The full role-to-function matrix is not specified. Entries below are limited to what the source documents state; all other entries are TBD (UD-01).'),
   table(['Functional Domain / Endpoint', 'Admin', 'Operator', 'Customer', 'Authoritative Source'], [
@@ -883,7 +851,7 @@ add(H1('9. Security Requirements'),
     ['Vehicle registration, lookup, & profile maintenance', 'Permitted', 'Permitted', 'Permitted (Own)', 'FR-01, FR-02, FR-11'],
     ['Vehicle check-in, bay allocation, & check-out', 'Permitted', 'Permitted', 'Denied', 'FR-05, FR-08, DEC-01'],
     ['Advance reservation creation & self-cancellation', 'Permitted', 'Permitted', 'Permitted (Own)', 'FR-19, FR-21, DEC-15'],
-    ['View real-time bay occupancy dashboard', 'Permitted', 'Permitted', 'Permitted (Public)', 'FR-10, DEC-01'],
+    ['View real-time bay occupancy dashboard (also anonymous)', 'Permitted', 'Permitted', 'Permitted (Public)', 'FR-10, DEC-01'],
     ['Tariff schedule configuration & rate editing', 'Permitted', 'Denied', 'Denied', 'FR-23, DEC-01'],
     ['Payment recording (Cash, Card, UPI) & receipts', 'Permitted', 'Permitted', 'Permitted (View Own)', 'FR-25, FR-26'],
     ['Executive analytics, revenue reports, & exports', 'Permitted', 'Denied', 'Denied', 'FR-27, FR-28, DEC-01'],
@@ -902,7 +870,7 @@ add(H1('10. Error Handling Requirements'),
     ['Vehicle search or entity lookup with no match', 'Return structured not-found response.', '404 Not Found', 'FR-11, FR-14'],
     ['Check-in for a vehicle with an existing active session', 'Reject check-in; abort session creation (anti-passback).', '409 Conflict', 'FR-06, BR-01'],
     ['Check-in or reservation for an occupied/committed bay', 'Reject assignment; preserve existing bay status.', '409 Conflict', 'FR-07, FR-20, BR-02'],
-    ['Check-in to a slot with incompatible vehicle class', 'Reject check-in; prompt compatible bay selection.', '400 Bad Request', 'FR-05, BR-08, DEC-14'],
+    ['Check-in to an explicit incompatible slot', 'Reject check-in; prompt compatible bay selection.', '422 Unprocessable Entity', 'FR-05, BR-08, DEC-14'],
     ['Check-out requested for vehicle without active session', 'Reject checkout; return invalid session error.', '404 Not Found', 'FR-08'],
     ['Partial database failure during check-in/out', 'Execute atomic rollback via transaction.atomic; 0 partial state.', '500 Server Error', 'NFR-SAFE-03'],
     ['Payment recording validation error or payment failure', 'Preserve pending invoice status; display error message.', '422 Unprocessable', 'FR-26'],
@@ -913,7 +881,7 @@ add(H1('10. Error Handling Requirements'),
 // 11 Other
 add(H1('11. Other Requirements'),
   H2('11.1 Logging and Audit'),
-  P('Authentication events and security changes shall be recorded (FR-22, BR-14). Parking sessions shall be retained as a historical audit trail (FR-12). Application error logging for development and maintenance may be defined in design. Audit content and retention: TBD (UD-12).'),
+  P('Authentication events and security changes shall be recorded (FR-29, BR-14); the audit domain is not yet implemented. Parking sessions shall be retained as a historical audit trail (FR-12). Application error logging for development and maintenance may be defined in design. Audit content and retention: TBD (UD-12).'),
   H2('11.2 Internationalization and Legal'),
   P('No internationalization, regulatory, or legal requirement is specified. Currency, tax, and personal-data handling for owner information and payments are TBD (UD-07).'),
 );
@@ -921,7 +889,7 @@ add(H1('11. Other Requirements'),
 // 12 Verification
 add(H1('12. Verification Criteria'),
   H2('12.1 Verification Approach'),
-  P('Each functional requirement is verified by the RTM test case shown in Section 5 and Appendix B.1 (unit and integration level). System-test identifiers are TBD. Pull-request links in the RTM pipeline are recorded during implementation. Testing and CI/CD compliance are shared by all team members.'),
+  P('Each functional requirement is verified by the RTM test case shown in Section 5 and Appendix B.1 (unit and integration level). System-test identifiers and executable coverage are mapped in docs/testing/SPRINT1_TEST_SUMMARY.md. Current PR/evidence links are recorded in the RTM and Sprint 1 review. Passing covered checks does not establish full acceptance of every requirement. Testing and CI/CD compliance are shared by all team members.'),
   table(['Method', 'Description'], [
     ['T: Test', 'Automated or manual execution against the acceptance criteria.'],
     ['I: Inspection', 'Review of code, configuration, or documents (for example CI/CD and CORS configuration).'],
@@ -965,6 +933,7 @@ const EXTERNAL_DEPENDENCIES = [
 ];
 
 add(H1('13. Decision Register and Baseline Parameter Specifications'),
+  P('These decisions specify target behavior. Their presence is not implementation acceptance. Section 14 records current behavior and unresolved differences, including DEC-04 nearest allocation, DEC-14 compatibility and billing/receipt scope.'),
   P('To establish an unambiguous, development-ready specification, routine technical decisions have been resolved using secure, sensible defaults aligned with the agile requirements baseline. Items genuinely requiring external business authority or third-party banking/hardware onboarding are recorded with their explicit rationale.'),
 
   H2('13.1 Resolved Baseline Technical Parameters'),
@@ -979,6 +948,23 @@ add(H1('13. Decision Register and Baseline Parameter Specifications'),
   gap(),
 );
 
+
+// Dated implementation addendum; original requirements above remain normative.
+add(H1('14. Implementation Status and Remaining Gaps'),
+  P('Recorded 27 October 2026 against application commit c98346e7a219114a03f84a53cb2a0d017deb3315. This addendum distinguishes implemented behavior from requirements still awaiting delivery. It does not reduce unmet requirements to make the code appear complete.'),
+  H2('14.1 Delivered Application'),
+  P('accounts implements Customer registration, JWT login/refresh/logout and current-user checks; vehicles implements registration/profile/search; parking_slots implements facility management and public availability; operations implements check-in, checkout and completed-history APIs; rates implements configuration and ordinary fee calculation; common implements shared DRF errors. Auth, vehicle, management and availability frontend views exist. Operations, history and rates have no dedicated frontend flow.'),
+  P('US-11 public availability exposes only slot/zone/type/state fields, without vehicle identities. Anonymous and signed-in access return the same safe projection. Clients refresh every 30 seconds or manually. Management remains limited to active Admin/Operator users. The legacy FR-10 private-identity illustration is not implemented as a separate authorized view and must never be read as permission to disclose identities publicly.'),
+  P('ParkingSlot stores lowercase available/occupied/maintenance/reserved; ParkingRecord stores ACTIVE/COMPLETED. Slot numbers are unique per zone. Check-in and checkout update records and bays atomically. Checkout accepts registration_number, uses the configured hourly rate and inclusive grace period, and persists fee snapshots before releasing the bay. It does not record payment success.'),
+  H2('14.2 Functionality Not Yet Satisfied'),
+  B('DEC-04 nearest-compatible recommendation: candidate ordering does not establish physical proximity. DEC-14 matching-or-smaller and EV eligibility: current allocation accepts exact class or legacy any; no separate EV-tag model exists. These remain functional gaps, not accepted requirement changes.'),
+  B('Check-in returns a signed token, but QR image/printable slip and receipt delivery are incomplete. Checkout does not verify a scanned token. Ordinary hourly/grace fees are implemented; penalty application, advanced billing, invoices and payment methods are absent. US-22, US-23 and US-24 remain open.'),
+  B('Reservations, administrative analytics, security audit logs and notifications are not implemented. The full role/admin/profile stories remain open despite foundational auth permissions. Preserve their requirements as planned scope.'),
+  H2('14.3 Verification and Sprint Record'),
+  P('The original Sprint 1 commitment was six stories / 25 SP. Current milestone membership is 13 stories / 49 SP, with 10 closed / 38 SP and three open / 11 SP. This does not establish formal milestone acceptance. docs/meeting-notes/SPRINT1_REVIEW.md records actual closure times and unresolved carryovers.'),
+  P('Main CI run 40451144341 passed 291 backend tests with nine concurrency skips, 75 targeted PostgreSQL tests and 68 frontend tests. docs/testing/SPRINT1_TEST_SUMMARY.md links evidence and execution limits. Performance targets, production deployment and whole-system acceptance remain unverified. docs/validation/SPRINT1_DOCUMENT_SYNC.md lists code/specification gaps. The RTM separates implementation status from verification; no blanket Pass is implied.'),
+);
+
 // Appendix A
 add(H1('Appendix A: Glossary'),
   table(['Term', 'Definition'], [
@@ -988,11 +974,11 @@ add(H1('Appendix A: Glossary'),
     ['Parking Slot', 'Uniquely identified place in which a vehicle may be parked.'],
     ['Zone / Floor / Section', 'Classification levels used to group parking slots.'],
     ['Slot Type', 'Vehicle-type constraint of a slot: Two-Wheeler, Compact, SUV, or EV Charging.'],
-    ['Available / Occupied / Unavailable / Maintenance', 'Slot status values (see UD-02).'],
+    ['Available / Occupied / Maintenance / Reserved', 'Stored lowercase on ParkingSlot (DEC-02).'],
     ['Active Parking Record', 'Record of a vehicle that has checked in and not yet checked out.'],
     ['Parking History', 'Completed parking records retained by the system.'],
     ['Ticket / QR Token', 'Digital parking slip issued at check-in.'],
-    ['Grace Period', 'Time allowance applied when calculating parking duration (length TBD).'],
+    ['Grace Period', 'Configured per ParkingRate; default 15 minutes, inclusive at checkout.'],
     ['Tariff', 'Fee rules by vehicle class, flat-rate or dynamic.'],
     ['Invoice / Receipt', 'Fee statement for a session and proof of payment.'],
     ['JWT', 'JSON Web Token; access/refresh pair issued on authentication.'],
@@ -1009,23 +995,24 @@ add(H1('Appendix A: Glossary'),
 // ---------- Appendix B (landscape) ----------
 const appB = [];
 appB.push(H1('Appendix B: Requirements Traceability Matrix'),
-  P('This appendix reproduces the RTM v1.0.0 pipeline: Requirement → User Story → Design → Implementation → Test Case. All status values in the RTM are "Specified". Design and code references are planned locations from the RTM and are not verified here. Pull-request references and system-test IDs: TBD.'),
+  P('This appendix reads the canonical RTM v1.2.0 for requirements, owners, implementation paths and status. The Markdown RTM additionally links verification evidence. Planned paths describe absent components; implementation status is not a full acceptance verdict. See Section 14 and the test summary for scope limits.'),
   H2('B.1 Functional Requirements Traceability'),
   table(['Req ID', 'Requirement Description', 'User Story', 'Module', 'Owner', 'Design Ref', 'Code Ref', 'Test Case', 'Status'],
-    RTM.map(r => [`**${r[0]}**`, r[1], r[2], r[3], r[4], r[5], r[6].split('; ').map(x => x), r[7], 'Specified']),
+    RTM.map(r => [`**${r[0]}**`, r[1], r[2], r[3], r[4], r[5], r[6].split('; ').map(x => x), r[7], r[8]]),
     [800, 2900, 1000, 1400, 800, 2300, 2758, 1000, 1000], { size: 16 }),
   gap(),
   H2('B.2 Non-Functional Requirements Traceability'),
   table(['NFR ID', 'Category', 'Requirement', 'Verification Strategy', 'Target Criteria', 'Status'],
-    NFR.map(n => [`**${n[0]}**`, n[1], n[2], n[3], n[4], 'Specified']),
+    NFR.map(n => [`**${n[0]}**`, n[1], n[2], n[3], n[4], 'Target unverified']),
     [1500, 1300, 3600, 3000, 3558, 1000], { size: 16 }),
   gap(),
-  H2('B.3 Functional Ownership Summary'),
+  new Paragraph({ heading: HeadingLevel.HEADING_2, pageBreakBefore: false,
+    children: [run('B.3 Functional Ownership Summary')] }),
   table(['Owner', 'Responsibility'], [
     ['Member 1 (Scrum Master and Integration Lead)', 'Epic E1: Identity & Access Management (US-01..04); Epic E2: Vehicle Management (US-05..08); SRS & RTM synchronization; project plan; Git workflow; sprint backlog; integration coordination.'],
-    ['Member 2', 'Epic E3: Parking Facility & Availability (US-09..12); Epic E4: Reservation Management (US-13..16).'],
+    ['Member 2', 'Epic E3: Parking Facility & Availability (US-09, US-10 [Done]; US-11, US-12 reassigned to Member 4 on 25 Oct 2026); Epic E4: Reservation Management (US-13..16).'],
     ['Member 3', 'Epic E5: Parking Operations (US-17..20); Epic E6: Pricing, Billing & Payment (US-21..24).'],
-    ['Member 4', 'Epic E7: Admin Dashboard & Reporting (US-25..28); Epic E8: Audit, Notifications & Quality (US-29..32).'],
+    ['Member 4', 'Epic E7: Admin Dashboard & Reporting (US-25..28); Epic E8: Audit, Notifications & Quality (US-29..32); Reassigned from Member 2 (25 Oct 2026): US-11 (#31, Live Occupancy Dashboard) and US-12 (#32, Slot Integrity Safeguards).'],
     ['All members', 'Validation and error handling; transactional integrity; testing and CI/CD compliance.'],
   ], [4000, 9958], { size: 17 }),
 );
@@ -1034,11 +1021,11 @@ appB.push(H1('Appendix B: Requirements Traceability Matrix'),
 const hdr = new Header({ children: [new Paragraph({
   border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
   tabStops: [{ type: TabStopType.RIGHT, position: PW }],
-  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.1', { size: 18, italics: true })] })] });
+  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.0', { size: 18, italics: true })] })] });
 const hdrL = new Header({ children: [new Paragraph({
   border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
   tabStops: [{ type: TabStopType.RIGHT, position: LW }],
-  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.1', { size: 18, italics: true })] })] });
+  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.0', { size: 18, italics: true })] })] });
 const ftr = w => new Footer({ children: [new Paragraph({
   tabStops: [{ type: TabStopType.RIGHT, position: w }],
   border: { top: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
@@ -1050,7 +1037,7 @@ const A4 = { width: 11906, height: 16838 };
 const mar = { top: 1440, right: 1440, bottom: 1300, left: 1440, header: 600, footer: 500 };
 
 const doc = new Document({
-  creator: 'Vehicle Parking System Team', title: 'Vehicle Parking System - Software Requirements Specification v1.1',
+  creator: 'Vehicle Parking System Team', title: 'Vehicle Parking System - Software Requirements Specification v1.2.0',
   features: { updateFields: true },
   styles: {
     default: { document: { run: { font: FONT, size: 22 } } },
@@ -1076,7 +1063,8 @@ const doc = new Document({
   ]
 });
 
-const outPath = path.resolve(__dirname, '../docs/requirements/Vehicle_Parking_System_SRS.docx');
+// Optional output path supports review copies while the tracked document is open.
+const outPath = process.argv[2] ? path.resolve(process.argv[2]) : path.resolve(__dirname, '../docs/requirements/Vehicle_Parking_System_SRS.docx');
 Packer.toBuffer(doc).then(b => {
   fs.writeFileSync(outPath, b);
   console.log('SUCCESS: Generated', outPath, 'Bytes:', b.length);

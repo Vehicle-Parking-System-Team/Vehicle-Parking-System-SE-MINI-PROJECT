@@ -47,8 +47,11 @@ INSTALLED_APPS = [
 
     # Local domain apps
     'accounts',
+    'vehicles',
+    'rates',
+    'parking_slots',
+    'operations',
 ]
-
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
@@ -148,7 +151,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
-    'EXCEPTION_HANDLER': 'accounts.exceptions.exception_handler',
 }
 
 # SimpleJWT Configuration (US-01 / DEC-09)

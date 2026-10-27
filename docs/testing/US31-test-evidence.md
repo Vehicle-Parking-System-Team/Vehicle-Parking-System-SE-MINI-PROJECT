@@ -1,5 +1,7 @@
 # US-31 test cases and evidence
 
+> **Historical story evidence:** Results and limitations below describe the original story verification. For the integrated 27 October application baseline, use [the current test summary](SPRINT1_TEST_SUMMARY.md). Later module additions do not invalidate these results or retroactively expand what this execution proved.
+
 Story: [#51](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/51). Requirements: FR-13/FR-14, UC-10. Contract: [shared API errors](../design/US31-error-contract.md).
 
 Initially executed on 19 October 2026 for Member 4's implementation at `c2ce42f`. The backend results below include the logging review follow-up executed on the same date. Commands use the repository's virtual environment; CI records its exact checked-out revision.

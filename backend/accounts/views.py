@@ -1,7 +1,10 @@
+from django.db import transaction
 from rest_framework import exceptions, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.permissions import IsAuthenticatedAndActive
@@ -9,8 +12,25 @@ from accounts.serializers import (
     CustomTokenRefreshSerializer,
     LoginSerializer,
     LogoutSerializer,
+    RegisterSerializer,
     UserSerializer,
 )
+
+
+class RegisterView(APIView):
+    """
+    Public self-service Customer registration endpoint.
+    DEC-13 / SAD §3.4.2 & §5.1.
+    Creates a Customer account, enforces password policy, and returns JWT session pair.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        session_data = serializer.save()
+        return Response(session_data, status=status.HTTP_201_CREATED)
 
 
 class LoginView(APIView):
@@ -43,14 +63,29 @@ class LogoutView(APIView):
 
         try:
             token = RefreshToken(refresh_token_str)
-            token.blacklist()
-        except Exception:
+        except TokenError:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        # Revoke existing access tokens immediately by incrementing token_version
-        user = request.user
-        user.token_version += 1
-        user.save(update_fields=['token_version'])
+        # Verify token ownership: the token must belong to request.user
+        token_user_id = token.get(api_settings.USER_ID_CLAIM)
+        if str(token_user_id) != str(request.user.pk):
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+        # Verify token version: token must have a valid int token_version matching user.token_version
+        token_version = token.get('token_version')
+        if type(token_version) is not int or token_version != request.user.token_version:
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+        with transaction.atomic():
+            try:
+                token.blacklist()
+            except TokenError:
+                raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
+            # Revoke existing access tokens immediately by incrementing token_version
+            user = request.user
+            user.token_version += 1
+            user.save(update_fields=['token_version'])
 
         return Response(
             {'message': 'Successfully logged out.'},
