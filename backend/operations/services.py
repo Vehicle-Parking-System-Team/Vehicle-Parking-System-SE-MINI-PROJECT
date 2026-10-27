@@ -63,7 +63,10 @@ def _raise_duplicate_active_record_conflict(vehicle):
         "This vehicle already has an active parking record.",
         details={
             "existing_slot_id": existing_record.slot_id,
-            "existing_slot_number": existing_record.slot.slot_number,
+            "existing_slot_number": (
+                existing_record.slot_number_snapshot
+                or existing_record.slot.slot_number
+            ),
             "check_in_time": existing_record.check_in_time.isoformat(),
         },
     ) from None
@@ -78,8 +81,13 @@ def create_signed_ticket(record):
     """
     payload = {
         "sessionId": record.pk,
-        "vehiclePlate": record.vehicle.registration_number,
-        "slotNumber": record.slot.slot_number,
+        "vehiclePlate": (
+            record.registration_number_snapshot
+            or record.vehicle.registration_number
+        ),
+        "slotNumber": (
+            record.slot_number_snapshot or record.slot.slot_number
+        ),
         "checkInTime": record.check_in_time.isoformat(),
     }
 
@@ -214,6 +222,10 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     vehicle=vehicle,
                     slot=slot,
                     operator=operator,
+                    registration_number_snapshot=vehicle.registration_number,
+                    vehicle_type_at_checkin_snapshot=vehicle.vehicle_type,
+                    slot_number_snapshot=slot.slot_number,
+                    zone_name_snapshot=slot.zone.name,
                     status=ParkingRecord.Status.ACTIVE,
                 )
 
@@ -290,7 +302,12 @@ def check_out_vehicle(registration_number, operator):
 
     # One read captures the tariff tuple; snapshots preserve it if the admin edits later.
     # Tariff writers need not wait for checkout to finish.
-    rate = ParkingRate.objects.filter(vehicle_type=vehicle.vehicle_type).first()
+    session_vehicle_type = (
+        record.vehicle_type_at_checkin_snapshot or vehicle.vehicle_type
+    )
+    rate = ParkingRate.objects.filter(
+        vehicle_type=session_vehicle_type
+    ).first()
     if rate is None:
         raise Conflict('Configure a parking rate for this vehicle type before checkout.')
     exit_time = timezone.now()
@@ -300,7 +317,7 @@ def check_out_vehicle(registration_number, operator):
     record.fee_amount = amount
     record.hourly_rate_snapshot = rate.hourly_rate
     record.grace_period_minutes_snapshot = rate.grace_period_minutes
-    record.vehicle_type_snapshot = vehicle.vehicle_type
+    record.vehicle_type_snapshot = session_vehicle_type
     record.check_out_time = exit_time
     record.status = ParkingRecord.Status.COMPLETED
     record.save(update_fields=[

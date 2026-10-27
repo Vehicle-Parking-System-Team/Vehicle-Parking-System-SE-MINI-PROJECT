@@ -46,6 +46,30 @@ class ParkingRecord(models.Model):
     hourly_rate_snapshot = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     grace_period_minutes_snapshot = models.PositiveIntegerField(null=True, blank=True)
     vehicle_type_snapshot = models.CharField(max_length=20, null=True, blank=True)
+    vehicle_type_at_checkin_snapshot = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    registration_number_snapshot = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    slot_number_snapshot = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+    zone_name_snapshot = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        editable=False,
+    )
 
     status = models.CharField(
         max_length=12,
@@ -88,4 +112,8 @@ class ParkingRecord(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.vehicle.registration_number} - {self.status}"
+        registration_number = (
+            self.registration_number_snapshot
+            or self.vehicle.registration_number
+        )
+        return f"{registration_number} - {self.status}"
