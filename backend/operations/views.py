@@ -1,9 +1,12 @@
+from django.db import transaction
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from billing.serializers import BillingReceiptSerializer
+from billing.services import generate_receipt
 from parking_slots.permissions import CanManageParking
 
 from .models import ParkingRecord
@@ -51,17 +54,21 @@ class VehicleCheckOutView(APIView):
         request_serializer = CheckOutRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
 
-        record = check_out_vehicle(
-            registration_number=(
-                request_serializer.validated_data["registration_number"]
-            ),
-            operator=request.user,
-        )
+        # Checkout and receipt creation commit or roll back together.
+        with transaction.atomic():
+            record = check_out_vehicle(
+                registration_number=(
+                    request_serializer.validated_data["registration_number"]
+                ),
+                operator=request.user,
+            )
+            receipt, _ = generate_receipt(record)
+            response_data = CheckOutRecordSerializer(record).data
+            response_data["receipt"] = BillingReceiptSerializer(
+                receipt, context={"request": request},
+            ).data
 
-        return Response(
-            CheckOutRecordSerializer(record).data,
-            status=status.HTTP_200_OK,
-        )
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class ParkingHistoryPagination(PageNumberPagination):
