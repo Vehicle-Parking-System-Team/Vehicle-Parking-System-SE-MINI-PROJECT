@@ -171,7 +171,7 @@ class BillingReceiptAPITests(TestCase):
         response = self.generate(record_id=active.pk)
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn('record_id', response.data)
+        self.assertIn('record_id', response.data['details'])
         self.assertEqual(BillingReceipt.objects.count(), 0)
 
     def test_customer_cannot_generate_receipt_for_another_customer(self):
