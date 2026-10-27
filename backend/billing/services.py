@@ -51,7 +51,15 @@ def _receipt_values(record):
             elapsed, record.grace_period_minutes_snapshot,
         ),
         'hourly_rate': record.hourly_rate_snapshot,
+        'base_amount': record.hourly_rate_snapshot * billable_hours(
+            elapsed, record.grace_period_minutes_snapshot,
+        ),
         'vehicle_multiplier': multiplier,
+        'multiplier_adjustment': record.fee_amount - (
+            record.hourly_rate_snapshot * billable_hours(
+                elapsed, record.grace_period_minutes_snapshot,
+            )
+        ),
         'grace_period_minutes': record.grace_period_minutes_snapshot,
         'fee_amount': record.fee_amount,
         'currency': 'INR',
