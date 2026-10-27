@@ -312,17 +312,21 @@ def check_out_vehicle(registration_number, operator):
         raise Conflict('Configure a parking rate for this vehicle type before checkout.')
     exit_time = timezone.now()
     amount = calculate_parking_fee(
-        exit_time - record.check_in_time, rate.hourly_rate, rate.grace_period_minutes,
+        exit_time - record.check_in_time,
+        rate.hourly_rate,
+        rate.grace_period_minutes,
+        rate.vehicle_multiplier,
     )
     record.fee_amount = amount
     record.hourly_rate_snapshot = rate.hourly_rate
+    record.vehicle_multiplier_snapshot = rate.vehicle_multiplier
     record.grace_period_minutes_snapshot = rate.grace_period_minutes
     record.vehicle_type_snapshot = session_vehicle_type
     record.check_out_time = exit_time
     record.status = ParkingRecord.Status.COMPLETED
     record.save(update_fields=[
-        'fee_amount', 'hourly_rate_snapshot', 'grace_period_minutes_snapshot',
-        'vehicle_type_snapshot', 'check_out_time', 'status',
+        'fee_amount', 'hourly_rate_snapshot', 'vehicle_multiplier_snapshot',
+        'grace_period_minutes_snapshot', 'vehicle_type_snapshot', 'check_out_time', 'status',
     ])
     # The active-record guard now sees our completed record in this transaction.
     # A release failure rolls the fee, completion and timestamp back together.

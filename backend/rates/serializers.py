@@ -11,6 +11,7 @@ class ParkingRateSerializer(serializers.ModelSerializer):
             'id',
             'vehicle_type',
             'hourly_rate',
+            'vehicle_multiplier',
             'grace_period_minutes',
             'penalty_fee',
             'updated_at',
@@ -21,6 +22,13 @@ class ParkingRateSerializer(serializers.ModelSerializer):
         if value < 0:
             raise serializers.ValidationError(
                 'Hourly rate cannot be negative.'
+            )
+        return value
+
+    def validate_vehicle_multiplier(self, value):
+        if value < 0:
+            raise serializers.ValidationError(
+                'Vehicle multiplier cannot be negative.'
             )
         return value
 

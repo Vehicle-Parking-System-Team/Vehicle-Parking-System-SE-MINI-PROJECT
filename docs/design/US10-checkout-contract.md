@@ -27,6 +27,7 @@ existing parking-record fields plus:
   "fee_amount": "80.00",
   "currency": "INR",
   "hourly_rate_snapshot": "40.00",
+  "vehicle_multiplier_snapshot": "1.00",
   "grace_period_minutes_snapshot": 15,
   "vehicle_type_snapshot": "Compact"
 }
@@ -58,12 +59,14 @@ The check-in vehicle-class snapshot selects its configured ParkingRate at checko
 Legacy records without that snapshot fall back to the vehicle's current class.
 This matches the US-20 history integration merged in PR #75 and preserves the
 class under which the session began when a vehicle profile is later edited.
-No default rate is invented if it is missing. The configured grace period
-applies inclusively: elapsed time <= grace is free. Otherwise the **full elapsed
-duration**, without subtracting grace, is rounded up to whole hours and
-multiplied by the hourly rate. There is no additional vehicle multiplier or
-automatic use of `penalty_fee`. That existing setting is unchanged and remains
-outside this ordinary-fee workflow.
+No default rate is invented if it is missing. The configured grace period applies inclusively: elapsed time <= grace is free.
+Otherwise the **full elapsed duration**, without subtracting grace, is rounded
+up to whole hours and multiplied by the hourly rate and configured
+`vehicle_multiplier`. The multiplier is a non-negative decimal with two decimal
+places and defaults to `1.00`, preserving existing prices until an administrator
+configures a different value. The final INR amount is rounded to two decimal
+places using `ROUND_HALF_UP`. The `penalty_fee` setting remains outside this
+ordinary-fee workflow.
 
 For INR 40/hour and a 15-minute grace period:
 

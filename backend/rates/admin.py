@@ -9,6 +9,7 @@ class ParkingRateAdmin(admin.ModelAdmin):
     list_display = (
         'vehicle_type',
         'hourly_rate',
+        'vehicle_multiplier',
         'grace_period_minutes',
         'penalty_fee',
         'updated_at',
