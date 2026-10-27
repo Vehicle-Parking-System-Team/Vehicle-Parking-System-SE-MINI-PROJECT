@@ -4,6 +4,7 @@ import { useAuth } from './context/useAuth'
 import { LoginForm } from './components/LoginForm'
 import { RegisterForm } from './components/RegisterForm'
 import { AuthenticatedView } from './components/AuthenticatedView'
+import { ProtectedRoute } from './routes/ProtectedRoute'
 import BayIcon from './components/BayIcon'
 import SlotsPage from './pages/Slots'
 import './App.css'
@@ -14,7 +15,11 @@ function AuthMain() {
   const [showAvailability, setShowAvailability] = useState(false)
 
   if (isAuthenticated) {
-    return <AuthenticatedView />
+    return (
+      <ProtectedRoute>
+        <AuthenticatedView />
+      </ProtectedRoute>
+    )
   }
 
   if (showAvailability) {

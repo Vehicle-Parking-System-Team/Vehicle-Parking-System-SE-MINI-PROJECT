@@ -7,6 +7,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from accounts.permissions import IsAuthenticatedAndActive
 from accounts.serializers import (
     CustomTokenRefreshSerializer,
     LoginSerializer,
@@ -109,10 +110,10 @@ class TokenRefreshView(APIView):
 class CurrentUserView(APIView):
     """
     Retrieve current authenticated user context to verify protected route access.
-    US-01 / FR-15.
+    US-01 / FR-15, US-02 / FR-16.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedAndActive]
 
     def get(self, request):
         serializer = UserSerializer(request.user)

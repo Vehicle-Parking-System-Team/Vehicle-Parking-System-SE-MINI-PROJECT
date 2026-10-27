@@ -5,10 +5,12 @@ import { VehicleProfileView } from './VehicleProfileView'
 import BayIcon from './BayIcon'
 import SlotsPage from '../pages/Slots'
 import SearchPage from '../pages/Search'
+import { ProtectedRoute } from '../routes/ProtectedRoute'
+import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
 export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
-  const canManage = ['Admin', 'Operator'].includes(user?.role)
+  const canManage = isRoleAuthorized(user?.role, [ROLES.ADMIN, ROLES.OPERATOR])
   const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
 
@@ -130,7 +132,9 @@ export function AuthenticatedView() {
           {activePage === 'availability' ? (
             <SlotsPage key="availability" availability />
           ) : activePage === 'facility' ? (
-            <SlotsPage key="management" />
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
+              <SlotsPage key="management" />
+            </ProtectedRoute>
           ) : activePage === 'vehicles' ? (
             <section className="bay-legacy-page" id="authenticated-container">
               <div className="bay-page-heading">
