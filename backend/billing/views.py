@@ -38,13 +38,6 @@ def _get_receipt_or_404(receipt_number):
     )
     if receipt is None:
         raise NotFound('The requested receipt was not found.')
-    if not _can_access_receipt(
-        getattr(receipt.parking_record.vehicle, 'owner', None)
-        if False else None,
-        receipt.parking_record,
-    ):
-        # Access is checked against request.user by each view below.
-        pass
     return receipt
 
 
