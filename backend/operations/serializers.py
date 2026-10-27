@@ -121,7 +121,8 @@ class CheckOutRecordSerializer(ParkingRecordSerializer):
     class Meta(ParkingRecordSerializer.Meta):
         fields = ParkingRecordSerializer.Meta.fields + [
             'billable_hours', 'fee_amount', 'currency', 'hourly_rate_snapshot',
-            'grace_period_minutes_snapshot', 'vehicle_type_snapshot',
+            'vehicle_multiplier_snapshot', 'grace_period_minutes_snapshot',
+            'vehicle_type_snapshot',
         ]
         read_only_fields = fields
 
