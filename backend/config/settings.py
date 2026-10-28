@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'rates',
     'parking_slots',
     'operations',
+    'billing',
 ]
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
