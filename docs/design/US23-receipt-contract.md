@@ -31,4 +31,4 @@ This story creates invoices/receipts; it does not record payment, claim settleme
 
 ## Verification
 
-Focused tests cover invoice and charge contents, idempotency, API retrieval, the printable page, the open-session 400 response, owner/operator access, anonymous access, invalid/missing records, and immutable receipt snapshots. The repository CI checks remain the authoritative integration result for the PR.
+Focused tests cover invoice and charge contents (including UUID and string representations), idempotency, API retrieval, the printable page, zero-fee checkout, owner/admin/operator access, suspended-account rejection, default denial when a role attribute is missing, anonymous access, invalid/missing records, and immutable receipt snapshots. The repository CI checks remain the authoritative integration result for the PR.

@@ -38,7 +38,9 @@ class BillingReceipt(models.Model):
 
     @property
     def invoice_number(self):
-        return f'INV-{self.receipt_number.hex.upper()}'
+        raw = self.receipt_number
+        hex_str = raw.hex if hasattr(raw, 'hex') else str(raw).replace('-', '')
+        return f'INV-{hex_str.upper()}'
 
     def __str__(self):
         return f'{self.invoice_number} - {self.registration_number}'

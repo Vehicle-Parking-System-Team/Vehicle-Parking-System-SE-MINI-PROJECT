@@ -6,6 +6,7 @@ from django.urls import path, include
 from vehicles.views import VehicleRegistrationView
 
 urlpatterns = [
+    path('api/reports/', include('reports.urls')),
     path('admin/', admin.site.urls),
     path('api/auth/', include('accounts.urls')),
     path('api/v1/vehicles/', include('vehicles.urls')),

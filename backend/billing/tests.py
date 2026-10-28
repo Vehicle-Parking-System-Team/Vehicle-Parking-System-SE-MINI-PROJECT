@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -8,6 +9,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from billing.models import BillingReceipt
+from billing.views import _can_access_receipt
 from operations.models import ParkingRecord
 from operations.services import check_in_vehicle, check_out_vehicle
 from parking_slots.models import ParkingSlot, ParkingZone
@@ -25,6 +27,11 @@ class BillingReceiptAPITests(TestCase):
             username='us23_operator',
             password='ReceiptTest-123!',
             role='Operator',
+        )
+        self.admin = User.objects.create_user(
+            username='us23_admin',
+            password='ReceiptTest-123!',
+            role='Admin',
         )
         self.customer = User.objects.create_user(
             username='us23_customer',
@@ -241,3 +248,67 @@ class BillingReceiptAPITests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(printable.status_code, 403)
+
+    def test_invoice_number_handles_uuid_and_string_values(self):
+        receipt_number = uuid4()
+        receipt = BillingReceipt(receipt_number=receipt_number)
+        expected = f'INV-{receipt_number.hex.upper()}'
+        self.assertEqual(receipt.invoice_number, expected)
+
+        receipt.receipt_number = str(receipt_number)
+        self.assertEqual(receipt.invoice_number, expected)
+
+    def test_receipt_access_denies_user_without_role_attribute(self):
+        roleless_user = SimpleNamespace(
+            is_authenticated=True,
+            is_account_active=True,
+            pk=self.customer.pk,
+        )
+        self.assertFalse(_can_access_receipt(roleless_user, self.record))
+
+    def test_zero_fee_checkout_within_grace_period(self):
+        active = check_in_vehicle(
+            self.vehicle.registration_number,
+            self.operator,
+            self.slot.pk,
+        )
+        exit_time = active.check_in_time + timedelta(minutes=10)
+        self.client.force_authenticate(user=self.operator)
+
+        with patch('operations.services.timezone.now', return_value=exit_time):
+            response = self.client.post(
+                '/api/parking/check-out/',
+                {'registration_number': self.vehicle.registration_number},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 200)
+        receipt_data = response.data['receipt']
+        self.assertEqual(receipt_data['total_fee'], '0.00')
+        self.assertEqual(receipt_data['billable_hours'], 0)
+        receipt = BillingReceipt.objects.get(parking_record_id=active.pk)
+        self.assertEqual(receipt.fee_amount, Decimal('0.00'))
+        self.assertEqual(receipt.billable_hours, 0)
+
+    def test_admin_can_retrieve_customer_receipt(self):
+        generated = self.generate()
+        receipt_id = generated.data['receipt_id']
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.get(f'{RECEIPTS_URL}{receipt_id}/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['receipt_id'], receipt_id)
+
+    def test_suspended_customer_cannot_retrieve_receipt(self):
+        generated = self.generate()
+        receipt_id = generated.data['receipt_id']
+        self.customer.status = 'suspended'
+        self.customer.save(update_fields=['status'])
+        self.customer.refresh_from_db()
+        self.client.force_authenticate(user=self.customer)
+
+        response = self.client.get(f'{RECEIPTS_URL}{receipt_id}/')
+
+        self.assertEqual(response.status_code, 403)
+

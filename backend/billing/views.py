@@ -21,9 +21,10 @@ def _can_access_receipt(user, record):
         return False
     if not getattr(user, 'is_account_active', False):
         return False
-    if user.role in ('Admin', 'Operator'):
+    role = getattr(user, 'role', None)
+    if role in ('Admin', 'Operator'):
         return True
-    return user.role == 'Customer' and record.vehicle.owner_id == user.pk
+    return role == 'Customer' and record.vehicle.owner_id == user.pk
 
 
 def _get_receipt_or_404(receipt_number):
