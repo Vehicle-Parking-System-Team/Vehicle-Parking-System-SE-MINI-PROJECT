@@ -8,6 +8,8 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from common.exceptions import Conflict
+
 from accounts.models import User
 
 
@@ -49,6 +51,89 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'role', 'status']
         read_only_fields = fields
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Admin-facing user account list and detail serializer (US-03)."""
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'status', 'is_active', 'date_joined']
+        read_only_fields = fields
+
+
+class AdminUserCreateSerializer(serializers.Serializer):
+    """
+    Administrator creation of Operator, Customer, or Admin accounts (US-03).
+    Enforces password policy, sets hashed password, and returns 409 Conflict for duplicates.
+    """
+
+    username = serializers.CharField(max_length=150, trim_whitespace=True)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='Operator')
+
+    def validate_username(self, value):
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError('Username cannot be empty.')
+        if User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        return username
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if not email:
+            raise serializers.ValidationError('Email address cannot be empty.')
+        if User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        return email
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        if username and User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        validate_password_policy(attrs['password'])
+        return attrs
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            role=validated_data.get('role', 'Operator'),
+            status='active',
+            is_active=True,
+            token_version=1,
+        )
+        user.set_password(validated_data['password'])
+        user.save()
+        return user
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Administrator update of user status and role (US-03)."""
+
+    status = serializers.ChoiceField(choices=User.STATUS_CHOICES, required=False)
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=False)
+
+    class Meta:
+        model = User
+        fields = ['status', 'role']
+
 
 
 class LoginSerializer(serializers.Serializer):
