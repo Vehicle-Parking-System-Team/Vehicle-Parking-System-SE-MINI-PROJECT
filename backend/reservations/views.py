@@ -1,5 +1,5 @@
 from rest_framework import generics
-from accounts.permissions import IsAuthenticatedAndActive
+from accounts.permissions import IsCustomer
 from .serializers import ReservationCreateSerializer
 
 
