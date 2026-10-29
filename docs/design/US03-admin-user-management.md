@@ -9,7 +9,7 @@ Requirement: FR-17
 
 ## 1. Overview & Acceptance Criteria
 
-US-03 enables administrators to manage system user accounts, enforce lifecycle status changes immediately, and securely provision Operator and Customer accounts.
+US-03 enables administrators to manage system user accounts, enforce lifecycle status changes immediately, and securely provision Operator and Customer accounts. Admin-created accounts are deliberately limited to those two roles; privileged Admin accounts are provisioned separately.
 
 - **AC-1:** Given valid administrator credentials, When creating a new operator or customer account with required fields, Then the account is created and stored with hashed password.
 - **AC-2:** Given an existing user account, When an administrator updates account status (`active`/`suspended`/`deactivated`), Then the updated status is enforced immediately on subsequent requests.
@@ -74,7 +74,7 @@ US-03 enables administrators to manage system user accounts, enforce lifecycle s
 ```
 - **Responses:**
   - `200 OK`: Account updated. When status changes to `suspended` or `deactivated`, `token_version` is atomically incremented, immediately revoking all outstanding JWT tokens on subsequent requests.
-  - `400 Bad Request`: Self-lockout attempted (administrator cannot suspend or demote own account) or attempt to suspend the last active administrator.
+  - `400 Bad Request`: Self-lockout attempted, unsupported creation role supplied, or attempt to suspend/deactivate/demote the last active administrator. The last-admin check and account update execute in one transaction with row locks on databases that support `SELECT FOR UPDATE`.
   - `404 Not Found`: Target user does not exist.
 
 ---
@@ -97,4 +97,4 @@ from accounts.events import UserAccountChangeEvent, dispatch_user_account_change
 - `new_state`: (dict) Key-value pairs after modification.
 - `timestamp`: (str) ISO 8601 formatted timestamp.
 
-Member 4 can hook audit-logging listeners directly into `dispatch_user_account_change`.
+`dispatch_user_account_change` emits the `user_account_changed` Django signal and writes a structured log entry. Member 4 can connect a receiver to `accounts.events.user_account_changed`. This is an integration seam, not a claim that the dashboard or persistent audit-log feature is implemented here; durable audit storage remains part of US-29.
