@@ -1,4 +1,5 @@
 from django.db import migrations, models
+from django.db.models import Q
 from django.db.models.functions import Lower
 
 
@@ -12,6 +13,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddConstraint(
             model_name="user",
-            constraint=models.UniqueConstraint(Lower("email"), name="accounts_email_ci_unique"),
+            constraint=models.UniqueConstraint(Lower("email"), condition=~Q(email=""), name="accounts_email_ci_unique"),
         ),
     ]
