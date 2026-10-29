@@ -5,5 +5,5 @@ from .serializers import ReservationCreateSerializer
 
 class ReservationCreateView(generics.CreateAPIView):
     serializer_class = ReservationCreateSerializer
-    permission_classes = [IsAuthenticatedAndActive]
+    permission_classes = [IsCustomer]
     http_method_names = ['post', 'options']
