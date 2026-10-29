@@ -839,7 +839,7 @@ class CustomerRegistrationTests(TestCase):
 
         with patch('accounts.serializers.User.save', side_effect=IntegrityError('unique constraint')):
             with patch.object(User.objects, 'filter') as filter_mock:
-                filter_mock.return_value.exists.side_effect = [False, False]
+                filter_mock.return_value.exists.return_value = False
                 response = self.client.post(
                     '/api/auth/register/',
                     self.valid_payload,
