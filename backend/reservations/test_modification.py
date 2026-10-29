@@ -184,6 +184,51 @@ class ReservationModificationTests(TestCase):
         }, format='json')
         self.assertEqual(response.status_code, 200, response.data)
 
+    def test_create_rejects_same_vehicle_overlap_on_different_slot(self):
+        other_slot = ParkingSlot.objects.create(
+            zone=self.zone, slot_number='US14-4', vehicle_type='Compact',
+        )
+        response = self.client.post('/api/parking/reservations/', {
+            'slot': other_slot.pk,
+            'vehicle': self.vehicle.pk,
+            'start_time': (self.start + timedelta(minutes=15)).isoformat(),
+            'duration_minutes': 30,
+        }, format='json')
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(Reservation.objects.count(), 1)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+
+    def test_create_allows_adjacent_same_vehicle_booking_on_different_slot(self):
+        other_slot = ParkingSlot.objects.create(
+            zone=self.zone, slot_number='US14-5', vehicle_type='Compact',
+        )
+        response = self.client.post('/api/parking/reservations/', {
+            'slot': other_slot.pk,
+            'vehicle': self.vehicle.pk,
+            'start_time': (self.start + timedelta(hours=1)).isoformat(),
+            'duration_minutes': 30,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Reservation.objects.count(), 2)
+
+    def test_create_allows_same_window_for_different_vehicle_and_slot(self):
+        other_vehicle = Vehicle.objects.create(
+            registration_number='KA01US1402', vehicle_type='Compact',
+            owner=self.customer,
+        )
+        other_slot = ParkingSlot.objects.create(
+            zone=self.zone, slot_number='US14-6', vehicle_type='Compact',
+        )
+        response = self.client.post('/api/parking/reservations/', {
+            'slot': other_slot.pk,
+            'vehicle': other_vehicle.pk,
+            'start_time': self.start.isoformat(),
+            'duration_minutes': 60,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Reservation.objects.count(), 2)
+
     def test_invalid_reschedule_returns_400(self):
         for data in (
             {'start_time': (timezone.now() - timedelta(days=1)).isoformat(), 'duration_minutes': 60},
