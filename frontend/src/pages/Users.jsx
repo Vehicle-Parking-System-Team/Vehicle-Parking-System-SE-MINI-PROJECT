@@ -102,6 +102,33 @@ export default function UsersPage() {
     }
   }
 
+  const handleRoleChange = async (targetUser, nextRole) => {
+    if (targetUser.id === currentUser?.id) {
+      setError('Administrators cannot change their own role.')
+      return
+    }
+    if (nextRole === targetUser.role) return
+    setError(null)
+    setSuccessMessage(null)
+    try {
+      const token = accessToken || localStorage.getItem('vps_access_token')
+      const response = await fetch(`${API_BASE}/${targetUser.id}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        const detail = data.details ? Object.values(data.details).flat().join(' ') : ''
+        throw new Error(detail || data.error || data.role?.[0] || 'Failed to update account role.')
+      }
+      setSuccessMessage(`Account ${targetUser.username} role changed to ${data.role}.`)
+      fetchUsers()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   const handleStatusToggle = async (targetUser) => {
     if (targetUser.id === currentUser?.id) {
       setError('Administrators cannot suspend or deactivate their own account.')
@@ -215,7 +242,8 @@ export default function UsersPage() {
                 <th style={{ padding: '12px 16px' }}>Email</th>
                 <th style={{ padding: '12px 16px' }}>Role</th>
                 <th style={{ padding: '12px 16px' }}>Status</th>
-                <th style={{ padding: '12px 16px' }}>Actions</th>
+                <th style={{ padding: '12px 16px' }}>Role management</th>
+                <th style={{ padding: '12px 16px' }}>Status actions</th>
               </tr>
             </thead>
             <tbody>
@@ -254,6 +282,22 @@ export default function UsersPage() {
                       >
                         {u.status}
                       </span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      {!isSelf ? (
+                        <select
+                          aria-label={`Change role for ${u.username}`}
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u, e.target.value)}
+                          style={{ padding: '5px 8px', borderRadius: '4px', border: '1px solid #d8dee8' }}
+                        >
+                          <option value="Admin">Admin</option>
+                          <option value="Operator">Operator</option>
+                          <option value="Customer">Customer</option>
+                        </select>
+                      ) : (
+                        <span style={{ color: '#596579', fontSize: '12px' }}>Your role</span>
+                      )}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       {!isSelf && (
@@ -351,7 +395,6 @@ export default function UsersPage() {
                 >
                   <option value="Operator">Operator</option>
                   <option value="Customer">Customer</option>
-                  <option value="Admin">Administrator</option>
                 </select>
               </div>
 
