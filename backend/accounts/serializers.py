@@ -2,7 +2,7 @@ import re
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
@@ -120,7 +120,23 @@ class AdminUserCreateSerializer(serializers.Serializer):
             token_version=1,
         )
         user.set_password(validated_data['password'])
-        user.save()
+        try:
+            with transaction.atomic():
+                user.save()
+        except IntegrityError:
+            # Check after the failed transaction rolls back, so a competing
+            # successful insert is visible and can be reported as HTTP 409.
+            if User.objects.filter(username__iexact=user.username).exists():
+                raise Conflict(
+                    'A user with that username already exists.',
+                    details={'username': 'A user with that username already exists.'},
+                )
+            if User.objects.filter(email__iexact=user.email).exists():
+                raise Conflict(
+                    'A user with that email address already exists.',
+                    details={'email': 'A user with that email address already exists.'},
+                )
+            raise
         return user
 
 
@@ -128,7 +144,8 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
     """Administrator update of user status and role (US-03)."""
 
     status = serializers.ChoiceField(choices=User.STATUS_CHOICES, required=False)
-    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=False)
+    # Privileged Admin accounts are provisioned outside this API.
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], required=False)
 
     class Meta:
         model = User
