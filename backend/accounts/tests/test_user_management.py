@@ -1,6 +1,10 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.db import IntegrityError, transaction
+from unittest.mock import patch
+
+from common.exceptions import Conflict
+from accounts.serializers import AdminUserCreateSerializer
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -297,3 +301,19 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.operator.refresh_from_db()
         self.assertEqual(self.operator.role, "Operator")
+    def test_database_uniqueness_race_is_translated_to_conflict(self):
+        serializer = AdminUserCreateSerializer(data={
+            "username": "race_user",
+            "email": "race_user@parking.local",
+            "password": "ValidPassword123!",
+            "role": "Operator",
+        })
+        serializer.is_valid(raise_exception=True)
+        # Simulate another transaction winning the unique insert between validation and save.
+        with patch("accounts.serializers.User.save", side_effect=IntegrityError("unique constraint")):
+            with patch.object(User.objects, "filter") as filter_mock:
+                filter_mock.return_value.exists.return_value = True
+                with self.assertRaises(Conflict) as raised:
+                    serializer.save()
+        self.assertEqual(raised.exception.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("already exists", str(raised.exception.detail))
