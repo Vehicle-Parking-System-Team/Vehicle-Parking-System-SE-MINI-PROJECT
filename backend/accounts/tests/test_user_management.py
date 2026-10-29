@@ -287,3 +287,13 @@ class AdminUserManagementTests(TestCase):
             self.assertEqual(self.customer.role, "Operator")
         finally:
             user_account_changed.disconnect(failing_receiver)
+    def test_admin_cannot_promote_user_to_admin(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f"/api/auth/users/{self.operator.pk}/",
+            {"role": "Admin"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.operator.refresh_from_db()
+        self.assertEqual(self.operator.role, "Operator")
