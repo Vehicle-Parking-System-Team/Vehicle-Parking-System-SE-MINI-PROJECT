@@ -79,7 +79,38 @@ class ReservationModificationTests(TestCase):
             'duration_minutes': 60,
         }, format='json').status_code, 400)
 
-    def test_occupied_slot_cannot_be_cancelled(self):
+    def test_future_reservation_can_be_cancelled_while_slot_is_occupied(self):
+        # A different vehicle is currently parked in the slot. That does not
+        # imply that this reservation (scheduled two days later) has started.
+        self.slot.status = ParkingSlot.Status.OCCUPIED
+        self.slot.save(update_fields=['status'])
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.CANCELLED)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.status, ParkingSlot.Status.OCCUPIED)
+
+    def test_future_reservation_can_be_rescheduled_while_slot_is_occupied(self):
+        self.slot.status = ParkingSlot.Status.OCCUPIED
+        self.slot.save(update_fields=['status'])
+        new_start = self.start + timedelta(hours=2)
+        response = self.client.patch(self.url, {
+            'start_time': new_start.isoformat(),
+            'duration_minutes': 45,
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.start_time, new_start)
+        self.assertEqual(self.reservation.end_time, new_start + timedelta(minutes=45))
+        self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.status, ParkingSlot.Status.OCCUPIED)
+
+    def test_started_reservation_on_occupied_slot_still_rejects_cancellation(self):
+        self.reservation.start_time = timezone.now() - timedelta(minutes=10)
+        self.reservation.end_time = timezone.now() + timedelta(minutes=50)
+        self.reservation.save(update_fields=['start_time', 'end_time'])
         self.slot.status = ParkingSlot.Status.OCCUPIED
         self.slot.save(update_fields=['status'])
         self.assertEqual(self.client.delete(self.url).status_code, 400)
