@@ -31,6 +31,11 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
     if vehicle.owner_id != customer.pk:
         raise serializers.ValidationError({'vehicle': 'Vehicle does not belong to this customer.'})
     if Reservation.objects.filter(
+        vehicle=vehicle, status=Reservation.Status.CONFIRMED,
+        start_time__lt=end_time, end_time__gt=start_time,
+    ).exists():
+        raise Conflict('The vehicle already has a reservation for this time window.')
+    if Reservation.objects.filter(
         slot=locked_slot, status=Reservation.Status.CONFIRMED,
         start_time__lt=end_time, end_time__gt=start_time,
     ).exists():
