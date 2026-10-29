@@ -150,6 +150,40 @@ class ReservationModificationTests(TestCase):
         self.reservation.refresh_from_db()
         self.assertEqual(self.reservation.start_time, self.start)
 
+    def test_reschedule_rejects_same_vehicle_booking_on_different_slot(self):
+        other_slot = ParkingSlot.objects.create(
+            zone=self.zone, slot_number='US14-2', vehicle_type='Compact',
+        )
+        conflicting_start = self.start + timedelta(hours=3)
+        Reservation.objects.create(
+            customer=self.customer, vehicle=self.vehicle, slot=other_slot,
+            start_time=conflicting_start,
+            end_time=conflicting_start + timedelta(hours=1),
+        )
+        response = self.client.patch(self.url, {
+            'start_time': (conflicting_start + timedelta(minutes=15)).isoformat(),
+            'duration_minutes': 30,
+        }, format='json')
+        self.assertEqual(response.status_code, 409, response.data)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.start_time, self.start)
+        self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+
+    def test_reschedule_allows_adjacent_same_vehicle_booking(self):
+        other_slot = ParkingSlot.objects.create(
+            zone=self.zone, slot_number='US14-3', vehicle_type='Compact',
+        )
+        other_start = self.start + timedelta(hours=3)
+        Reservation.objects.create(
+            customer=self.customer, vehicle=self.vehicle, slot=other_slot,
+            start_time=other_start, end_time=other_start + timedelta(hours=1),
+        )
+        response = self.client.patch(self.url, {
+            'start_time': (other_start - timedelta(hours=1)).isoformat(),
+            'duration_minutes': 60,
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+
     def test_invalid_reschedule_returns_400(self):
         for data in (
             {'start_time': (timezone.now() - timedelta(days=1)).isoformat(), 'duration_minutes': 60},
