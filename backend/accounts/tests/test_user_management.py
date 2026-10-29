@@ -317,3 +317,12 @@ class AdminUserManagementTests(TestCase):
                     serializer.save()
         self.assertEqual(raised.exception.status_code, status.HTTP_409_CONFLICT)
         self.assertIn("already exists", str(raised.exception.detail))
+    def test_database_enforces_case_insensitive_email_uniqueness(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                User.objects.create_user(
+                    username="different_user",
+                    email="JOE@PARKING.LOCAL",
+                    password="Password123!",
+                    role="Operator",
+                )
