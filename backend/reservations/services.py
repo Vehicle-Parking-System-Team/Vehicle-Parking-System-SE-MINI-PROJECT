@@ -22,7 +22,9 @@ def create_reservation(*, customer, vehicle, slot, start_time, end_time):
         raise Conflict('The selected slot is unavailable.')
     if locked_slot.vehicle_type not in ('any', vehicle.vehicle_type):
         raise serializers.ValidationError({'slot': 'Incompatible vehicle type.'})
-    if customer.role == 'Customer' and vehicle.owner_id != customer.pk:
+    if customer.role != 'Customer':
+        raise serializers.ValidationError({'customer': 'Only customers can create reservations.'})
+    if vehicle.owner_id != customer.pk:
         raise serializers.ValidationError({'vehicle': 'Vehicle does not belong to this customer.'})
     if Reservation.objects.filter(
         slot=locked_slot, status=Reservation.Status.CONFIRMED,
