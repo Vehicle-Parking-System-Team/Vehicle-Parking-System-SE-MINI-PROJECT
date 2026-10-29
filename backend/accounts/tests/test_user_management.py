@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.db import IntegrityError, transaction
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -218,3 +219,71 @@ class AdminUserManagementTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.admin.refresh_from_db()
         self.assertEqual(self.admin.role, "Admin")
+
+    def test_case_insensitive_duplicate_username_returns_409(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post("/api/auth/users/", {
+            "username": "OPERATOR_JOE",
+            "email": "another-unique@parking.local",
+            "password": "ValidPassword123!",
+            "role": "Operator",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("username", response.data.get("details", {}))
+
+    def test_case_insensitive_duplicate_email_returns_409(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post("/api/auth/users/", {
+            "username": "unique_case_user",
+            "email": "JOE@PARKING.LOCAL",
+            "password": "ValidPassword123!",
+            "role": "Operator",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("email", response.data.get("details", {}))
+
+    def test_database_enforces_case_insensitive_username_uniqueness(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                User.objects.create_user(
+                    username="OPERATOR_JOE",
+                    email="different@parking.local",
+                    password="Password123!",
+                    role="Operator",
+                )
+
+    def test_receiver_failure_does_not_fail_create_or_lose_account(self):
+        from accounts.events import user_account_changed
+        def failing_receiver(sender, event, **kwargs):
+            raise RuntimeError("simulated downstream outage")
+        user_account_changed.connect(failing_receiver, weak=False)
+        try:
+            self.client.force_authenticate(user=self.admin)
+            response = self.client.post("/api/auth/users/", {
+                "username": "receiver_failure_user",
+                "email": "receiver_failure@parking.local",
+                "password": "ValidPassword123!",
+                "role": "Operator",
+            }, format="json")
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            self.assertTrue(User.objects.filter(username="receiver_failure_user").exists())
+        finally:
+            user_account_changed.disconnect(failing_receiver)
+
+    def test_receiver_failure_does_not_fail_update_or_lose_change(self):
+        from accounts.events import user_account_changed
+        def failing_receiver(sender, event, **kwargs):
+            raise RuntimeError("simulated downstream outage")
+        user_account_changed.connect(failing_receiver, weak=False)
+        try:
+            self.client.force_authenticate(user=self.admin)
+            response = self.client.patch(
+                f"/api/auth/users/{self.customer.pk}/",
+                {"role": "Operator"},
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.customer.refresh_from_db()
+            self.assertEqual(self.customer.role, "Operator")
+        finally:
+            user_account_changed.disconnect(failing_receiver)
