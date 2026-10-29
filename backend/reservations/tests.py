@@ -121,3 +121,42 @@ class ReservationCreateTests(TestCase):
         self.assertEqual(self.client.post(
             '/api/parking/reservations/', self.payload(), format='json',
         ).status_code, 401)
+
+    def test_staff_roles_cannot_create_reservations(self):
+        for role in ('Admin', 'Operator'):
+            with self.subTest(role=role):
+                staff = get_user_model().objects.create_user(
+                    username='staff_' + role.lower(), role=role,
+                )
+                self.client.force_authenticate(user=staff)
+                response = self.client.post(
+                    '/api/parking/reservations/', self.payload(), format='json',
+                )
+                self.assertEqual(response.status_code, 403, response.data)
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_customer_cannot_reserve_other_customers_vehicle(self):
+        response = self.client.post(
+            '/api/parking/reservations/',
+            self.payload(vehicle=self.other_vehicle.pk), format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_inactive_zone_returns_400_without_creating_reservation(self):
+        self.slot.zone.is_active = False
+        self.slot.zone.save(update_fields=['is_active'])
+        response = self.client.post(
+            '/api/parking/reservations/', self.payload(), format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_occupied_slot_returns_409_without_creating_reservation(self):
+        self.slot.status = ParkingSlot.Status.OCCUPIED
+        self.slot.save(update_fields=['status'])
+        response = self.client.post(
+            '/api/parking/reservations/', self.payload(), format='json',
+        )
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(Reservation.objects.count(), 0)
