@@ -279,19 +279,37 @@ class RegisterSerializer(serializers.Serializer):
 
         # Enforce Customer role safeguard (DEC-13 / NFR-SEC-02)
         # Any client-supplied privileges or role fields are ignored/overridden
-        with transaction.atomic():
-            user = User(
-                username=username,
-                email=email,
-                role='Customer',
-                status='active',
-                is_active=True,
-                is_staff=False,
-                is_superuser=False,
-                token_version=1,
-            )
-            user.set_password(password)
-            user.save()
+        try:
+            with transaction.atomic():
+                user = User(
+                    username=username,
+                    email=email,
+                    role='Customer',
+                    status='active',
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                    token_version=1,
+                )
+                user.set_password(password)
+                user.save()
+        except IntegrityError:
+            # Validation checks can race with another registration. The failed
+            # atomic block has rolled back before these checks run, so report
+            # the winning insert as a normal client validation error.
+            if User.objects.filter(username__iexact=username).exists():
+                raise serializers.ValidationError({
+                    'username': ['A user with that username already exists.']
+                })
+            if User.objects.filter(email__iexact=email).exists():
+                raise serializers.ValidationError({
+                    'email': ['A user with that email address already exists.']
+                })
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    'Registration could not be completed because the username or email conflicts with another account.'
+                ]
+            })
 
         # Issue JWT tokens for instant authenticated session
         refresh = RefreshToken.for_user(user)
