@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Lower
 
 
 class User(AbstractUser):
@@ -37,6 +39,10 @@ class User(AbstractUser):
     class Meta:
         db_table = 'users'
         ordering = ['id']
+        constraints = [
+            models.UniqueConstraint(Lower('username'), name='accounts_username_ci_unique'),
+            models.UniqueConstraint(Lower('email'), condition=~Q(email=''), name='accounts_email_ci_unique'),
+        ]
 
     def __str__(self):
         return f'{self.username} ({self.role})'

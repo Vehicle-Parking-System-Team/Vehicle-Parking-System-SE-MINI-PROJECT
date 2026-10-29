@@ -5,12 +5,14 @@ import { VehicleProfileView } from './VehicleProfileView'
 import BayIcon from './BayIcon'
 import SlotsPage from '../pages/Slots'
 import SearchPage from '../pages/Search'
+import UsersPage from '../pages/Users'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
 export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
   const canManage = isRoleAuthorized(user?.role, [ROLES.ADMIN, ROLES.OPERATOR])
+  const isAdmin = isRoleAuthorized(user?.role, [ROLES.ADMIN])
   const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
 
@@ -18,6 +20,7 @@ export function AuthenticatedView() {
   const navigation = [
     ['availability', 'Parking availability', 'map'],
     ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
+    ...(isAdmin ? [['users', 'User management', 'user']] : []),
     ['vehicles', 'My vehicles', 'car'],
     ['profiles', 'Vehicle profiles', 'edit'],
     ['search', 'Vehicle search', 'search'],
@@ -166,6 +169,10 @@ export function AuthenticatedView() {
                 onNavigateToRegister={() => setPage('vehicles')}
               />
             </section>
+          ) : activePage === 'users' ? (
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <UsersPage />
+            </ProtectedRoute>
           ) : (
             <section className="bay-account">
               <span className="bay-eyebrow">YOUR WORKSPACE</span>

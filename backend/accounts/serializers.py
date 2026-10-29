@@ -2,11 +2,13 @@ import re
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from common.exceptions import Conflict
 
 from accounts.models import User
 
@@ -49,6 +51,106 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'role', 'status']
         read_only_fields = fields
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Admin-facing user account list and detail serializer (US-03)."""
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role', 'status', 'is_active', 'date_joined']
+        read_only_fields = fields
+
+
+class AdminUserCreateSerializer(serializers.Serializer):
+    """
+    Administrator creation of Operator or Customer accounts (US-03).
+    Enforces password policy, sets hashed password, and returns 409 Conflict for duplicates.
+    """
+
+    username = serializers.CharField(max_length=150, trim_whitespace=True)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], default='Operator')
+
+    def validate_username(self, value):
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError('Username cannot be empty.')
+        if User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        return username
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if not email:
+            raise serializers.ValidationError('Email address cannot be empty.')
+        if User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        return email
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        if username and User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        validate_password_policy(attrs['password'])
+        return attrs
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            role=validated_data.get('role', 'Operator'),
+            status='active',
+            is_active=True,
+            token_version=1,
+        )
+        user.set_password(validated_data['password'])
+        try:
+            with transaction.atomic():
+                user.save()
+        except IntegrityError:
+            # Check after the failed transaction rolls back, so a competing
+            # successful insert is visible and can be reported as HTTP 409.
+            if User.objects.filter(username__iexact=user.username).exists():
+                raise Conflict(
+                    'A user with that username already exists.',
+                    details={'username': 'A user with that username already exists.'},
+                )
+            if User.objects.filter(email__iexact=user.email).exists():
+                raise Conflict(
+                    'A user with that email address already exists.',
+                    details={'email': 'A user with that email address already exists.'},
+                )
+            raise
+        return user
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Administrator update of user status and role (US-03)."""
+
+    status = serializers.ChoiceField(choices=User.STATUS_CHOICES, required=False)
+    # Privileged Admin accounts are provisioned outside this API.
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], required=False)
+
+    class Meta:
+        model = User
+        fields = ['status', 'role']
+
 
 
 class LoginSerializer(serializers.Serializer):
@@ -177,19 +279,37 @@ class RegisterSerializer(serializers.Serializer):
 
         # Enforce Customer role safeguard (DEC-13 / NFR-SEC-02)
         # Any client-supplied privileges or role fields are ignored/overridden
-        with transaction.atomic():
-            user = User(
-                username=username,
-                email=email,
-                role='Customer',
-                status='active',
-                is_active=True,
-                is_staff=False,
-                is_superuser=False,
-                token_version=1,
-            )
-            user.set_password(password)
-            user.save()
+        try:
+            with transaction.atomic():
+                user = User(
+                    username=username,
+                    email=email,
+                    role='Customer',
+                    status='active',
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                    token_version=1,
+                )
+                user.set_password(password)
+                user.save()
+        except IntegrityError:
+            # Validation checks can race with another registration. The failed
+            # atomic block has rolled back before these checks run, so report
+            # the winning insert as a normal client validation error.
+            if User.objects.filter(username__iexact=username).exists():
+                raise serializers.ValidationError({
+                    'username': ['A user with that username already exists.']
+                })
+            if User.objects.filter(email__iexact=email).exists():
+                raise serializers.ValidationError({
+                    'email': ['A user with that email address already exists.']
+                })
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    'Registration could not be completed because the username or email conflicts with another account.'
+                ]
+            })
 
         # Issue JWT tokens for instant authenticated session
         refresh = RefreshToken.for_user(user)
