@@ -177,3 +177,44 @@ class AdminUserManagementTests(TestCase):
             format='json',
         )
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_admin_cannot_create_another_admin_account(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post("/api/auth/users/", {
+            "username": "new_admin",
+            "email": "new_admin@parking.local",
+            "password": "SecurePassword123!",
+            "role": "Admin",
+        }, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(User.objects.filter(username="new_admin").exists())
+
+    def test_admin_can_change_role_and_emits_integration_signal(self):
+        from accounts.events import user_account_changed
+        received = []
+        def receiver(sender, event, **kwargs):
+            received.append(event)
+        user_account_changed.connect(receiver, weak=False)
+        try:
+            self.client.force_authenticate(user=self.admin)
+            response = self.client.patch(
+                f"/api/auth/users/{self.customer.pk}/",
+                {"role": "Operator"}, format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["role"], "Operator")
+            self.assertEqual(len(received), 1)
+            self.assertEqual(received[0].event_type, "ROLE_CHANGED")
+            self.assertEqual(received[0].previous_state["role"], "Customer")
+            self.assertEqual(received[0].new_state["role"], "Operator")
+        finally:
+            user_account_changed.disconnect(receiver)
+
+    def test_last_active_admin_cannot_be_demoted(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.patch(
+            f"/api/auth/users/{self.admin.pk}/", {"role": "Operator"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.admin.refresh_from_db()
+        self.assertEqual(self.admin.role, "Admin")
