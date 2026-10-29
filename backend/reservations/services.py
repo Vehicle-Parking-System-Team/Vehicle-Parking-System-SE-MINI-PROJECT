@@ -72,10 +72,10 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
         raise serializers.ValidationError({
             'start_time': 'A reservation that has started cannot be changed or cancelled.'
         })
-    if locked_slot.status == ParkingSlot.Status.OCCUPIED:
-        raise serializers.ValidationError({
-            'slot': 'A checked-in reservation cannot be changed or cancelled.'
-        })
+    # A slot may currently be occupied by a different vehicle while this
+    # reservation is for a future window. The reservation's own start time
+    # determines whether it has commenced; slot.status does not identify
+    # which reservation, if any, was checked in.
 
     if cancel:
         reservation.status = Reservation.Status.CANCELLED
@@ -94,9 +94,7 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
         })
     if not locked_slot.is_active or not locked_slot.zone.is_active:
         raise Conflict('The selected slot is unavailable.')
-    if locked_slot.status in (
-        ParkingSlot.Status.MAINTENANCE, ParkingSlot.Status.OCCUPIED,
-    ):
+    if locked_slot.status == ParkingSlot.Status.MAINTENANCE:
         raise Conflict('The selected slot is unavailable.')
     if Reservation.objects.filter(
         slot=locked_slot, status=Reservation.Status.CONFIRMED,
