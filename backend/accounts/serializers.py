@@ -63,14 +63,14 @@ class AdminUserListSerializer(serializers.ModelSerializer):
 
 class AdminUserCreateSerializer(serializers.Serializer):
     """
-    Administrator creation of Operator, Customer, or Admin accounts (US-03).
+    Administrator creation of Operator or Customer accounts (US-03).
     Enforces password policy, sets hashed password, and returns 409 Conflict for duplicates.
     """
 
     username = serializers.CharField(max_length=150, trim_whitespace=True)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='Operator')
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], default='Operator')
 
     def validate_username(self, value):
         username = value.strip()
