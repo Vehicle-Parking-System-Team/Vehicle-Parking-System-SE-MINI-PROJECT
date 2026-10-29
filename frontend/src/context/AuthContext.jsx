@@ -200,6 +200,15 @@ export function AuthProvider({ children }) {
 
   const clearError = useCallback(() => setError(null), [])
 
+  // Update local user state and storage (US-04)
+  const updateUser = useCallback((userData) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...userData }
+      localStorage.setItem(USER_KEY, JSON.stringify(merged))
+      return merged
+    })
+  }, [])
+
   // Verify session on initial load if tokens exist
   useEffect(() => {
     if (accessToken) {
@@ -230,10 +239,11 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
     refreshTokens,
     fetchWithAuth,
     clearError,
-  }), [user, accessToken, isLoading, error, login, register, logout, refreshTokens, fetchWithAuth, clearError])
+  }), [user, accessToken, isLoading, error, login, register, logout, updateUser, refreshTokens, fetchWithAuth, clearError])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

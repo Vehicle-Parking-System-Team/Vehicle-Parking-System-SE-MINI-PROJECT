@@ -5,6 +5,7 @@ import { VehicleProfileView } from './VehicleProfileView'
 import BayIcon from './BayIcon'
 import SlotsPage from '../pages/Slots'
 import SearchPage from '../pages/Search'
+import ProfilePage from '../pages/Profile'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
@@ -167,37 +168,7 @@ export function AuthenticatedView() {
               />
             </section>
           ) : (
-            <section className="bay-account">
-              <span className="bay-eyebrow">YOUR WORKSPACE</span>
-              <h1>
-                A little about you<span>.</span>
-              </h1>
-              <div className="bay-account-card">
-                <span className="bay-avatar bay-avatar-large">
-                  {user?.username?.slice(0, 2).toUpperCase()}
-                </span>
-                <h2>{user?.username}</h2>
-                <p>{user?.email || 'No email provided'}</p>
-                <dl className="bay-slot-details">
-                  <div>
-                    <dt>Role</dt>
-                    <dd>{user?.role}</dd>
-                  </div>
-                  <div>
-                    <dt>Account status</dt>
-                    <dd id="user-display-status">{user?.status || 'active'}</dd>
-                  </div>
-                </dl>
-                <button
-                  className="bay-button bay-button-primary"
-                  onClick={logout}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Signing out...' : 'Sign out securely'}
-                  <BayIcon name="exit" size={17} />
-                </button>
-              </div>
-            </section>
+            <ProfilePage />
           )}
         </main>
         <footer className="bay-footer">

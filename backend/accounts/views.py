@@ -11,6 +11,8 @@ from accounts.permissions import IsAuthenticatedAndActive
 from accounts.serializers import (
     CustomTokenRefreshSerializer,
     LoginSerializer,
+    PasswordChangeSerializer,
+    ProfileUpdateSerializer,
     LogoutSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -109,8 +111,8 @@ class TokenRefreshView(APIView):
 
 class CurrentUserView(APIView):
     """
-    Retrieve current authenticated user context to verify protected route access.
-    US-01 / FR-15, US-02 / FR-16.
+    Retrieve or update current authenticated user context.
+    US-01 / FR-15, US-02 / FR-16, US-04 / FR-18.
     """
 
     permission_classes = [IsAuthenticatedAndActive]
@@ -118,3 +120,47 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+class ProfileView(APIView):
+    """
+    US-04 / FR-18: Inspect and update authenticated user's own profile.
+    """
+
+    permission_classes = [IsAuthenticatedAndActive]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+    def put(self, request):
+        return self.patch(request)
+
+
+class PasswordChangeView(APIView):
+    """
+    US-04 / FR-18: Secure password change with current password verification and token revocation.
+    """
+
+    permission_classes = [IsAuthenticatedAndActive]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {'message': 'Password changed successfully.'},
+            status=status.HTTP_200_OK,
+        )
