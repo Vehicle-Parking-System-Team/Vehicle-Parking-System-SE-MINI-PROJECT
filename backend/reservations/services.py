@@ -97,6 +97,12 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
     if locked_slot.status == ParkingSlot.Status.MAINTENANCE:
         raise Conflict('The selected slot is unavailable.')
     if Reservation.objects.filter(
+        vehicle_id=reservation.vehicle_id,
+        status=Reservation.Status.CONFIRMED,
+        start_time__lt=end_time, end_time__gt=start_time,
+    ).exclude(pk=reservation.pk).exists():
+        raise Conflict('The vehicle already has a reservation for this time window.')
+    if Reservation.objects.filter(
         slot=locked_slot, status=Reservation.Status.CONFIRMED,
         start_time__lt=end_time, end_time__gt=start_time,
     ).exclude(pk=reservation.pk).exists():
