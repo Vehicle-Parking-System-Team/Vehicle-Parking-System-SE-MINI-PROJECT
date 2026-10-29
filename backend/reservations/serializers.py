@@ -30,7 +30,7 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
             })
         vehicle = attrs['vehicle']
         user = self.context['request'].user
-        if user.role == 'Customer' and vehicle.owner_id != user.pk:
+        if vehicle.owner_id != user.pk:
             raise serializers.ValidationError({
                 'vehicle': 'Select a vehicle registered to your account.'
             })
