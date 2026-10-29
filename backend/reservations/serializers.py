@@ -30,7 +30,7 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
             })
         vehicle = attrs['vehicle']
         user = self.context['request'].user
-        if vehicle.owner_id != user.pk:
+        if user.role == 'Customer' and vehicle.owner_id != user.pk:
             raise serializers.ValidationError({
                 'vehicle': 'Select a vehicle registered to your account.'
             })
@@ -41,6 +41,8 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({
                 'slot': 'The slot does not support this vehicle type.'
             })
+        if vehicle.owner.role != 'Customer' or not vehicle.owner.is_active or vehicle.owner.status != 'active':
+            raise serializers.ValidationError({'vehicle': 'Vehicle owner must be an active customer.'})
         attrs['end_time'] = start + timedelta(minutes=attrs['duration_minutes'])
         return attrs
 
@@ -48,5 +50,6 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
         from .services import create_reservation
         validated_data.pop('duration_minutes')
         return create_reservation(
-            customer=self.context['request'].user, **validated_data,
+            actor=self.context['request'].user,
+            customer=validated_data['vehicle'].owner, **validated_data,
         )
