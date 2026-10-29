@@ -192,6 +192,14 @@ class AdminUserDetailView(APIView):
     def patch(self, request, pk):
         # Serialize admin lifecycle changes under row locks where supported.
         with transaction.atomic():
+            # Lock active administrators in a stable order before locking the target.
+            # Concurrent admin lifecycle changes therefore serialize without lock-order inversion.
+            active_admin_ids = list(
+                User.objects.select_for_update()
+                .filter(role='Admin', status='active', is_active=True)
+                .order_by('pk')
+                .values_list('pk', flat=True)
+            )
             try:
                 user = User.objects.select_for_update().get(pk=pk)
             except User.DoesNotExist:
@@ -209,7 +217,6 @@ class AdminUserDetailView(APIView):
                     raise exceptions.ValidationError({'role': 'Administrators cannot demote their own account role.'})
             threatens_admin_access = user.role == 'Admin' and ((new_status and new_status != 'active') or (new_role and new_role != 'Admin'))
             if threatens_admin_access:
-                active_admin_ids = list(User.objects.select_for_update().filter(role='Admin', status='active', is_active=True).order_by('pk').values_list('pk', flat=True))
                 if not any(admin_id != user.pk for admin_id in active_admin_ids):
                     raise exceptions.ValidationError({'error': 'Cannot suspend, deactivate, or demote the last active Administrator.'})
             previous_state = {'status': user.status, 'role': user.role}
