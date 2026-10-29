@@ -9,11 +9,11 @@ Requirement: FR-17
 
 ## 1. Overview & Acceptance Criteria
 
-US-03 enables administrators to manage system user accounts, enforce lifecycle status changes immediately, and securely provision Operator and Customer accounts. Admin-created accounts are deliberately limited to those two roles; privileged Admin accounts are provisioned separately.
+US-03 enables administrators to manage system user accounts, enforce lifecycle status changes immediately, and securely provision Operator and Customer accounts. Admin-created accounts are deliberately limited to those two roles; privileged Admin accounts are provisioned separately. The PATCH endpoint also cannot promote existing accounts to Admin.
 
 - **AC-1:** Given valid administrator credentials, When creating a new operator or customer account with required fields, Then the account is created and stored with hashed password.
 - **AC-2:** Given an existing user account, When an administrator updates account status (`active`/`suspended`/`deactivated`), Then the updated status is enforced immediately on subsequent requests.
-- **AC-3:** Given duplicate email or username input, When an account creation request is submitted, Then the system returns HTTP 409 Conflict with a clear validation message.
+- **AC-3:** Given duplicate email or username input, When an account creation request is submitted, Then the system returns HTTP 409 Conflict with a clear validation message. Username and non-empty email uniqueness is enforced case-insensitively by database constraints as well as request validation; integrity conflicts detected after a concurrent insert are translated to HTTP 409.
 
 ---
 
@@ -74,7 +74,7 @@ US-03 enables administrators to manage system user accounts, enforce lifecycle s
 ```
 - **Responses:**
   - `200 OK`: Account updated. When status changes to `suspended` or `deactivated`, `token_version` is atomically incremented, immediately revoking all outstanding JWT tokens on subsequent requests.
-  - `400 Bad Request`: Self-lockout attempted, unsupported creation role supplied, or attempt to suspend/deactivate/demote the last active administrator. The last-admin check and account update execute in one transaction with row locks on databases that support `SELECT FOR UPDATE`.
+  - `400 Bad Request`: Self-lockout attempted, unsupported creation role supplied, or attempt to suspend/deactivate/demote the last active administrator. The last-admin check and account update execute in one transaction with row locks on databases that support `SELECT FOR UPDATE`. Role updates may switch between Operator and Customer only; promotion to Admin is rejected by the API and hidden from the UI.
   - `404 Not Found`: Target user does not exist.
 
 ---
@@ -97,4 +97,4 @@ from accounts.events import UserAccountChangeEvent, dispatch_user_account_change
 - `new_state`: (dict) Key-value pairs after modification.
 - `timestamp`: (str) ISO 8601 formatted timestamp.
 
-`dispatch_user_account_change` emits the `user_account_changed` Django signal and writes a structured log entry. Member 4 can connect a receiver to `accounts.events.user_account_changed`. This is an integration seam, not a claim that the dashboard or persistent audit-log feature is implemented here; durable audit storage remains part of US-29.
+`dispatch_user_account_change` emits the `user_account_changed` Django signal using robust dispatch and writes a structured log entry. Receivers are best-effort: failures are logged without turning a persisted account mutation into an HTTP 500. Guaranteed delivery would require a transactional outbox and is outside the current US-03 contract. Member 4 can connect a receiver to `accounts.events.user_account_changed`. This is an integration seam, not a claim that the dashboard or persistent audit-log feature is implemented here; durable audit storage remains part of US-29.
