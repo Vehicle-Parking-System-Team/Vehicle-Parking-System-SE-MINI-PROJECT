@@ -107,6 +107,10 @@ export default function UsersPage() {
       setError('Administrators cannot change their own role.')
       return
     }
+    if (nextRole === 'Admin') {
+      setError('Admin privileges must be provisioned outside user management.')
+      return
+    }
     if (nextRole === targetUser.role) return
     setError(null)
     setSuccessMessage(null)
@@ -284,19 +288,18 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      {!isSelf ? (
+                      {!isSelf && u.role !== 'Admin' ? (
                         <select
                           aria-label={`Change role for ${u.username}`}
                           value={u.role}
                           onChange={(e) => handleRoleChange(u, e.target.value)}
                           style={{ padding: '5px 8px', borderRadius: '4px', border: '1px solid #d8dee8' }}
                         >
-                          <option value="Admin">Admin</option>
                           <option value="Operator">Operator</option>
                           <option value="Customer">Customer</option>
                         </select>
                       ) : (
-                        <span style={{ color: '#596579', fontSize: '12px' }}>Your role</span>
+                        <span style={{ color: '#596579', fontSize: '12px' }}>{isSelf ? 'Your role' : 'Admin role is managed separately'}</span>
                       )}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
