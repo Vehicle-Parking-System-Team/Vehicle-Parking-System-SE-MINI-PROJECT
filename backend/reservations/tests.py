@@ -122,8 +122,8 @@ class ReservationCreateTests(TestCase):
             '/api/parking/reservations/', self.payload(), format='json',
         ).status_code, 401)
 
-    def test_staff_roles_cannot_create_reservations(self):
-        for role in ('Admin', 'Operator'):
+    def test_admin_cannot_create_reservations(self):
+        for role in ('Admin',):
             with self.subTest(role=role):
                 staff = get_user_model().objects.create_user(
                     username='staff_' + role.lower(), role=role,
@@ -159,4 +159,48 @@ class ReservationCreateTests(TestCase):
             '/api/parking/reservations/', self.payload(), format='json',
         )
         self.assertEqual(response.status_code, 409, response.data)
+        self.assertEqual(Reservation.objects.count(), 0)
+
+    def test_operator_reserves_for_vehicle_owner(self):
+        operator = get_user_model().objects.create_user(
+            username='reservation_operator_13', role='Operator',
+        )
+        self.client.force_authenticate(user=operator)
+        response = self.client.post(
+            '/api/parking/reservations/',
+            self.payload(vehicle=self.other_vehicle.pk), format='json',
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        reservation = Reservation.objects.get()
+        self.assertEqual(reservation.customer_id, self.other.pk)
+        self.assertEqual(reservation.vehicle_id, self.other_vehicle.pk)
+        self.assertNotEqual(reservation.customer_id, operator.pk)
+
+    def test_operator_cannot_override_reservation_customer(self):
+        operator = get_user_model().objects.create_user(
+            username='reservation_operator_override_13', role='Operator',
+        )
+        self.client.force_authenticate(user=operator)
+        response = self.client.post(
+            '/api/parking/reservations/',
+            self.payload(vehicle=self.other_vehicle.pk, customer=self.user.pk),
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(Reservation.objects.get().customer_id, self.other.pk)
+        self.assertEqual(response.data['customer'], self.other.pk)
+
+    def test_operator_cannot_reserve_vehicle_for_noncustomer_owner(self):
+        operator = get_user_model().objects.create_user(
+            username='reservation_operator_invalid_13', role='Operator',
+        )
+        staff_vehicle = Vehicle.objects.create(
+            registration_number='KA01OP1313', vehicle_type='Compact', owner=operator,
+        )
+        self.client.force_authenticate(user=operator)
+        response = self.client.post(
+            '/api/parking/reservations/',
+            self.payload(vehicle=staff_vehicle.pk), format='json',
+        )
+        self.assertEqual(response.status_code, 400, response.data)
         self.assertEqual(Reservation.objects.count(), 0)
