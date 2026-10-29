@@ -29,7 +29,7 @@ class UserAccountChangeEvent:
 
 def dispatch_user_account_change(event: UserAccountChangeEvent) -> None:
     """Emit the event to registered Django signal receivers and log it."""
-    user_account_changed.send(sender=UserAccountChangeEvent, event=event)
+    # Receivers are best-effort; one failing consumer must not turn a persisted\n    # account change into an HTTP 500. Failures remain observable in logs.\n    for receiver, result in user_account_changed.send_robust(\n        sender=UserAccountChangeEvent, event=event\n    ):\n        if isinstance(result, Exception):\n            logger.error(\n                'Account change receiver %r failed for event %s (target id=%s)',\n                receiver, event.event_type, event.target_user_id,\n            )
     logger.info(
         "User account change event: actor=%s (id=%d) target=%s (id=%d) type=%s previous=%s new=%s timestamp=%s",
         event.actor_username, event.actor_id, event.target_username, event.target_user_id,
