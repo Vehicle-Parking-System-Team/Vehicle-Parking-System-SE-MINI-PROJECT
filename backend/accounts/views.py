@@ -190,60 +190,41 @@ class AdminUserDetailView(APIView):
         return Response(AdminUserListSerializer(user).data, status=status.HTTP_200_OK)
 
     def patch(self, request, pk):
-        user = self.get_object(pk)
-        serializer = AdminUserUpdateSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-
-        new_status = serializer.validated_data.get('status')
-        new_role = serializer.validated_data.get('role')
-
-        if not new_status and not new_role:
-            return Response(AdminUserListSerializer(user).data, status=status.HTTP_200_OK)
-
-        # Self-lockout prevention: Admin cannot suspend, deactivate, or demote self
-        if user.pk == request.user.pk:
-            if new_status and new_status != 'active':
-                raise exceptions.ValidationError({'status': 'Administrators cannot suspend or deactivate their own account.'})
-            if new_role and new_role != 'Admin':
-                raise exceptions.ValidationError({'role': 'Administrators cannot demote their own account role.'})
-
-        # Last-admin protection: Cannot suspend, deactivate, or demote the last active Admin
-        if user.role == 'Admin' and ((new_status and new_status != 'active') or (new_role and new_role != 'Admin')):
-            active_admin_count = User.objects.filter(role='Admin', status='active', is_active=True).count()
-            if active_admin_count <= 1:
-                raise exceptions.ValidationError({'error': 'Cannot suspend, deactivate, or demote the last active Administrator.'})
-
-        previous_state = {'status': user.status, 'role': user.role}
-
+        # Serialize admin lifecycle changes under row locks where supported.
         with transaction.atomic():
-            status_changed = False
-            if new_status and new_status != user.status:
+            try:
+                user = User.objects.select_for_update().get(pk=pk)
+            except User.DoesNotExist:
+                raise exceptions.NotFound('The requested user was not found.')
+            serializer = AdminUserUpdateSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            new_status = serializer.validated_data.get('status')
+            new_role = serializer.validated_data.get('role')
+            if not new_status and not new_role:
+                return Response(AdminUserListSerializer(user).data, status=status.HTTP_200_OK)
+            if user.pk == request.user.pk:
+                if new_status and new_status != 'active':
+                    raise exceptions.ValidationError({'status': 'Administrators cannot suspend or deactivate their own account.'})
+                if new_role and new_role != 'Admin':
+                    raise exceptions.ValidationError({'role': 'Administrators cannot demote their own account role.'})
+            threatens_admin_access = user.role == 'Admin' and ((new_status and new_status != 'active') or (new_role and new_role != 'Admin'))
+            if threatens_admin_access:
+                active_admin_ids = list(User.objects.select_for_update().filter(role='Admin', status='active', is_active=True).order_by('pk').values_list('pk', flat=True))
+                if not any(admin_id != user.pk for admin_id in active_admin_ids):
+                    raise exceptions.ValidationError({'error': 'Cannot suspend, deactivate, or demote the last active Administrator.'})
+            previous_state = {'status': user.status, 'role': user.role}
+            status_changed = bool(new_status and new_status != user.status)
+            role_changed = bool(new_role and new_role != user.role)
+            if status_changed:
                 user.status = new_status
                 if new_status in ('suspended', 'deactivated'):
                     user.token_version += 1
-                status_changed = True
-
-            role_changed = False
-            if new_role and new_role != user.role:
+                user.is_active = new_status == 'active'
+            if role_changed:
                 user.role = new_role
-                role_changed = True
-
-            user.save()
-
-        event_type = 'STATUS_CHANGED' if status_changed and not role_changed else (
-            'ROLE_CHANGED' if role_changed and not status_changed else 'ACCOUNT_UPDATED'
-        )
-        dispatch_user_account_change(
-            UserAccountChangeEvent(
-                actor_id=request.user.pk,
-                actor_username=request.user.username,
-                target_user_id=user.pk,
-                target_username=user.username,
-                event_type=event_type,
-                previous_state=previous_state,
-                new_state={'status': user.status, 'role': user.role},
-                timestamp=timezone.now().isoformat(),
-            )
-        )
-
+            if status_changed or role_changed:
+                user.save()
+        if status_changed or role_changed:
+            event_type = 'STATUS_CHANGED' if status_changed and not role_changed else ('ROLE_CHANGED' if role_changed and not status_changed else 'ACCOUNT_UPDATED')
+            dispatch_user_account_change(UserAccountChangeEvent(actor_id=request.user.pk, actor_username=request.user.username, target_user_id=user.pk, target_username=user.username, event_type=event_type, previous_state=previous_state, new_state={'status': user.status, 'role': user.role}, timestamp=timezone.now().isoformat()))
         return Response(AdminUserListSerializer(user).data, status=status.HTTP_200_OK)
