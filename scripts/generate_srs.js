@@ -995,7 +995,7 @@ add(H1('Appendix A: Glossary'),
 // ---------- Appendix B (landscape) ----------
 const appB = [];
 appB.push(H1('Appendix B: Requirements Traceability Matrix'),
-  P('This appendix reads the canonical RTM v1.2.0 for requirements, owners, implementation paths and status. The Markdown RTM additionally links verification evidence. Planned paths describe absent components; implementation status is not a full acceptance verdict. See Section 14 and the test summary for scope limits.'),
+  P('This appendix reads the canonical RTM v1.2.1 for requirements, owners, implementation paths and status. The Markdown RTM additionally links verification evidence. Planned paths describe absent components; implementation status is not a full acceptance verdict. See Section 14 and the test summary for scope limits.'),
   H2('B.1 Functional Requirements Traceability'),
   table(['Req ID', 'Requirement Description', 'User Story', 'Module', 'Owner', 'Design Ref', 'Code Ref', 'Test Case', 'Status'],
     RTM.map(r => [`**${r[0]}**`, r[1], r[2], r[3], r[4], r[5], r[6].split('; ').map(x => x), r[7], r[8]]),
