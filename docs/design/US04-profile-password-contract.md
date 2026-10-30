@@ -74,20 +74,22 @@ US-04 delivers self-service profile inspection, editable contact details, and se
   - Password complexity failure: `{"new_password": ["Password must contain at least one uppercase letter..."]}`
   - New password equals current password: `{"new_password": ["New password cannot be the same as the current password."]}`
   - Confirmation mismatch: `{"new_password_confirm": ["New passwords do not match."]}`
-  - Session revocation: Increments `user.token_version += 1`; the API rejects all access and refresh tokens carrying the previous version. The frontend clears its local credentials and returns the user to sign-in after a successful password change.\n  - Phone format: The backend validates both `phone_number` and the `contact_number` compatibility alias. Values may contain digits, spaces, `+`, `-`, and parentheses, up to 20 characters; blank is allowed. The model and migration also define a database-level empty-string default so legacy inserts that omit this optional column remain valid.
+  - Session revocation: Password changes increment `user.token_version`; requests using access or refresh tokens with the prior version are rejected. The frontend clears its local session and returns the user to sign-in after a successful password change.
+  - Phone format: The backend validates both `phone_number` and the `contact_number` compatibility alias. Values may contain digits, spaces, `+`, `-`, and parentheses, up to 20 characters; blank is allowed. The model and migration define an empty-string database default for legacy inserts that omit this optional field.
 
 ---
 
 ## 3. Frontend Implementation
 
-- **Page Component:** [`frontend/src/pages/Profile.jsx`](file:///c:/Users/Trisha%20V%20P/Vehicle-Parking-System-SE-MINI-PROJECT-1/frontend/src/pages/Profile.jsx)
-- **Validation Utility:** [`frontend/src/utils/profileValidation.js`](file:///c:/Users/Trisha%20V%20P/Vehicle-Parking-System-SE-MINI-PROJECT-1/frontend/src/utils/profileValidation.js)
-- **Auth Shell Integration:** [`frontend/src/components/AuthenticatedView.jsx`](file:///c:/Users/Trisha%20V%20P/Vehicle-Parking-System-SE-MINI-PROJECT-1/frontend/src/components/AuthenticatedView.jsx) under `activePage === 'account'`.
+- **Page Component:** [`frontend/src/pages/Profile.jsx`](../../frontend/src/pages/Profile.jsx)
+- **Validation Utility:** [`frontend/src/utils/profileValidation.js`](../../frontend/src/utils/profileValidation.js)
+- **Auth Shell Integration:** [`frontend/src/components/AuthenticatedView.jsx`](../../frontend/src/components/AuthenticatedView.jsx) under `activePage === 'account'`.
 
 ---
 
 ## 4. Verification & Test Summary
 
-- **Backend:** 11 focused test cases in [`backend/accounts/tests/test_profile_password.py`](file:///c:/Users/Trisha%20V%20P/Vehicle-Parking-System-SE-MINI-PROJECT-1/backend/accounts/tests/test_profile_password.py). All 75 accounts app tests passing.
-- **Frontend:** 12 focused test cases in [`frontend/tests/profile.test.js`](file:///c:/Users/Trisha%20V%20P/Vehicle-Parking-System-SE-MINI-PROJECT-1/frontend/tests/profile.test.js). All 87 frontend unit tests passing. Production build verified clean.
+- **Backend:** Regression tests cover profile reads/updates, role/status immutability, duplicate email rejection, malformed phone-number rejection for both API field names, optional blank phone numbers, password-policy failures, and rejection of pre-change access and refresh tokens.
+- **Frontend:** Validation and profile/password request behavior are covered by [`frontend/tests/profile.test.js`](../../frontend/tests/profile.test.js).
+- **Execution status:** See the current PR checks for the authoritative backend/frontend CI and security results; do not reuse test counts from earlier revisions.
 
