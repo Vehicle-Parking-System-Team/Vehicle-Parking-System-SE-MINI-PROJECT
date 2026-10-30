@@ -5,6 +5,18 @@ from django.db.models import Value
 from django.db.models.functions import Replace, Upper
 
 
+LEGACY_REGISTRATION_PATTERN = re.compile(
+    r'^(?:[A-Z]{2}[-\s]?(?:[0-9]{1,2}[-\s]?)?[A-Z]{1,8}[-\s]?[0-9]{1,4}|[0-9]{2}[-\s]?BH[-\s]?[0-9]{4}[-\s]?[A-Z]{1,2})$'
+)
+
+
+def normalize_legacy_registration_value(value):
+    raw = value.strip().upper()
+    if LEGACY_REGISTRATION_PATTERN.fullmatch(raw):
+        return re.sub(r'[-\s]+', '-', raw)
+    return raw
+
+
 def reject_existing_compact_duplicates(apps, schema_editor):
     """
     Fail safely if legacy rows differ only by case/space/hyphen formatting.
@@ -16,7 +28,8 @@ def reject_existing_compact_duplicates(apps, schema_editor):
     collisions = []
 
     for vehicle in Vehicle.objects.using(database).only('pk', 'registration_number').iterator():
-        key = re.sub(r'[- ]', '', vehicle.registration_number.strip().upper())
+        normalized = normalize_legacy_registration_value(vehicle.registration_number)
+        key = re.sub(r'[- ]', '', normalized)
         previous_id = seen.get(key)
         if previous_id is not None:
             collisions.append((key, previous_id, vehicle.pk))
@@ -42,20 +55,16 @@ def normalize_legacy_registration_formats(apps, schema_editor):
     """
     Vehicle = apps.get_model('vehicles', 'Vehicle')
     database = schema_editor.connection.alias
-    legacy_pattern = re.compile(
-        r'^(?:[A-Z]{2}[-\s]?(?:[0-9]{1,2}[-\s]?)?[A-Z]{1,8}[-\s]?[0-9]{1,4}|[0-9]{2}[-\s]?BH[-\s]?[0-9]{4}[-\s]?[A-Z]{1,2})$'
+    rows = list(
+        Vehicle.objects.using(database).values_list('pk', 'registration_number')
     )
 
-    for vehicle_id, registration_number in list(
-        Vehicle.objects.using(database).values_list('pk', 'registration_number')
-    ):
-        raw = registration_number.strip().upper()
-        if legacy_pattern.fullmatch(raw):
-            canonical = re.sub(r'[-\s]+', '-', raw)
-            if canonical != registration_number:
-                Vehicle.objects.using(database).filter(pk=vehicle_id).update(
-                    registration_number=canonical
-                )
+    for vehicle_id, registration_number in rows:
+        canonical = normalize_legacy_registration_value(registration_number)
+        if canonical != registration_number:
+            Vehicle.objects.using(database).filter(pk=vehicle_id).update(
+                registration_number=canonical
+            )
 
 
 class Migration(migrations.Migration):
