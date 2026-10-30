@@ -74,7 +74,7 @@ US-04 delivers self-service profile inspection, editable contact details, and se
   - Password complexity failure: `{"new_password": ["Password must contain at least one uppercase letter..."]}`
   - New password equals current password: `{"new_password": ["New password cannot be the same as the current password."]}`
   - Confirmation mismatch: `{"new_password_confirm": ["New passwords do not match."]}`
-  - Session revocation: Increments `user.token_version += 1`; the API rejects all access and refresh tokens carrying the previous version. The frontend clears its local credentials and returns the user to sign-in after a successful password change.\n  - Phone format: The backend validates both `phone_number` and the `contact_number` compatibility alias. Values may contain digits, spaces, `+`, `-`, and parentheses, up to 20 characters; blank is allowed.
+  - Session revocation: Increments `user.token_version += 1`; the API rejects all access and refresh tokens carrying the previous version. The frontend clears its local credentials and returns the user to sign-in after a successful password change.\n  - Phone format: The backend validates both `phone_number` and the `contact_number` compatibility alias. Values may contain digits, spaces, `+`, `-`, and parentheses, up to 20 characters; blank is allowed. The model and migration also define a database-level empty-string default so legacy inserts that omit this optional column remain valid.
 
 ---
 
