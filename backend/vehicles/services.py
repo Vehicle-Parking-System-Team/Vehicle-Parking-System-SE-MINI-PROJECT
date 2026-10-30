@@ -119,7 +119,7 @@ def get_vehicle_by_registration_number(registration_number: str) -> Vehicle | No
     Returns None if no matching vehicle exists.
     """
     normalized = normalize_registration_number(registration_number)
-    if not normalized:
+    if not normalized or not is_valid_registration_number(normalized):
         return None
     key = registration_number_comparison_key(normalized)
     try:
