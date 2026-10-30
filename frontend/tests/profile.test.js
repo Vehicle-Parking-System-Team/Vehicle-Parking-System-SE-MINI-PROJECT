@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { clearStoredAuthSession } from '../src/utils/authSession.js'
 import {
   validateProfileUpdateInput,
   validatePasswordChangeInput,
@@ -177,3 +178,16 @@ test('simulatePasswordChangeApi handles 400 incorrect current password error env
   assert.equal(errorResponse.details.current_password[0], 'Current password is incorrect.')
 })
 
+
+test('clearStoredAuthSession removes access, refresh, and user credentials', () => {
+  const removedKeys = []
+  const storage = { removeItem: (key) => removedKeys.push(key) }
+
+  clearStoredAuthSession(storage)
+
+  assert.deepEqual(removedKeys, [
+    'vps_access_token',
+    'vps_refresh_token',
+    'vps_user',
+  ])
+})
