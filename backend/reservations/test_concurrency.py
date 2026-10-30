@@ -63,3 +63,53 @@ class PostgreSQLReservationConcurrencyTests(TransactionTestCase):
                 slot=slot, status=Reservation.Status.CONFIRMED,
             ).count(), 1,
         )
+
+
+    def test_same_vehicle_different_slots_yields_one_201_one_409(self):
+        if connections['default'].vendor != 'postgresql':
+            self.skipTest('Requires PostgreSQL row-level locks')
+
+        user = get_user_model().objects.create_user(
+            username='concurrent_vehicle_14', role='Customer',
+        )
+        vehicle = Vehicle.objects.create(
+            registration_number='KA01CC1414', vehicle_type='Compact', owner=user,
+        )
+        zone = ParkingZone.objects.create(name='Concurrent Vehicle Reservations')
+        slots = [
+            ParkingSlot.objects.create(
+                zone=zone, slot_number=f'CV-14-{i}',
+                floor=0, vehicle_type='Compact',
+            )
+            for i in range(2)
+        ]
+        start = (timezone.now() + timedelta(days=2)).isoformat()
+        barrier = Barrier(2, timeout=15)
+
+        def reserve(slot_id):
+            close_old_connections()
+            try:
+                client = APIClient()
+                client.force_authenticate(user=user)
+                barrier.wait()
+                response = client.post('/api/parking/reservations/', {
+                    'vehicle': vehicle.pk,
+                    'slot': slot_id,
+                    'start_time': start,
+                    'duration_minutes': 60,
+                }, format='json')
+                return response.status_code
+            finally:
+                connections['default'].close()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first = pool.submit(reserve, slots[0].pk)
+            second = pool.submit(reserve, slots[1].pk)
+            statuses = sorted([first.result(timeout=30), second.result(timeout=30)])
+
+        self.assertEqual(statuses, [201, 409])
+        self.assertEqual(
+            Reservation.objects.filter(
+                vehicle=vehicle, status=Reservation.Status.CONFIRMED,
+            ).count(), 1,
+        )
