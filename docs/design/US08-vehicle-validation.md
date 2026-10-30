@@ -33,9 +33,9 @@ The format expression validates the documented project shape; it is not an exter
 | --- | --- |
 | `registration_number` | Required on POST and PUT; optional on PATCH only when the plate is not being changed; string; normalized; max 20; supported format |
 | `plate_number` | Legacy write-only alias; independently receives the same type/length/format validation as `registration_number`; if both are supplied they must resolve to the same separator-insensitive identity key |
-| `vehicle_type` | Canonical choice: `Two-Wheeler`, `Compact`, `SUV`, or `EV Charging`; required on create/full update |
+| `vehicle_type` | Existing project enum: `Two-Wheeler`, `Compact`, `SUV`, or `EV Charging`; required on create/full update. SRS v1.1 FR-01 leaves the authoritative list TBD (UD-15); this story preserves the existing choices but does not resolve that policy |
 | `owner_name` | Optional string, trimmed, max 100 characters |
-| `owner_phone` | Optional string, trimmed, max 20 characters; no phone-number syntax is imposed because the SRS leaves owner profile field semantics unresolved (UD-15) |
+| `owner_phone` | Optional string, trimmed, max 20 characters (existing model limit); no phone-number syntax is imposed because the SRS does not specify a phone-format rule |
 | Server-managed fields | Owner, ID, username and timestamps cannot be changed by client input; authenticated identity determines ownership |
 
 Unknown payload keys and non-string scalar values are rejected with HTTP 400. Legacy server-managed keys may be present in older clients' requests but are ignored and cannot alter ownership or record metadata. This preserves the existing ownership-spoof regression guarantee.
@@ -60,7 +60,7 @@ All handled vehicle API errors use US-31's `{error, code, details}` envelope.
 
 ## 4. Duplicate and transaction integrity
 
-The vehicle table retains its exact-value unique constraint and adds the expression unique index `veh_reg_compact_uniq`, which compares `UPPER(registration_number)` after removing spaces and hyphens. This prevents compact and hyphenated forms of the same plate from coexisting. Migration `0002_vehicle_registration_compact_uniq.py` preflights existing rows, canonicalizes legacy-valid separator variants, and aborts with colliding vehicle IDs rather than deleting or silently merging data. The serializer/service perform an early separator-insensitive duplicate lookup for a useful response. Registration and update writes remain inside `transaction.atomic()`. If concurrent requests pass the early lookup, the expression unique index decides the winner. Only a violation of either registration uniqueness constraint is translated to HTTP 409. Other integrity failures are re-raised for the shared handler.
+The vehicle table retains its exact-value unique constraint and adds the expression unique index `veh_reg_compact_uniq`, which compares `UPPER(registration_number)` after removing spaces and hyphens. This prevents compact and hyphenated forms of the same plate from coexisting. Migration `0002_vehicle_registration_compact_uniq.py` preflights existing rows using the separator-insensitive identity key and aborts with colliding vehicle IDs rather than deleting or silently merging data. It does not rewrite legacy display values. The serializer/service perform an early separator-insensitive duplicate lookup for a useful response. Registration and update writes remain inside `transaction.atomic()`. If concurrent requests pass the early lookup, the expression unique index decides the winner. Only a violation of either registration uniqueness constraint is translated to HTTP 409. Other integrity failures are re-raised for the shared handler.
 
 On update, the current vehicle is excluded from the duplicate lookup so a profile can retain its own plate. A duplicate or malformed update must leave the persisted record unchanged.
 
@@ -70,10 +70,10 @@ The registration and edit forms use the same normalization/format policy as the 
 
 ## 6. Documentation reconciliation
 
-- The SRS generator's FR-01 acceptance criteria require HTTP 400 for missing/malformed mandatory fields and a conflict for duplicate license plates. FR-13 and FR-14 are universal requirements; this design implements only the vehicle-domain portion.
+- The available SRS v1.1 (18 October 2026) confirms FR-01 registration with plate, type and owner information, rejection of missing mandatory fields, and duplicate-registration rejection. Its FR-13/FR-14 section requires validation before writes, HTTP 400 for invalid fields, application to every client-data endpoint, and structured user-visible errors. The repository SRS generator v1.2.0 retains FR-13/FR-14 as system-wide requirements; US-08 implements the vehicle-domain portion while US-31 owns the shared error mechanism. The exact generated DOCX in the repository is an LFS pointer and was not dereferenced in this review.
 - RTM v1.2.1 now links the vehicle model/expression constraint/migration, serializer/service/frontend validator and the shared US-31 exception contract to FR-13/FR-14. SAD §3.4.3 and the FR-13/FR-14 traceability rows now describe the implementation boundary.
 - Historical audit snapshots dated 19 October, the uploaded Team Handbook baseline 1.1, and the Member 1 Execution Plan v2 dated 03 October list US-08 under Sprint 3. The explicit allocation decision recorded on 22 October placed US-08 in Sprint 2; Issue #28 was synchronized to Sprint 2 on 30 October. Those older artifacts remain dated snapshots and should be revised at the next handbook/plan refresh; the current GitHub story is the operational sprint source.
-- The SRS DOCX LFS pointer could not be dereferenced through the GitHub contents interface during this review; its rendered binary must be inspected separately if an exact DOCX-content sign-off is required.
+- SRS v1.1 FR-01 leaves the authoritative vehicle-type list TBD (UD-15), while the current SAD and application enum expose four existing values. US-08 validates against that existing enum without claiming to resolve the outstanding SRS decision. The separate vehicle-type-to-slot compatibility mapping also remains TBD under FR-24/UD-15.
 
 ## 7. Traceability and verification
 
