@@ -4,13 +4,15 @@ from rest_framework import serializers
 
 from common.exceptions import Conflict
 from parking_slots.models import ParkingSlot
+from vehicles.models import Vehicle
 from .models import Reservation
 
 
 @transaction.atomic
 def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
-    # Serialize competing requests for the same slot on databases with row locks
-    # (PostgreSQL). All reservation creation must use this service.
+    # Lock vehicle BEFORE slot for every reservation writer. Concurrent requests
+    # for the same vehicle on different slots must serialize on PostgreSQL.
+    Vehicle.objects.select_for_update().get(pk=vehicle.pk)
     locked_slot = ParkingSlot.objects.select_for_update().select_related('zone').get(pk=slot.pk)
     if start_time <= timezone.now() or end_time <= start_time:
         raise serializers.ValidationError({
@@ -49,18 +51,23 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
 
 @transaction.atomic
 def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, end_time=None):
-    """Lock the slot first, matching reservation creation's lock order."""
+    """Lock vehicle, then slot, then reservation to serialize all writers."""
     from rest_framework.exceptions import NotFound, PermissionDenied
 
     try:
-        reservation_slot_id = Reservation.objects.only('slot_id').get(
+        original = Reservation.objects.only('slot_id', 'vehicle_id').get(
             pk=reservation_id,
-        ).slot_id
+        )
+        reservation_slot_id = original.slot_id
+        reservation_vehicle_id = original.vehicle_id
     except Reservation.DoesNotExist:
         raise NotFound('Reservation not found.')
 
+    Vehicle.objects.select_for_update().get(pk=reservation_vehicle_id)
     locked_slot = ParkingSlot.objects.select_for_update().get(pk=reservation_slot_id)
     reservation = Reservation.objects.select_for_update().get(pk=reservation_id)
+    if reservation.vehicle_id != reservation_vehicle_id:
+        raise Conflict('Reservation vehicle changed concurrently; please retry.')
     if reservation.slot_id != locked_slot.pk:
         raise Conflict('Reservation changed concurrently; please retry.')
     if actor.role not in ('Admin', 'Operator', 'Customer'):
