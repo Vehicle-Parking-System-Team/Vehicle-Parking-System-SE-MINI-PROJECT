@@ -127,7 +127,7 @@ This diagram is the logical target architecture. Reservation, reporting, audit a
 - Manages identity verification via JWT token pairs (`FR-15`).
 - Enforces Role-Based Access Control (`Admin`, `Operator`, `Customer`) across DRF endpoints and React navigation (`FR-16`).
 - Planned: admin user account administration to activate, suspend or deactivate (`FR-17`); no administration API exists yet.
-- Planned: self-service profile updates and password change (`FR-18`); current auth returns profile information but has no change-password/profile-update route.
+- Provides authenticated self-service profile inspection and updates (`first_name`, `last_name`, `email`, `phone_number`) and password changes (`FR-18`) through `ProfileView` and `PasswordChangeView`. Profile endpoints do not permit changes to `role`, `status`, `username`, or `id`.
 - Enforces public registration privilege safeguard: public registrations create `Customer` accounts only (`DEC-13`).
 
 #### 3.4.3 Vehicle Management Module (`backend/vehicles/`)
@@ -371,7 +371,7 @@ An active Admin/Operator may read completed records with checkout timestamps. Pa
 ### 5.1 Authentication, Tokens & Password Policies (`DEC-09`, `DEC-10`, `DEC-13`)
 - **Access Tokens:** Stateless JWT with 15-minute lifetime containing `{user_id, username, role}`.
 - **Refresh Tokens:** 7-day lifetime stored securely; refresh endpoint issues new access token.
-- **Logout Invalidation:** Logout blacklists the refresh token and increments `User.token_version`; the custom JWT authenticator rejects previously issued access tokens immediately. Role/account checks remain enforced by owning endpoints.
+- **Logout Invalidation:** Logout blacklists the refresh token and increments `User.token_version`; the custom JWT authenticator rejects previously issued access tokens immediately. Password changes also increment `token_version`, invalidating both previously issued access and refresh tokens. Role/account checks remain enforced by owning endpoints.
 - **Password Hashing:** Passwords hashed using Django default PBKDF2 with SHA-256 (`NFR-SEC-05`).
 - **Complexity Enforcer:** Passwords must have >= 8 characters, >= 1 uppercase, >= 1 lowercase, >= 1 digit, >= 1 special character.
 - **Privilege Safeguard:** Public registration creates `Customer` accounts only. Elevation to `Operator` or `Admin` requires an existing Administrator (`NFR-SEC-02`, `DEC-13`).
