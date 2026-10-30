@@ -17,8 +17,6 @@ def reject_existing_compact_duplicates(apps, schema_editor):
 
     for vehicle in Vehicle.objects.using(database).only('pk', 'registration_number').iterator():
         key = re.sub(r'[- ]', '', vehicle.registration_number.strip().upper())
-        if not key:
-            continue
         previous_id = seen.get(key)
         if previous_id is not None:
             collisions.append((key, previous_id, vehicle.pk))
