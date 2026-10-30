@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -7,6 +10,27 @@ from parking_slots.models import ParkingSlot
 from operations.models import ParkingRecord
 from vehicles.models import Vehicle
 from .models import Reservation
+
+
+def _conflicts_with_confirmed_reservation(*, start_time, end_time, vehicle_id=None,
+                                          slot_id=None, exclude_id=None):
+    """Check confirmed booking windows, including the configured turnover buffer."""
+    buffer_minutes = settings.RESERVATION_BUFFER_MINUTES
+    if buffer_minutes < 0:
+        raise ValueError('RESERVATION_BUFFER_MINUTES must not be negative.')
+    buffer = timedelta(minutes=buffer_minutes)
+    reservations = Reservation.objects.filter(
+        status=Reservation.Status.CONFIRMED,
+        start_time__lt=end_time + buffer,
+        end_time__gt=start_time - buffer,
+    )
+    if vehicle_id is not None:
+        reservations = reservations.filter(vehicle_id=vehicle_id)
+    if slot_id is not None:
+        reservations = reservations.filter(slot_id=slot_id)
+    if exclude_id is not None:
+        reservations = reservations.exclude(pk=exclude_id)
+    return reservations.exists()
 
 
 @transaction.atomic
@@ -33,15 +57,13 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
         raise serializers.ValidationError({'customer': 'Reservation owner must be an active customer.'})
     if vehicle.owner_id != customer.pk:
         raise serializers.ValidationError({'vehicle': 'Vehicle does not belong to this customer.'})
-    if Reservation.objects.filter(
-        vehicle=vehicle, status=Reservation.Status.CONFIRMED,
-        start_time__lt=end_time, end_time__gt=start_time,
-    ).exists():
+    if _conflicts_with_confirmed_reservation(
+        vehicle_id=vehicle.pk, start_time=start_time, end_time=end_time,
+    ):
         raise Conflict('The vehicle already has a reservation for this time window.')
-    if Reservation.objects.filter(
-        slot=locked_slot, status=Reservation.Status.CONFIRMED,
-        start_time__lt=end_time, end_time__gt=start_time,
-    ).exists():
+    if _conflicts_with_confirmed_reservation(
+        slot_id=locked_slot.pk, start_time=start_time, end_time=end_time,
+    ):
         raise Conflict('The selected slot is already reserved for this time window.')
     return Reservation.objects.create(
         customer=customer, vehicle=vehicle, slot=locked_slot,
@@ -112,16 +134,15 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
         raise Conflict('The selected slot is unavailable.')
     if locked_slot.status == ParkingSlot.Status.MAINTENANCE:
         raise Conflict('The selected slot is unavailable.')
-    if Reservation.objects.filter(
-        vehicle_id=reservation.vehicle_id,
-        status=Reservation.Status.CONFIRMED,
-        start_time__lt=end_time, end_time__gt=start_time,
-    ).exclude(pk=reservation.pk).exists():
+    if _conflicts_with_confirmed_reservation(
+        vehicle_id=reservation.vehicle_id, start_time=start_time,
+        end_time=end_time, exclude_id=reservation.pk,
+    ):
         raise Conflict('The vehicle already has a reservation for this time window.')
-    if Reservation.objects.filter(
-        slot=locked_slot, status=Reservation.Status.CONFIRMED,
-        start_time__lt=end_time, end_time__gt=start_time,
-    ).exclude(pk=reservation.pk).exists():
+    if _conflicts_with_confirmed_reservation(
+        slot_id=locked_slot.pk, start_time=start_time,
+        end_time=end_time, exclude_id=reservation.pk,
+    ):
         raise Conflict('The selected slot is already reserved for this time window.')
     reservation.start_time = start_time
     reservation.end_time = end_time
