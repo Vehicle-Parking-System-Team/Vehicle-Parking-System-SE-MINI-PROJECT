@@ -21,7 +21,7 @@
 
 ## Document cross-check
 
-- SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14; The available Library copy of SRS v1.1 (18 October 2026) was also inspected for FR-01/13/14; the repository's generated DOCX remains an LFS pointer, so it is not represented as inspected. the generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.
+- SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14. The available Library copy of SRS v1.1 (18 October 2026) was also inspected for those requirements. The repository's generated DOCX remains an LFS pointer, so it is not represented as inspected. The generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.
 - SAD: §3.4.3 vehicle management and §3.4.9 shared validation/error layer.
 - RTM: v1.2.1 FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities. The SRS generator source now references RTM v1.2.1; regenerate the LFS-backed DOCX from the repository root with `cd scripts && npm ci && node generate_srs.js` after the updated RTM is accepted.
 - The checked-in SRS DOCX is a Git LFS pointer (131 bytes; referenced object size 216,166 bytes). The pointer is not the DOCX content, so binary document inspection is not claimed here.
@@ -32,8 +32,8 @@
 
 The master test plan requires 8–10+ cases across relevant test levels and says manual Actual Result / Pass-Fail must only be filled after execution. The following system-level scenarios are therefore recorded as **Not Run**, not as passed:
 
-- `TC-UC02-SYS-001`: Sign in as an authorized customer, register a valid plate using the UI, refresh the vehicle list, and confirm the canonical plate is displayed and retrievable.
-- `TC-UC02-SYS-002`: Attempt malformed and duplicate registration from the UI, verify field/conflict feedback, verify no duplicate row appears, then attempt a profile update to a duplicate plate and verify the original value remains.
+- `TC-UC02-US08-SYS-001`: Sign in as an authorized customer, register a valid plate using the UI, refresh the vehicle list, and confirm the canonical plate is displayed and retrievable.
+- `TC-UC02-US08-SYS-002`: Attempt malformed and duplicate registration from the UI, verify field/conflict feedback, verify no duplicate row appears, then attempt a profile update to a duplicate plate and verify the original value remains.
 
 ## Required assertions
 
