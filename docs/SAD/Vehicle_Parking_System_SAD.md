@@ -135,7 +135,7 @@ This diagram is the logical target architecture. Reservation, reporting, audit a
 - Provides vehicle profile inspection and detail updates (`FR-02`).
 - Provides instant search by license plate returning vehicle details and active parking status (`FR-11`).
 - Enforces canonical registration-number normalization and supported-format validation at the serializer/service boundary (US-08 / FR-13). Hyphenated, space-separated, and compact supported forms normalize consistently; malformed separators and illegal characters are rejected before persistence.
-- Enforces duplicate registration prevention with the database unique constraint as the concurrency-safe authority; expected registration collisions return HTTP 409, while other integrity failures remain server errors.
+- Enforces duplicate registration prevention with a separator-insensitive expression unique index as the concurrency-safe authority; compact and hyphenated spellings share one identity key. A migration preflights existing rows and fails safely on collisions; expected registration collisions return HTTP 409, while other integrity failures remain server errors.
 - Returns vehicle-domain validation and conflict failures through the shared `{error, code, details}` exception contract (FR-14 / US-31). See [US-08 validation contract](../design/US08-vehicle-validation.md).
 
 #### 3.4.4 Parking Slot Allocation Engine (`backend/parking_slots/`)
