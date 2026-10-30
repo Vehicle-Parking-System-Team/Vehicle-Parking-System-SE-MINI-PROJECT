@@ -512,3 +512,24 @@ class BillingPaymentAPITests(BillingReceiptAPITests):
         self.assertEqual(response.data['payment_status'], 'Paid')
         self.assertEqual(response.data['payment_amount'], '0.00')
         self.assertIsNotNone(response.data['payment_timestamp'])
+
+    def test_payment_settlement_is_reflected_on_parking_session(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Card',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.payment_status, 'Paid')
+        self.assertEqual(self.record.payment_method, 'Card')
+        self.assertEqual(self.record.payment_amount, Decimal('160.00'))
+        self.assertIsNotNone(self.record.payment_timestamp)
