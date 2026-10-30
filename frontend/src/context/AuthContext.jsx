@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AuthContext } from './authContextDef'
+import { clearStoredAuthSession } from '../utils/authSession'
 
 const API_BASE = '/api/auth'
 const TOKEN_KEY = 'vps_access_token'
@@ -26,9 +27,7 @@ export function AuthProvider({ children }) {
     setAccessToken(null)
     setRefreshToken(null)
     setError(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearStoredAuthSession(localStorage)
   }, [])
 
   // Save credentials to state and storage
