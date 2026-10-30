@@ -43,7 +43,7 @@ jobs:
         run: python manage.py test --verbosity 2
 
   postgres-integrity:
-    name: PostgreSQL slot integrity
+    name: PostgreSQL slot and vehicle integrity
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -83,7 +83,7 @@ jobs:
       - name: Verify slot state, integrity and concurrent allocation
         run: |
           export DJANGO_SECRET_KEY="$(python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())')"
-          python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests reservations.test_concurrency --verbosity 2
+          python manage.py test parking_slots.test_integrity parking_slots.test_services operations.test_checkout operations.tests reservations.test_concurrency vehicles.tests.test_vehicle_validation vehicles.tests.test_vehicle_registration vehicles.tests.test_vehicle_profile --verbosity 2
 
   frontend-ci:
     name: Frontend CI (React)
