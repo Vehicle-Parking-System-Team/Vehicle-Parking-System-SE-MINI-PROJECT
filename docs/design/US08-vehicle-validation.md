@@ -32,7 +32,7 @@ The format expression validates the documented project shape; it is not an exter
 | Field | Contract |
 | --- | --- |
 | `registration_number` | Required on POST and PUT; optional on PATCH only when the plate is not being changed; string; normalized; max 20; supported format |
-| `plate_number` | Legacy write-only alias; same validation as `registration_number`; if both are supplied they must resolve to the same separator-insensitive identity key |
+| `plate_number` | Legacy write-only alias; independently receives the same type/length/format validation as `registration_number`; if both are supplied they must resolve to the same separator-insensitive identity key |
 | `vehicle_type` | Canonical choice: `Two-Wheeler`, `Compact`, `SUV`, or `EV Charging`; required on create/full update |
 | `owner_name` | Optional string, trimmed, max 100 characters |
 | `owner_phone` | Optional string, trimmed, max 20 characters; no phone-number syntax is imposed because the SRS leaves owner profile field semantics unresolved (UD-15) |
