@@ -41,12 +41,20 @@ test('validateProfileUpdateInput rejects phone number longer than 20 characters'
   assert.equal(result.errors.phone_number, 'Phone number cannot exceed 20 characters.')
 })
 
-test('validateProfileUpdateInput rejects phone number with invalid characters', () => {
-  const result = validateProfileUpdateInput({
-    phone_number: '123-ABC-7890',
-  })
-  assert.equal(result.isValid, false)
-  assert.equal(result.errors.phone_number, 'Please enter a valid phone number (digits, spaces, +, -, () only).')
+test('validateProfileUpdateInput rejects malformed phone-number punctuation', () => {
+  for (const phone_number of ['123-ABC-7890', '++()', ')(', '12+345', '(123', '123)', '---']) {
+    const result = validateProfileUpdateInput({ phone_number })
+    assert.equal(result.isValid, false, `Expected ${phone_number} to be rejected`)
+    assert.ok(result.errors.phone_number)
+  }
+})
+
+test('validateProfileUpdateInput accepts valid phone-number formats', () => {
+  for (const phone_number of ['+91-9876543210', '+1 (555) 123-4567', '98765 43210']) {
+    const result = validateProfileUpdateInput({ phone_number })
+    assert.equal(result.isValid, true, `Expected ${phone_number} to be accepted`)
+    assert.deepEqual(result.errors, {})
+  }
 })
 
 test('validatePasswordChangeInput accepts valid current and compliant new password', () => {
