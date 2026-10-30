@@ -26,7 +26,7 @@
 - RTM: v1.2.1 FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities. The PR also adds the no-op `operations.0007_merge_payment_status_reservation` migration because current `main` has two independent `0006` leaves; this is an integration-graph repair, not a new business schema change. The SRS generator source now references RTM v1.2.1; regenerate the LFS-backed DOCX from the repository root with `cd scripts && npm ci && node generate_srs.js` after the updated RTM is accepted.
 - The checked-in SRS DOCX is a Git LFS pointer (131 bytes; referenced object size 216,166 bytes). The pointer is not the DOCX content, so binary document inspection is not claimed here.
 - The master Software Test Plan v1.0 requires 8–10+ cases for each implemented use case and says manual outcomes are recorded only after execution. UC-02 now has the three original baseline cases plus nine new US-08-specific cases; manual SYS-001/002 remain Not Run.
-- - The 19 October audit/Phase 3 report and the 03 October Handbook/Member 1 plan are historical snapshots that list Sprint 3. The later explicit 22 October allocation places US-08 in Sprint 2, and Issue #28 now reflects that; the older uploaded documents still need a future refresh.
+- The 19 October audit/Phase 3 report and the 03 October Handbook/Member 1 plan are historical snapshots that list Sprint 3. The later explicit 22 October allocation places US-08 in Sprint 2, and Issue #28 now reflects that; the older uploaded documents still need a future refresh.
 
 ## Manual system scenarios (not executed)
 
@@ -46,6 +46,11 @@ The master test plan requires 8–10+ cases across relevant test levels and says
 
 ## Execution status
 
-**Awaiting CI verification.**
+**CI run 41107424010 — commit `6f78470dd76766f1cc42ec14eaf89ca5ca0360e7`.**
 
-Tests have been added to the repository. This document will be updated with exact workflow run IDs, checked commit SHA, and job results after GitHub Actions completes. No test pass is claimed before that run is observed.
+- Frontend CI: passed.
+- PostgreSQL slot and vehicle integrity: passed.
+- Security verification run 41107424077: passed.
+- Backend Django CI: still running when this evidence snapshot was recorded.
+
+The backend result must be checked before declaring CI fully green. Manual SYS-001/002 remain Not Run and require execution against the integrated application.
