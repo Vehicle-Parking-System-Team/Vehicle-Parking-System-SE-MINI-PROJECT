@@ -23,7 +23,7 @@
 
 - SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14; the generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.
 - SAD: §3.4.3 vehicle management and §3.4.9 shared validation/error layer.
-- RTM: FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities.
+- RTM: v1.2.1 FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities. The SRS generator source now references RTM v1.2.1; regenerate the LFS-backed DOCX with `node scripts/generate_srs.js` after the updated RTM is accepted.
 - The checked-in SRS DOCX is a Git LFS pointer (131 bytes; referenced object size 216,166 bytes). The pointer is not the DOCX content, so binary document inspection is not claimed here.
 - The 19 October audit/Phase 3 report and the 03 October Handbook/Member 1 plan are historical snapshots that list Sprint 3. The later explicit 22 October allocation places US-08 in Sprint 2, and Issue #28 now reflects that; the older uploaded documents still need a future refresh.
 
