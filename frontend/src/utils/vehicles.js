@@ -33,11 +33,12 @@ export function normalizePlate(plate) {
 }
 
 export function validateRegistrationNumber(plate) {
+  const raw = typeof plate === 'string' ? plate.trim() : ''
   const normalized = normalizePlate(plate)
   if (!normalized) {
     return { isValid: false, normalized, error: 'Registration number is required.' }
   }
-  if (normalized.length > 20) {
+  if (raw.length > 20) {
     return {
       isValid: false,
       normalized,
@@ -54,7 +55,7 @@ export function validateRegistrationNumber(plate) {
   return { isValid: true, normalized, error: null }
 }
 
-export function validateVehicleUpdateInput({ registration_number, vehicle_type }) {
+export function validateVehicleUpdateInput({ registration_number, vehicle_type, owner_name, owner_phone }) {
   const errors = {}
 
   if (registration_number !== undefined) {
@@ -64,8 +65,19 @@ export function validateVehicleUpdateInput({ registration_number, vehicle_type }
 
   if (vehicle_type !== undefined) {
     const validTypes = VEHICLE_TYPES.map((t) => t.value)
-    if (!vehicle_type || !validTypes.includes(vehicle_type)) {
+    if (typeof vehicle_type !== 'string' || !validTypes.includes(vehicle_type)) {
       errors.vehicle_type = ['A valid vehicle type is required.']
+    }
+  }
+
+  for (const [field, maxLength] of [['owner_name', 100], ['owner_phone', 20]]) {
+    const value = { owner_name, owner_phone }[field]
+    if (value !== undefined) {
+      if (typeof value !== 'string') {
+        errors[field] = ['Expected a string.']
+      } else if (value.length > maxLength) {
+        errors[field] = [`Ensure this field has no more than ${maxLength} characters.`]
+      }
     }
   }
 
