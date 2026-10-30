@@ -4,7 +4,11 @@ from rest_framework import serializers
 
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
-from vehicles.services import normalize_registration_number, is_valid_registration_number
+from vehicles.services import (
+    normalize_registration_number,
+    is_valid_registration_number,
+    vehicle_registration_exists,
+)
 
 
 # These values are server-owned. They may appear in legacy clients' payloads,
@@ -125,10 +129,10 @@ class VehicleSerializer(serializers.ModelSerializer):
 
             # Fast user-friendly check; the database constraint remains
             # authoritative when concurrent requests race after this query.
-            duplicate_qs = Vehicle.objects.filter(registration_number=normalized)
-            if self.instance:
-                duplicate_qs = duplicate_qs.exclude(pk=self.instance.pk)
-            if duplicate_qs.exists():
+            if vehicle_registration_exists(
+                normalized,
+                exclude_vehicle_id=self.instance.pk if self.instance else None,
+            ):
                 raise Conflict('A vehicle with this registration number already exists.')
 
         attrs.pop('plate_number', None)
