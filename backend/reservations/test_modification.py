@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from parking_slots.models import ParkingSlot, ParkingZone
+from operations.models import ParkingRecord
 from vehicles.models import Vehicle
 from .models import Reservation
 
@@ -116,6 +117,45 @@ class ReservationModificationTests(TestCase):
         self.assertEqual(self.client.delete(self.url).status_code, 400)
         self.reservation.refresh_from_db()
         self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+
+    def test_early_check_in_blocks_both_patch_and_delete(self):
+        # The booked window is still two days away when check-in occurs.
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post('/api/parking/check-in/', {
+            'registration_number': self.vehicle.registration_number,
+            'slot_id': self.slot.pk,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        record = ParkingRecord.objects.get(vehicle=self.vehicle)
+        self.assertEqual(record.reservation_id, self.reservation.pk)
+
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, 400, response.data)
+        response = self.client.patch(self.url, {
+            'start_time': (self.start + timedelta(hours=2)).isoformat(),
+            'duration_minutes': 60,
+        }, format='json')
+        self.assertEqual(response.status_code, 400, response.data)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+        self.assertEqual(self.reservation.start_time, self.start)
+
+    def test_other_vehicle_check_in_does_not_block_future_reservation(self):
+        other_vehicle = Vehicle.objects.create(
+            registration_number='KA01US1499', vehicle_type='Compact',
+            owner=self.customer,
+        )
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post('/api/parking/check-in/', {
+            'registration_number': other_vehicle.registration_number,
+            'slot_id': self.slot.pk,
+        }, format='json')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertIsNone(ParkingRecord.objects.get(vehicle=other_vehicle).reservation_id)
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, 200, response.data)
 
     def test_cancelled_reservation_cannot_be_cancelled_twice(self):
         self.assertEqual(self.client.delete(self.url).status_code, 200)
