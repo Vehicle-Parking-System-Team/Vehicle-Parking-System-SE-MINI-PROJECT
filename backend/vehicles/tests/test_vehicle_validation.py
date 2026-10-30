@@ -5,11 +5,12 @@ Covers FR-13/FR-14 at service, serializer/API, and persistence boundaries.
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
+from unittest import skipUnless
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, close_old_connections, connection, transaction
-from django.test import TestCase, TransactionTestCase, skipUnless
+from django.test import TestCase, TransactionTestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
