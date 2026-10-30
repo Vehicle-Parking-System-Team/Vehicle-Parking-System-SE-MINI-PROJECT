@@ -23,6 +23,14 @@ class ParkingRecord(models.Model):
         related_name="parking_records",
     )
 
+    reservation = models.ForeignKey(
+        "reservations.Reservation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="parking_records",
+    )
+
     operator = models.ForeignKey(
     settings.AUTH_USER_MODEL,
     on_delete=models.PROTECT,
@@ -71,6 +79,32 @@ class ParkingRecord(models.Model):
         blank=True,
         editable=False,
     )
+
+    payment_status = models.CharField(
+        max_length=10,
+        choices=[
+            ("Pending", "Pending"),
+            ("Paid", "Paid"),
+            ("Waived", "Waived"),
+        ],
+        default="Pending",
+        db_index=True,
+    )
+
+    payment_method = models.CharField(
+        max_length=4,
+        choices=[("Cash", "Cash"), ("Card", "Card"), ("UPI", "UPI")],
+        null=True,
+        blank=True,
+    )
+
+    payment_amount = models.DecimalField(
+        max_digits=14,
+        decimal_places=2,
+        default=0,
+    )
+
+    payment_timestamp = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(
         max_length=12,
