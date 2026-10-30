@@ -1029,7 +1029,7 @@ test('US-08 frontend enforces owner contact field types and model length limits'
 })
 
 test('US-08 frontend rejects raw overlong plate input before normalization', () => {
-  const result = validateRegistrationNumber('KA - 01 - AB - 1234     ')
+  const result = validateRegistrationNumber('KA      01      AB      1234')
   assert.equal(result.isValid, false)
   assert.match(result.error, /no more than 20/)
 })
