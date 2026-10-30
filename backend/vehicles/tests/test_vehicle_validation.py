@@ -82,6 +82,7 @@ class VehicleValidationServiceTests(TestCase):
             get_vehicle_by_registration_number('KA01KEY1234').pk,
             vehicle.pk,
         )
+        self.assertIsNone(get_vehicle_by_registration_number('KA--01-KEY-1234'))
 
         with self.assertRaises(IntegrityError) as caught:
             with transaction.atomic():
