@@ -121,15 +121,36 @@ class ProfileAndPasswordManagementTests(TestCase):
         self.assertEqual(refresh_after.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_profile_rejects_malformed_phone_number(self):
-        """The API rejects malformed phone numbers for either supported field name."""
+        """The API rejects invalid characters and malformed punctuation for both field names."""
         self.client.force_authenticate(user=self.user)
+        invalid_values = (
+            '123-ABC-7890',  # unsupported letters
+            '++()',          # no digits and repeated plus
+            ')(',            # closing parenthesis before opening
+            '12+345',        # plus sign outside the beginning
+            '(123',          # unclosed parenthesis
+            '123)',          # unmatched closing parenthesis
+            '---',           # no digits
+        )
         for field in ('phone_number', 'contact_number'):
-            with self.subTest(field=field):
+            for value in invalid_values:
+                with self.subTest(field=field, value=value):
+                    response = self.client.patch(
+                        '/api/auth/profile/', {field: value}, format='json'
+                    )
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn(field, response.data.get('details', {}))
+
+    def test_profile_accepts_well_formed_phone_number_formats(self):
+        """The API continues to accept international and parenthesized phone formats."""
+        self.client.force_authenticate(user=self.user)
+        for value in ('+91-9876543210', '+1 (555) 123-4567', '98765 43210'):
+            with self.subTest(value=value):
                 response = self.client.patch(
-                    '/api/auth/profile/', {field: '123-ABC-7890'}, format='json'
+                    '/api/auth/profile/', {'phone_number': value}, format='json'
                 )
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-                self.assertIn(field, response.data.get('details', {}))
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(response.data['phone_number'], value)
 
     def test_profile_accepts_blank_optional_phone_number(self):
         """Phone number is optional and can be cleared."""
