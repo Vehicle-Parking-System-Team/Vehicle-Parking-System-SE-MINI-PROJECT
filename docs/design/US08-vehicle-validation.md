@@ -68,7 +68,7 @@ On update, the current vehicle is excluded from the duplicate lookup so a profil
 
 The registration and edit forms use the same normalization/format policy as the backend for immediate field feedback. The server remains authoritative. Registration errors are rendered beside the registration field; duplicate conflicts and other API errors are parsed by `parseApiError` and shown in the form alert. Owner name/phone inputs reflect the persisted length limits. Search remains prefix-capable and uses only presence/length client checks.
 
-## 6. Traceability and verification
+## 6. Documentation reconciliation\n\n- The SRS generator's FR-01 acceptance criteria require HTTP 400 for missing/malformed mandatory fields and a conflict for duplicate license plates. FR-13 and FR-14 are universal requirements; this design implements only the vehicle-domain portion.\n- RTM v1.2.1 now links the vehicle serializer/service/frontend validator and the shared US-31 exception contract to FR-13/FR-14. SAD §3.4.3 and the FR-13/FR-14 traceability rows now describe the implementation boundary.\n- Historical audit snapshots dated 19 October list US-08 under Sprint 3. The explicit allocation decision recorded on 22 October placed US-08 in Sprint 2; Issue #28 was synchronized to Sprint 2 on 30 October. The older audit reports remain dated historical snapshots, not the current backlog.\n- The SRS DOCX LFS pointer could not be dereferenced through the GitHub contents interface during this review; its rendered binary must be inspected separately if an exact DOCX-content sign-off is required.\n\n## 7. Traceability and verification
 
 | Test ID | Coverage |
 | --- | --- |
@@ -80,4 +80,4 @@ The registration and edit forms use the same normalization/format policy as the 
 | `TC-UC02-US08-UI-001` | Frontend normalization, format validation and invalid-input rejection |
 | `TC-UC10-API-001` | Shared US-31 structured error contract |
 
-Execution evidence and CI status are recorded in [US-08 test evidence](../testing/US08-test-evidence.md). The SRS v1.2.0 FR-13/FR-14 wording remains unchanged: those requirements are system-wide; US-08 implements the vehicle slice while US-31 owns the shared cross-cutting error mechanism.
+Execution evidence and CI status are recorded in [US-08 test evidence](../testing/US08-test-evidence.md). The SRS generator source (`scripts/generate_srs.js`, v1.2.0) keeps FR-13/FR-14 system-wide and defines the vehicle registration acceptance criteria under FR-01. The checked-in SRS DOCX is Git LFS-backed: GitHub's contents API exposes a 131-byte pointer to a 216,166-byte object, not the document body. I therefore verified the SRS generator source, RTM, SAD, issue and code; I do not claim to have inspected the binary DOCX contents. The requirement wording is unchanged: US-08 implements the vehicle slice while US-31 owns the shared cross-cutting error mechanism.
