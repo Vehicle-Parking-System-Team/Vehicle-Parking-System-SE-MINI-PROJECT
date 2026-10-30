@@ -55,6 +55,12 @@ The master test plan requires 8–10+ cases across relevant test levels and says
   - `CheckoutMigrationTests.test_existing_active_and_completed_records_survive_nullable_snapshot_migration`
   - `ExistingDataMigrationTests.test_pr64_rows_survive_additive_floor_migration`
   
-  Both fail while SQLite reverses the independent `operations.0006` migration leaves, reporting `no such column: payment_timestamp`. The vehicle-specific PostgreSQL integrity job passes; the full backend CI must not be reported as green until this migration rollback issue is resolved.
+  Investigation traced both errors to a stale `backend/operations/models.py` on the PR branch that omitted payment fields and the reservation relationship present on `main`. The PR now restores the complete `main` model. This earlier failure remains recorded as historical evidence; the fresh CI run below is the verification of the repair.
 
 Manual SYS-001/002 remain **Not Run** and require execution against the integrated application.
+
+
+**Repair verification — commit `7f8d1ffe642fb9f8c0b53320d548b3f8a5f30016`.**
+
+- Restored `backend/operations/models.py` from current `main`, preserving `payment_status`, `payment_method`, `payment_amount`, `payment_timestamp`, and the `reservation` relationship.
+- Fresh Continuous Integration run **41111497004** and Security verification run **41111496891** were triggered for this commit. At the time this evidence was updated, both were queued; their results must be checked before claiming the repair passes.
