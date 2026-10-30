@@ -105,6 +105,12 @@ class VehicleSerializer(serializers.ModelSerializer):
 
             if has_registration and has_alias:
                 normalized_alias = normalize_registration_number(attrs['plate_number'])
+                if len(normalized_alias) > 20 or not is_valid_registration_number(normalized_alias):
+                    raise serializers.ValidationError({
+                        'plate_number': [
+                            'Invalid vehicle registration number format.'
+                        ]
+                    })
                 if registration_number_comparison_key(normalized) != registration_number_comparison_key(normalized_alias):
                     raise serializers.ValidationError({
                         'registration_number': [
