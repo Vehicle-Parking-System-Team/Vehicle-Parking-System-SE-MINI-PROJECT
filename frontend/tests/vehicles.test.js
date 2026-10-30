@@ -407,7 +407,7 @@ test('simulateVehicleUpdateSubmit handles 400 validation error from backend', as
       error: 'Validation failed.',
       code: 'VALIDATION_ERROR',
       details: {
-        registration_number: ['Ensure this field has no more than 20 characters.'],
+        registration_number: ['The registration number was rejected by server-side validation.'],
       },
     }),
   })
@@ -415,7 +415,7 @@ test('simulateVehicleUpdateSubmit handles 400 validation error from backend', as
   const res = await simulateVehicleUpdateSubmit({
     vehicleId: 42,
     formData: {
-      registration_number: 'A'.repeat(20),
+      registration_number: 'KA-01-AB-1234',
       vehicle_type: 'Compact',
     },
     mockFetch,
