@@ -80,7 +80,7 @@ class ReservationConflictBufferTests(TestCase):
 
     def test_reschedule_checks_buffer_for_slot_and_vehicle(self):
         other = Reservation.objects.create(
-            customer=self.customer, vehicle=self.second_vehicle,
+            customer=self.customer, vehicle=self.vehicle,
             slot=self.other_slot,
             start_time=self.start + timedelta(hours=3),
             end_time=self.start + timedelta(hours=4),
@@ -91,7 +91,8 @@ class ReservationConflictBufferTests(TestCase):
         self.assertEqual(self.existing.start_time, self.start)
 
         other.slot = self.slot
-        other.save(update_fields=['slot'])
+        other.vehicle = self.second_vehicle
+        other.save(update_fields=['slot', 'vehicle'])
         response = self.change(start=other.start_time - timedelta(minutes=44))
         self.assertEqual(response.status_code, 409, response.data)
         response = self.change(start=other.start_time - timedelta(minutes=45))
