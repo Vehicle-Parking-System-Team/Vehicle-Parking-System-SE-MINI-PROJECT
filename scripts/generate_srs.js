@@ -130,7 +130,7 @@ const FR = {
       'Duplicate license plate registrations are rejected with an appropriate conflict error.',
       'Permitted vehicle types and owner profile fields: TBD (UD-15).'
     ],
-    'T / TC-UC02-UNIT-001, TC-UC02-API-001'
+    'T / TC-UC02-UNIT-001, TC-UC02-API-001, TC-UC02-US08-API-001, TC-UC02-US08-API-002'
   ],
   'FR-02': [
     'The system shall allow an authorized user/operator to view and update vehicle profile and registration details.',
@@ -140,7 +140,7 @@ const FR = {
       'A valid update is persisted and updates the last-modified timestamp.',
       'An invalid update payload is rejected and the stored record is unchanged.'
     ],
-    'T / TC-UC02-API-002'
+    'T / TC-UC02-API-002, TC-UC02-US08-API-004'
   ],
   'FR-11': [
     'The system shall allow authorized users/operators to search for a vehicle by license plate and inspect its current parking status.',
@@ -378,7 +378,7 @@ const FR = {
       'Rejection returns HTTP 400 with structured validation details (NFR-SEC-03).',
       'Validation applies across all API endpoints.'
     ],
-    'T / TC-UC10-API-001'
+    'T / TC-UC02-US08-UNIT-001, TC-UC02-US08-API-001/002/003/004/005, TC-UC02-US08-UI-001, TC-UC02-US08-SYS-001/002, TC-UC10-API-001'
   ],
   'FR-14': [
     'The system shall return uniform structured error responses and standard HTTP status codes.',
@@ -388,7 +388,7 @@ const FR = {
       'User interface renders human-readable feedback from response payload.',
       'Implemented error code/status mappings are documented in docs/design/US31-error-contract.md.'
     ],
-    'T / TC-UC10-API-001'
+    'T / TC-UC02-US08-API-001/002/003/004/005, TC-UC02-US08-UI-001, TC-UC02-US08-SYS-002, TC-UC10-API-001'
   ]
 };
 
