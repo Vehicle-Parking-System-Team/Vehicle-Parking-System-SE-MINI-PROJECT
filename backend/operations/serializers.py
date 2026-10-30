@@ -97,6 +97,10 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
             "check_out_time",
             "duration_seconds",
             "status",
+            "payment_status",
+            "payment_method",
+            "payment_amount",
+            "payment_timestamp",
             "ticket_qr_token",
         ]
         read_only_fields = fields
@@ -205,5 +209,9 @@ class ParkingHistoryRecordSerializer(serializers.ModelSerializer):
             "check_out_time",
             "fee_amount",
             "status",
+            "payment_status",
+            "payment_method",
+            "payment_amount",
+            "payment_timestamp",
         ]
         read_only_fields = fields
