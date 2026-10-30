@@ -261,3 +261,74 @@ class VehicleValidationAPITests(TestCase):
         self.assertEqual(duplicate.data['code'], 'CONFLICT')
         own_vehicle.refresh_from_db()
         self.assertEqual(own_vehicle.registration_number, 'KA-01-OWN-1234')
+
+
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest.mock import patch
+
+from django.db import close_old_connections, connection
+from django.test import TransactionTestCase, skipUnlessDBFeature, skipUnless
+from vehicles.serializers import VehicleSerializer
+
+
+@skipUnless(connection.vendor == 'postgresql', 'Concurrent unique-conflict behavior is verified on PostgreSQL.')
+class VehicleConcurrentRegistrationTests(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        self.users = [
+            User.objects.create_user(
+                username=f'us08_concurrent_{index}',
+                email=f'us08-concurrent-{index}@parking.local',
+                password='Password123!',
+                role='Customer',
+                status='active',
+            )
+            for index in range(2)
+        ]
+        self.tokens = []
+        for user in self.users:
+            token = AccessToken.for_user(user)
+            token['token_version'] = user.token_version
+            token['username'] = user.username
+            token['role'] = user.role
+            self.tokens.append(str(token))
+
+    def test_concurrent_same_plate_creates_one_record_and_returns_one_conflict(self):
+        # Force both requests to complete serializer validation (including the
+        # preflight duplicate query) before either request reaches its INSERT.
+        barrier = Barrier(2)
+        original_validate = VehicleSerializer.validate
+
+        def synchronized_validate(serializer, attrs):
+            validated = original_validate(serializer, attrs)
+            barrier.wait(timeout=15)
+            return validated
+
+        def submit(token):
+            close_old_connections()
+            try:
+                client = APIClient()
+                client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+                response = client.post(self.endpoint, {
+                    'registration_number': 'KA-01-RACE-1234',
+                    'vehicle_type': 'Compact',
+                }, format='json')
+                return response.status_code, response.data
+            finally:
+                close_old_connections()
+
+        self.endpoint = '/api/v1/vehicles/'
+        with patch.object(VehicleSerializer, 'validate', synchronized_validate):
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = [executor.submit(submit, token) for token in self.tokens]
+                results = [future.result(timeout=25) for future in futures]
+
+        self.assertEqual(sorted(status for status, _ in results), [201, 409])
+        conflict_body = next(body for status, body in results if status == 409)
+        self.assertEqual(conflict_body['code'], 'CONFLICT')
+        self.assertEqual(
+            Vehicle.objects.filter(registration_number='KA-01-RACE-1234').count(),
+            1,
+        )
