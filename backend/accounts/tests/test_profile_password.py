@@ -90,7 +90,8 @@ class ProfileAndPasswordManagementTests(TestCase):
         refresh['token_version'] = self.user.token_version
         refresh['role'] = self.user.role
         refresh['username'] = self.user.username
-        refresh_token = str(refresh)\n        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        access_token = str(refresh.access_token)
 
         user_client = APIClient()
         user_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
