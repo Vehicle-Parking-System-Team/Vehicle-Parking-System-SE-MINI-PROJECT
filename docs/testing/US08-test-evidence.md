@@ -27,6 +27,6 @@
 
 ## Execution status
 
-<badge>Awaiting CI</badge>
+**Awaiting CI verification.**
 
 Tests have been added to the repository. This document will be updated with exact workflow run IDs, checked commit SHA, and job results after GitHub Actions completes. No test pass is claimed before that run is observed.
