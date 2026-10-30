@@ -341,22 +341,35 @@ class BillingPaymentAPITests(BillingReceiptAPITests):
         self.assertIsNotNone(response.data['payment_timestamp'])
         self.assertEqual(response.data['payment_recorded_by_id'], self.operator.pk)
 
-    def test_card_and_upi_are_supported(self):
-        for method in ('Card', 'UPI'):
-            with self.subTest(method=method):
-                receipt_id = self.generate().data['receipt_id']
-                self.client.force_authenticate(user=self.operator)
-                response = self.client.post(
-                    self.payment_url(receipt_id),
-                    {
-                        'payment_status': 'Paid',
-                        'payment_method': method,
-                        'payment_amount': '160.00',
-                    },
-                    format='json',
-                )
-                self.assertEqual(response.status_code, 200)
-                self.assertEqual(response.data['payment_method'], method)
+    def test_card_payment_method_is_supported(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Card',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_method'], 'Card')
+
+    def test_upi_payment_method_is_supported(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'UPI',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_method'], 'UPI')
 
     def test_pending_status_does_not_claim_settlement(self):
         receipt_id = self.generate().data['receipt_id']
