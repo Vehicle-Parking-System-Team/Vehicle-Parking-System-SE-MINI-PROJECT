@@ -227,6 +227,15 @@ class VehicleValidationAPITests(TestCase):
         self.assertEqual(response.data['registration_number'], 'KA-01-ALIAS-1234')
         self.assertEqual(Vehicle.objects.count(), 1)
 
+    def test_alias_is_validated_even_when_compact_identity_matches(self):
+        response = self.client.post(self.endpoint, {
+            'registration_number': 'KA-01-ALIAS-1234',
+            'plate_number': 'KA--01--ALIAS--1234',
+            'vehicle_type': 'Compact',
+        }, format='json')
+        self._assert_validation_error(response, 'plate_number')
+        self.assertEqual(Vehicle.objects.count(), 0)
+
     def test_conflicting_plate_aliases_return_field_specific_400(self):
         response = self.client.post(self.endpoint, {
             'registration_number': 'KA-01-AB-1234',
