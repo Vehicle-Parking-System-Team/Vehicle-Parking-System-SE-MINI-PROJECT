@@ -16,10 +16,31 @@ export function validateProfileUpdateInput({ first_name, last_name, phone_number
 
   if (phone_number !== undefined && phone_number !== null) {
     const trimmedPhone = phone_number.trim()
+    let parenthesisDepth = 0
+    let hasUnbalancedParentheses = false
+
+    for (const character of trimmedPhone) {
+      if (character === '(') parenthesisDepth += 1
+      if (character === ')') {
+        parenthesisDepth -= 1
+        if (parenthesisDepth < 0) hasUnbalancedParentheses = true
+      }
+    }
+
+    const hasInvalidPlus = trimmedPhone.includes('+') &&
+      (trimmedPhone.indexOf('+') !== 0 || trimmedPhone.lastIndexOf('+') !== 0)
+    const hasInvalidPhoneFormat = trimmedPhone !== '' && (
+      !/^[0-9+()\- ]+$/.test(trimmedPhone) ||
+      !/\d/.test(trimmedPhone) ||
+      hasInvalidPlus ||
+      hasUnbalancedParentheses ||
+      parenthesisDepth !== 0
+    )
+
     if (trimmedPhone.length > 20) {
       errors.phone_number = 'Phone number cannot exceed 20 characters.'
-    } else if (trimmedPhone && !/^[0-9+()\- ]+$/.test(trimmedPhone)) {
-      errors.phone_number = 'Please enter a valid phone number (digits, spaces, +, -, () only).'
+    } else if (hasInvalidPhoneFormat) {
+      errors.phone_number = 'Please enter a valid phone number with digits, an optional leading +, and balanced parentheses.'
     }
   }
 
