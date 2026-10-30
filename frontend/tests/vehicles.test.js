@@ -992,3 +992,44 @@ test('US-08 frontend rejects illegal and malformed plate characters', () => {
 test('US-08 frontend rejects non-string plate values', () => {
   assert.equal(validateRegistrationNumber(12345).isValid, false)
 })
+
+
+test('US-08 frontend enforces owner contact field types and model length limits', () => {
+  const valid = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 'A'.repeat(100),
+    owner_phone: '9'.repeat(20),
+  })
+  assert.equal(valid.isValid, true)
+
+  const longName = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 'A'.repeat(101),
+  })
+  assert.equal(longName.isValid, false)
+  assert.ok(longName.errors.owner_name)
+
+  const longPhone = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_phone: '9'.repeat(21),
+  })
+  assert.equal(longPhone.isValid, false)
+  assert.ok(longPhone.errors.owner_phone)
+
+  const nonStringContact = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 123,
+  })
+  assert.equal(nonStringContact.isValid, false)
+  assert.ok(nonStringContact.errors.owner_name)
+})
+
+test('US-08 frontend rejects raw overlong plate input before normalization', () => {
+  const result = validateRegistrationNumber('KA - 01 - AB - 1234     ')
+  assert.equal(result.isValid, false)
+  assert.match(result.error, /no more than 20/)
+})
