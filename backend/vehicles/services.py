@@ -1,6 +1,7 @@
 import re
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Q, Value
+from django.db.models.functions import Replace, Upper
 from rest_framework.exceptions import NotFound, PermissionDenied
 from common.exceptions import Conflict
 from vehicles.models import Vehicle
@@ -50,17 +51,50 @@ def is_registration_number_unique_violation(error: IntegrityError) -> bool:
     """
     cause = error.__cause__
     constraint_name = getattr(getattr(cause, 'diag', None), 'constraint_name', None)
-    if constraint_name == 'vehicles_registration_number_key':
+    if constraint_name in {'vehicles_registration_number_key', 'veh_reg_compact_uniq'}:
         return True
 
     database_message = str(cause or error).lower()
     return (
         'unique constraint failed: vehicles.registration_number' in database_message
+        or 'veh_reg_compact_uniq' in database_message
         or (
             'duplicate key value violates unique constraint' in database_message
             and 'vehicles_registration_number' in database_message
         )
     )
+
+
+def registration_number_comparison_key(registration_number: str) -> str:
+    """Return a separator-insensitive key used only for duplicate identity checks."""
+    if not isinstance(registration_number, str):
+        return ''
+    return re.sub(r'[- ]', '', registration_number.strip().upper())
+
+
+def vehicle_registration_exists(registration_number: str, exclude_vehicle_id=None) -> bool:
+    """
+    Check for an existing vehicle irrespective of case, spaces, or hyphens.
+
+    This preflight query mirrors the database expression unique constraint so
+    alternate display formats are treated as the same physical registration.
+    """
+    key = registration_number_comparison_key(registration_number)
+    if not key:
+        return False
+
+    queryset = Vehicle.objects.annotate(
+        _registration_key=Replace(
+            Replace(Upper('registration_number'), Value('-'), Value('')),
+            Value(' '),
+            Value(''),
+        )
+    ).filter(_registration_key=key)
+
+    if exclude_vehicle_id is not None:
+        queryset = queryset.exclude(pk=exclude_vehicle_id)
+
+    return queryset.exists()
 
 
 def is_valid_registration_number(registration_number: str) -> bool:
@@ -87,8 +121,15 @@ def get_vehicle_by_registration_number(registration_number: str) -> Vehicle | No
     normalized = normalize_registration_number(registration_number)
     if not normalized:
         return None
+    key = registration_number_comparison_key(normalized)
     try:
-        return Vehicle.objects.get(registration_number=normalized)
+        return Vehicle.objects.annotate(
+            _registration_key=Replace(
+                Replace(Upper('registration_number'), Value('-'), Value('')),
+                Value(' '),
+                Value(''),
+            )
+        ).get(_registration_key=key)
     except Vehicle.DoesNotExist:
         return None
 
@@ -129,7 +170,7 @@ def register_vehicle(
         raise ValueError('Invalid vehicle registration number format.')
 
     # Explicit domain conflict check (US-31 error contract)
-    if Vehicle.objects.filter(registration_number=normalized_plate).exists():
+    if vehicle_registration_exists(normalized_plate):
         raise Conflict('A vehicle with this registration number already exists.')
 
     try:
@@ -189,8 +230,7 @@ def update_vehicle(
         if not is_valid_registration_number(normalized_plate):
             raise ValueError('Invalid vehicle registration number format.')
 
-        duplicate_qs = Vehicle.objects.filter(registration_number=normalized_plate).exclude(pk=vehicle.pk)
-        if duplicate_qs.exists():
+        if vehicle_registration_exists(normalized_plate, exclude_vehicle_id=vehicle.pk):
             raise Conflict('A vehicle with this registration number already exists.')
         vehicle.registration_number = normalized_plate
 
@@ -303,7 +343,14 @@ def search_vehicles(search_query: str, requesting_user=None) -> list[tuple[Vehic
     normalized_exact = normalize_registration_number(raw)
 
     # Check if exact match exists anywhere in the database
-    exact_match = Vehicle.objects.filter(registration_number=normalized_exact).first()
+    exact_key = registration_number_comparison_key(normalized_exact)
+    exact_match = Vehicle.objects.annotate(
+        _registration_key=Replace(
+            Replace(Upper('registration_number'), Value('-'), Value('')),
+            Value(' '),
+            Value(''),
+        )
+    ).filter(_registration_key=exact_key).first() if exact_key else None
     if exact_match:
         if not is_privileged and exact_match.owner != requesting_user:
             raise PermissionDenied('You do not have permission to view details for this vehicle.')
