@@ -102,6 +102,15 @@ def record_payment(receipt_number, operator, payment_status, payment_method=None
             'payment_amount': 'Pending and waived bills cannot record a collected amount or payment method.',
         })
 
+    # Pending -> Pending is not a payment event. Treat it as a true
+    # no-op so retries cannot rewrite the audit attribution or touch session
+    # payment fields when no settlement has occurred.
+    if (
+        receipt.payment_status == BillingReceipt.PaymentStatus.PENDING
+        and payment_status == BillingReceipt.PaymentStatus.PENDING
+    ):
+        return receipt, False
+
     if receipt.payment_status != BillingReceipt.PaymentStatus.PENDING:
         same_settlement = (
             receipt.payment_status == payment_status
