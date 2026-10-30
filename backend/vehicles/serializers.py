@@ -7,6 +7,7 @@ from vehicles.models import Vehicle
 from vehicles.services import (
     normalize_registration_number,
     is_valid_registration_number,
+    registration_number_comparison_key,
     vehicle_registration_exists,
 )
 
@@ -104,7 +105,7 @@ class VehicleSerializer(serializers.ModelSerializer):
 
             if has_registration and has_alias:
                 normalized_alias = normalize_registration_number(attrs['plate_number'])
-                if normalized != normalized_alias:
+                if registration_number_comparison_key(normalized) != registration_number_comparison_key(normalized_alias):
                     raise serializers.ValidationError({
                         'registration_number': [
                             'registration_number and plate_number must identify the same vehicle.'
