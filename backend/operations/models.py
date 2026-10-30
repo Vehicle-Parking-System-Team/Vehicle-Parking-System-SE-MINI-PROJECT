@@ -23,6 +23,14 @@ class ParkingRecord(models.Model):
         related_name="parking_records",
     )
 
+    reservation = models.ForeignKey(
+        "reservations.Reservation",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="parking_records",
+    )
+
     operator = models.ForeignKey(
     settings.AUTH_USER_MODEL,
     on_delete=models.PROTECT,

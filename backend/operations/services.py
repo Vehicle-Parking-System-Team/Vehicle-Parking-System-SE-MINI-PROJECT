@@ -16,6 +16,7 @@ from vehicles.models import Vehicle
 from vehicles.services import normalize_registration_number
 
 from .models import ParkingRecord
+from reservations.models import Reservation
 
 
 TICKET_SIGNING_SALT = "vehicle-parking.entry-ticket.v1"
@@ -218,8 +219,22 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                         "The slot is no longer compatible."
                     )
 
+                # The vehicle row is locked, matching reservation writers.
+                # Associate an early check-in with its specific future booking.
+                # A different vehicle occupying this slot must never mark
+                # someone else's reservation as checked in.
+                reservation = (
+                    Reservation.objects.filter(
+                        vehicle=vehicle, slot=slot,
+                        status=Reservation.Status.CONFIRMED,
+                        end_time__gt=timezone.now(),
+                    )
+                    .order_by('start_time', 'pk')
+                    .first()
+                )
                 record = ParkingRecord.objects.create(
                     vehicle=vehicle,
+                    reservation=reservation,
                     slot=slot,
                     operator=operator,
                     registration_number_snapshot=vehicle.registration_number,
