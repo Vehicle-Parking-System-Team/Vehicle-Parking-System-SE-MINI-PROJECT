@@ -399,7 +399,7 @@ Application baseline: `c98346e7a219114a03f84a53cb2a0d017deb3315`.
 
 | Component | Implemented scope | Remaining scope |
 | --- | --- | --- |
-| `backend/accounts/` | Customer registration, login/refresh/logout, current user, account/token checks | Full US-02/03/04 roles/admin/profile stories remain open |
+| `backend/accounts/` | Customer registration, login/refresh/logout, current-user context, RBAC, admin account management, self-service profile updates, password changes, and token-version revocation | Remaining identity scope is limited to requirements not yet delivered by the current story set |
 | `backend/vehicles/` | Registration, profile update, plate search/current status | US-08 broader validation story remains open |
 | `backend/parking_slots/` | Slot/zone CRUD, floor, guarded state transitions, public availability, concurrency safeguards | DEC-04/14 functionality gaps recorded below |
 | `backend/operations/` | Check-in, checkout with ordinary fee, completed history, snapshots and active-record constraints | Scanner/receipt/payment flows and dedicated frontend operations/history views |
@@ -420,6 +420,8 @@ See [the Sprint 1 review](../meeting-notes/SPRINT1_REVIEW.md), [test-plan addend
 ---
 
 ## 7. Document Revision History
+
+| **1.2.1** | 30 Oct 2026 | Member 1 (Integration Lead) | Updated the identity-and-access implementation snapshot to include US-04 profile/password management and its token-revocation behavior; preserved the US-03 admin lifecycle and uniqueness constraints. |
 
 | Version | Date | Author / Role | Changes Description |
 | :--- | :--- | :--- | :--- |
