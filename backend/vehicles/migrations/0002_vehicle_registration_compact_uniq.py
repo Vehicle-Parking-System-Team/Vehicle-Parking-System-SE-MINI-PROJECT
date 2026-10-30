@@ -46,12 +46,14 @@ def normalize_legacy_registration_formats(apps, schema_editor):
         r'^(?:[A-Z]{2}[-\s]?(?:[0-9]{1,2}[-\s]?)?[A-Z]{1,8}[-\s]?[0-9]{1,4}|[0-9]{2}[-\s]?BH[-\s]?[0-9]{4}[-\s]?[A-Z]{1,2})$'
     )
 
-    for vehicle in Vehicle.objects.using(database).only('pk', 'registration_number').iterator():
-        raw = vehicle.registration_number.strip().upper()
+    for vehicle_id, registration_number in list(
+        Vehicle.objects.using(database).values_list('pk', 'registration_number')
+    ):
+        raw = registration_number.strip().upper()
         if legacy_pattern.fullmatch(raw):
             canonical = re.sub(r'[-\s]+', '-', raw)
-            if canonical != vehicle.registration_number:
-                Vehicle.objects.using(database).filter(pk=vehicle.pk).update(
+            if canonical != registration_number:
+                Vehicle.objects.using(database).filter(pk=vehicle_id).update(
                     registration_number=canonical
                 )
 
