@@ -386,6 +386,29 @@ class BillingPaymentAPITests(BillingReceiptAPITests):
         self.assertEqual(response.data['payment_amount'], '0.00')
         self.assertIsNone(response.data['payment_timestamp'])
 
+    def test_repeated_pending_request_preserves_payment_audit_fields(self):
+        receipt_id = self.generate().data['receipt_id']
+        receipt = BillingReceipt.objects.get(receipt_number=receipt_id)
+        # Model a pre-existing audit attribution; a Pending retry is not a
+        # settlement event and must not replace it with the retrying operator.
+        receipt.payment_recorded_by = self.operator
+        receipt.save(update_fields=['payment_recorded_by'])
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Pending'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.payment_status, 'Pending')
+        self.assertEqual(receipt.payment_recorded_by_id, self.operator.pk)
+        self.assertIsNone(receipt.payment_method)
+        self.assertEqual(receipt.payment_amount, Decimal('0.00'))
+        self.assertIsNone(receipt.payment_timestamp)
+
     def test_waived_status_records_zero_amount_without_method(self):
         receipt_id = self.generate().data['receipt_id']
         self.client.force_authenticate(user=self.operator)
