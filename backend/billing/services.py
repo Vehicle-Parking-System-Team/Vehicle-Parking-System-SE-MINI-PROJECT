@@ -128,4 +128,14 @@ def record_payment(receipt_number, operator, payment_status, payment_method=None
         'payment_status', 'payment_method', 'payment_amount',
         'payment_timestamp', 'payment_recorded_by',
     ])
+
+    # Keep the completed parking session's payment summary in sync with its
+    # receipt. Both writes share this transaction and cannot diverge on failure.
+    from operations.models import ParkingRecord
+    ParkingRecord.objects.filter(pk=receipt.parking_record_id).update(
+        payment_status=payment_status,
+        payment_method=payment_method,
+        payment_amount=payment_amount,
+        payment_timestamp=receipt.payment_timestamp,
+    )
     return receipt, True
