@@ -77,16 +77,17 @@ The registration and edit forms use the same normalization/format policy as the 
 
 ## 7. Traceability and verification
 
+The original master Test Plan's `TC-UC02-UNIT-001` and `TC-UC02-API-001/002` identifiers remain reserved for the baseline registration scenarios. All new US-08 cases use the dedicated `TC-UC02-US08-*` namespace already present in SAD §3.4.3.
+
 | Test ID | Coverage |
 | --- | --- |
-| `TC-UC02-US08-UNIT-001` | Canonicalization, accepted formats, malformed formats, and duplicate-constraint classification |
-| `TC-UC02-US08-API-001` | Valid registration and canonical value persistence |
+| `TC-UC02-US08-UNIT-001` | Canonicalization, accepted formats, malformed formats, legacy migration normalization, and duplicate-constraint classification |
+| `TC-UC02-US08-API-001` | Missing, blank, malformed, overlong and wrong-type registration payloads; 400 field errors and no write |
 | `TC-UC02-US08-API-002` | Normalized duplicate registration, cross-owner collision and structured 409 |
-| `TC-UC02-US08-API-003` | Missing, blank, malformed, overlong and wrong-type registration payloads; 400 field errors |
-| `TC-UC02-US08-API-004` | Unknown keys, server-managed fields, alias consistency and payload sanitization |
-| `TC-UC02-US08-API-005` | Profile update validation, duplicate rejection and no-mutation guarantee |
+| `TC-UC02-US08-API-003` | Unknown keys, server-managed fields, alias consistency, and payload sanitization |
+| `TC-UC02-US08-API-004` | PUT/PATCH profile validation, duplicate rejection, no mutation, and retaining own plate |
 | `TC-UC02-US08-API-005` | PostgreSQL concurrent duplicate registration; exactly one 201 and one 409 |
-| `TC-UC02-US08-UI-001` | Frontend normalization, format validation and invalid-input rejection |
+| `TC-UC02-US08-UI-001` | Frontend normalization, format validation, raw-length and owner-contact limits |
 | `TC-UC02-US08-SYS-001/002` | Manual end-to-end registration, duplicate feedback and profile update; execution pending |
 | `TC-UC10-API-001` | Shared US-31 structured error contract |
 
