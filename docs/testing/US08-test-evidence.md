@@ -16,7 +16,7 @@
 | TC-UC02-US08-UI-001 | Frontend normalization, accepted format examples, invalid format rejection, and non-string rejection | `frontend/tests/vehicles.test.js` |
 | TC-UC10-API-001 | Shared error envelope, field details, and stable status/code mapping | `backend/common/tests/test_exceptions.py`; US-31 evidence |
 
-## Required assertions
+## Document cross-check\n\n- SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14; the generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.\n- SAD: §3.4.3 vehicle management and §3.4.9 shared validation/error layer.\n- RTM: FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities.\n- The checked-in SRS DOCX is a Git LFS pointer (131 bytes; referenced object size 216,166 bytes). The pointer is not the DOCX content, so binary document inspection is not claimed here.\n- The 19 October audit and Phase 3 report are historical snapshots; the 22 October explicit sprint allocation places US-08 in Sprint 2, and Issue #28 now reflects that.\n\n## Required assertions
 
 - Validation failures use HTTP 400 and exactly the shared `error`, `code`, and `details` envelope.
 - Duplicate normalized plates use HTTP 409 and `code: CONFLICT`.
