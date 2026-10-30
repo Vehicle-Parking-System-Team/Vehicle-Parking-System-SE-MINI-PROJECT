@@ -90,7 +90,7 @@ class ProfileAndPasswordManagementTests(TestCase):
         refresh['token_version'] = self.user.token_version
         refresh['role'] = self.user.role
         refresh['username'] = self.user.username
-        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)\n        access_token = str(refresh.access_token)
 
         user_client = APIClient()
         user_client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
@@ -112,6 +112,12 @@ class ProfileAndPasswordManagementTests(TestCase):
         # Token version incremented: old token is revoked on subsequent request
         profile_after = user_client.get('/api/auth/me/')
         self.assertEqual(profile_after.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # A refresh token issued before the password change must also be rejected.
+        refresh_after = self.client.post(
+            '/api/auth/token/refresh/', {'refresh': refresh_token}, format='json'
+        )
+        self.assertEqual(refresh_after.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_ac3_incorrect_current_password_returns_400(self):
         """AC-3: Incorrect current password returns HTTP 400 Bad Request."""

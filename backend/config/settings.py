@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'vehicles',
     'rates',
     'parking_slots',
+    'reservations',
     'operations',
     'billing',
 ]

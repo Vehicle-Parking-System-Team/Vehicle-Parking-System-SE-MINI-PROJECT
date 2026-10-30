@@ -56,6 +56,18 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+def validate_phone_number_value(value):
+    """Accept common international phone notation; reject malformed API input."""
+    normalized = value.strip()
+    if len(normalized) > 20:
+        raise serializers.ValidationError('Phone number cannot exceed 20 characters.')
+    if normalized and not re.fullmatch(r'[0-9+()\\- ]+', normalized):
+        raise serializers.ValidationError(
+            'Enter a valid phone number using digits, spaces, +, -, and parentheses only.'
+        )
+    return normalized
+
+
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     """
     US-04: User profile update serializer.
@@ -69,7 +81,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['first_name', 'last_name', 'phone_number', 'contact_number', 'email']
 
-    def validate_email(self, value):
+    def validate_phone_number(self, value):\n        return validate_phone_number_value(value)\n\n    def validate_contact_number(self, value):\n        return validate_phone_number_value(value)\n\n    def validate_email(self, value):
         email = value.strip().lower()
         if not email:
             raise serializers.ValidationError('Email address cannot be empty.')

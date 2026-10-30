@@ -830,6 +830,28 @@ class CustomerRegistrationTests(TestCase):
         self.assertEqual(data['code'], 'VALIDATION_ERROR')
         self.assertIn('username', data['details'])
 
+
+    def test_registration_integrity_race_returns_controlled_validation_error(self):
+        """A uniqueness race during save returns 400 instead of an unhandled 500."""
+        from unittest.mock import patch
+
+        from django.db import IntegrityError
+
+        with patch('accounts.serializers.User.save', side_effect=IntegrityError('unique constraint')):
+            with patch.object(User.objects, 'filter') as filter_mock:
+                filter_mock.return_value.exists.return_value = False
+                response = self.client.post(
+                    '/api/auth/register/',
+                    self.valid_payload,
+                    format='json',
+                )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data['code'], 'VALIDATION_ERROR')
+        self.assertIn('non_field_errors', data['details'])
+        self.assertNotIn('unique constraint', str(data))
+
     def test_registration_duplicate_email_rejected(self):
         """Duplicate email registration returns 400 validation error."""
         self.client.post('/api/auth/register/', self.valid_payload, format='json')

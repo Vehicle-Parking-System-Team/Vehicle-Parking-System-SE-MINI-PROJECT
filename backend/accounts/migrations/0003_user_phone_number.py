@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0001_initial'),
+        ('accounts', '0002_user_case_insensitive_unique_constraints'),
     ]
 
     operations = [
