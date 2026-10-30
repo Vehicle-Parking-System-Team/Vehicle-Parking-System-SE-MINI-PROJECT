@@ -77,6 +77,7 @@ class VehicleValidationServiceTests(TestCase):
         )
         self.assertEqual(registration_number_comparison_key('ka01key1234'), 'KA01KEY1234')
         self.assertTrue(vehicle_registration_exists('KA01KEY1234'))
+        self.assertFalse(vehicle_registration_exists('KA01KEY1234', exclude_vehicle_id=vehicle.pk))
         self.assertEqual(
             get_vehicle_by_registration_number('KA01KEY1234').pk,
             vehicle.pk,
