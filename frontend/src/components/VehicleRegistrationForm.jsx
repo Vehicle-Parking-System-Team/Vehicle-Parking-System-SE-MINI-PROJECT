@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
-import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput } from '../utils/vehicles'
+import { VEHICLE_TYPES, normalizePlate, validateRegistrationNumber, validateVehicleUpdateInput } from '../utils/vehicles'
 
 export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfile }) {
   const { fetchWithAuth, user } = useAuth()
@@ -81,17 +81,14 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
     setFormError(null)
     setSuccessMessage(null)
 
-    const trimmedPlate = normalizePlate(formData.registration_number)
-    if (!trimmedPlate) {
-      setFieldErrors({ registration_number: ['Registration number is required.'] })
+    const plateValidation = validateRegistrationNumber(formData.registration_number)
+    if (!plateValidation.isValid) {
+      setFieldErrors({ registration_number: [plateValidation.error] })
       return
     }
-    if (trimmedPlate.length > 20) {
-      setFieldErrors({ registration_number: ['Ensure this field has no more than 20 characters.'] })
-      return
-    }
-    if (!formData.vehicle_type) {
-      setFieldErrors({ vehicle_type: ['Vehicle type is required.'] })
+    const trimmedPlate = plateValidation.normalized
+    if (!formData.vehicle_type || !VEHICLE_TYPES.some((type) => type.value === formData.vehicle_type)) {
+      setFieldErrors({ vehicle_type: ['A valid vehicle type is required.'] })
       return
     }
 
