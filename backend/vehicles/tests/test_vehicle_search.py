@@ -311,7 +311,9 @@ class VehicleSearchAPITests(TestCase):
         self.client.force_authenticate(user=self.customer)
         response = self.client.get('/api/v1/vehicles/search/')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('error', response.data)
+        self.assertEqual(response.data['code'], 'VALIDATION_ERROR')
+        self.assertEqual(set(response.data), {'error', 'code', 'details'})
+        self.assertIn('plate', response.data['details'])
 
     def test_search_own_vehicle_by_query_param(self):
         """Customer searching their own vehicle returns HTTP 200 with vehicle and status."""
