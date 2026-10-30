@@ -8,24 +8,25 @@
 
 | Test ID | Automated coverage | Source |
 | --- | --- | --- |
-| TC-UC02-UNIT-001 | Canonical plate normalization; supported state/BH shapes; malformed separators and punctuation; database exact-value and separator-insensitive unique-constraint classifier | `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-001 | Valid registration and canonical value persistence | `backend/vehicles/tests/test_vehicle_registration.py`; `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-002 | Duplicate normalized plate across owners returns structured 409 and no second record | `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-003 | Missing, blank, overlong, malformed and non-string plate values return field-specific 400 | `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-004 | Alias identity consistency and independent alias validation, unknown keys, type validation, owner-field limits, and server-managed ownership protection | `backend/vehicles/tests/test_vehicle_validation.py`; existing registration tests |
-| TC-UC02-API-005 | Malformed/duplicate profile updates return 400/409 and leave the stored record unchanged | `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-006 | PostgreSQL concurrent duplicate registration returns exactly one 201 and one 409 | PostgreSQL-only `VehicleConcurrentRegistrationTests` |
-| TC-UC02-UI-001 | Frontend normalization, accepted format examples, invalid format rejection, and non-string rejection | `frontend/tests/vehicles.test.js` |
-| TC-UC02-SYS-001/002 | Manual end-to-end registration, duplicate feedback and profile-update scenarios | Not Run; execute on stable integrated build |
+| TC-UC02-US08-UNIT-001 | Canonical plate normalization; supported state/BH shapes; malformed separators; legacy migration normalization; exact and separator-insensitive database uniqueness classification | `backend/vehicles/tests/test_vehicle_validation.py` |
+| TC-UC02-US08-API-001 | Missing, blank, raw-overlong, malformed, illegal-character and non-string plate values return field-specific 400 with no database write | `backend/vehicles/tests/test_vehicle_validation.py` |
+| TC-UC02-US08-API-002 | Duplicate normalized plate across owners and separator/case variants returns structured 409 with one record | `backend/vehicles/tests/test_vehicle_validation.py` |
+| TC-UC02-US08-API-003 | Alias identity consistency and independent alias validation, unknown keys, non-string fields, owner-field limits, and server-managed ownership protection | `backend/vehicles/tests/test_vehicle_validation.py`; existing registration tests |
+| TC-UC02-US08-API-004 | Malformed/duplicate PUT/PATCH updates return 400/409 without mutation; retaining own plate is accepted | `backend/vehicles/tests/test_vehicle_validation.py`; profile tests |
+| TC-UC02-US08-API-005 | PostgreSQL concurrent duplicate registration returns exactly one 201 and one 409 | PostgreSQL-only `VehicleConcurrentRegistrationTests` |
+| TC-UC02-US08-UI-001 | Frontend normalization, accepted formats, invalid/raw-overlong plate rejection, and owner contact field limits | `frontend/tests/vehicles.test.js` |
+| TC-UC02-US08-SYS-001/002 | Manual end-to-end registration, duplicate feedback and profile-update scenarios | Not Run; execute on stable integrated build |
+| TC-UC02-UNIT-001 / API-001 / API-002 | Original master Test Plan baseline cases retained unchanged: registration validation, valid registration, and duplicate registration | Master `Vehicle_Parking_System_Test_Plan.pdf`; existing registration tests |
 | TC-UC10-API-001 | Shared error envelope, field details, and stable status/code mapping | `backend/common/tests/test_exceptions.py`; US-31 evidence |
 
 ## Document cross-check
 
-- SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14; the generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.
+- SRS source: `scripts/generate_srs.js` FR-01, FR-13 and FR-14; The available Library copy of SRS v1.1 (18 October 2026) was also inspected for FR-01/13/14; the repository's generated DOCX remains an LFS pointer, so it is not represented as inspected. the generator states that validation applies across all API endpoints and that failures use `{error, code, details}`.
 - SAD: §3.4.3 vehicle management and §3.4.9 shared validation/error layer.
 - RTM: v1.2.1 FR-13/FR-14 rows now point to US-08 and US-31 with separate responsibilities. The SRS generator source now references RTM v1.2.1; regenerate the LFS-backed DOCX from the repository root with `cd scripts && npm ci && node generate_srs.js` after the updated RTM is accepted.
 - The checked-in SRS DOCX is a Git LFS pointer (131 bytes; referenced object size 216,166 bytes). The pointer is not the DOCX content, so binary document inspection is not claimed here.
-- The 19 October audit/Phase 3 report and the 03 October Handbook/Member 1 plan are historical snapshots that list Sprint 3. The later explicit 22 October allocation places US-08 in Sprint 2, and Issue #28 now reflects that; the older uploaded documents still need a future refresh.
+- The master Software Test Plan v1.0 requires 8–10+ cases for each implemented use case and says manual outcomes are recorded only after execution. UC-02 now has the three original baseline cases plus nine new US-08-specific cases; manual SYS-001/002 remain Not Run.
+- - The 19 October audit/Phase 3 report and the 03 October Handbook/Member 1 plan are historical snapshots that list Sprint 3. The later explicit 22 October allocation places US-08 in Sprint 2, and Issue #28 now reflects that; the older uploaded documents still need a future refresh.
 
 ## Manual system scenarios (not executed)
 
