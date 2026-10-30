@@ -7,31 +7,60 @@ from vehicles.models import Vehicle
 
 # Anchored regex supporting standard state registrations and BH-series
 REGISTRATION_NUMBER_PATTERN = re.compile(
-    r'^(?:[A-Z]{2}[-\s]?(?:[0-9]{1,2}[-\s]?)?[A-Z]{1,8}[-\s]?[0-9]{1,4}|[0-9]{2}[-\s]?BH[-\s]?[0-9]{4}[-\s]?[A-Z]{1,2})$'
+    r'(?:[A-Z]{2}-?(?:[0-9]{1,2}-?)?[A-Z]{1,8}-?[0-9]{1,4}|[0-9]{2}-?BH-?[0-9]{4}-?[A-Z]{1,2})'
 )
 
 
 def normalize_registration_number(registration_number: str) -> str:
     """
-    Normalizes a vehicle registration number / license plate.
-    - Trims leading/trailing whitespace and converts to uppercase.
-    - Collapses whitespace around hyphens.
-    - Converts space-separated format (e.g. 'KA 01 AB 1234') into canonical hyphenated form.
-    - Preserves unseparated alphanumeric plates (e.g. 'DL3CBB1122').
+    Return one canonical representation for supported plate separators.
+
+    Hyphenated, space-separated, and compact alphanumeric plates are supported.
+    Mixed separators, repeated hyphens, tabs, control characters, and other
+    punctuation are deliberately not repaired; the format validator rejects them.
     """
-    if not registration_number:
+    if not isinstance(registration_number, str):
         return ''
-    s = str(registration_number).strip().upper()
-    # Collapse any whitespace around hyphens
-    s = re.sub(r'\s*-\s*', '-', s)
-    # Convert space-separated parts to hyphens
-    if ' ' in s and '-' not in s:
-        parts = s.split()
+
+    normalized = registration_number.strip().upper()
+    if not normalized:
+        return ''
+
+    # Do not turn illegal characters into a valid plate during sanitization.
+    if not re.fullmatch(r'[A-Z0-9 -]+', normalized):
+        return normalized
+
+    if '-' in normalized:
+        return re.sub(r' *- *', '-', normalized)
+
+    if ' ' in normalized:
+        parts = re.split(r' +', normalized)
         if len(parts) in (3, 4):
-            s = '-'.join(parts)
-        else:
-            s = ' '.join(parts)
-    return s
+            return '-'.join(parts)
+
+    return normalized
+
+
+def is_registration_number_unique_violation(error: IntegrityError) -> bool:
+    """
+    Identify only the vehicle registration uniqueness constraint.
+
+    Other integrity failures (for example a broken owner foreign key) must
+    remain server errors rather than being mislabeled as duplicate plates.
+    """
+    cause = error.__cause__
+    constraint_name = getattr(getattr(cause, 'diag', None), 'constraint_name', None)
+    if constraint_name == 'vehicles_registration_number_key':
+        return True
+
+    database_message = str(cause or error).lower()
+    return (
+        'unique constraint failed: vehicles.registration_number' in database_message
+        or (
+            'duplicate key value violates unique constraint' in database_message
+            and 'vehicles_registration_number' in database_message
+        )
+    )
 
 
 def is_valid_registration_number(registration_number: str) -> bool:
@@ -47,7 +76,7 @@ def is_valid_registration_number(registration_number: str) -> bool:
     if not registration_number or not isinstance(registration_number, str):
         return False
     normalized = normalize_registration_number(registration_number)
-    return bool(REGISTRATION_NUMBER_PATTERN.fullmatch(normalized))
+    return len(normalized) <= 20 and bool(REGISTRATION_NUMBER_PATTERN.fullmatch(normalized))
 
 
 def get_vehicle_by_registration_number(registration_number: str) -> Vehicle | None:
@@ -112,9 +141,11 @@ def register_vehicle(
                 owner_name=owner_name.strip() if owner_name else (owner.get_full_name() or owner.username),
                 owner_phone=owner_phone.strip() if owner_phone else '',
             )
-    except IntegrityError:
-        # Catch concurrent race condition collisions and fail closed with 409 Conflict
-        raise Conflict('A vehicle with this registration number already exists.')
+    except IntegrityError as exc:
+        if is_registration_number_unique_violation(exc):
+            # The database unique constraint is the concurrency-safe authority.
+            raise Conflict('A vehicle with this registration number already exists.') from exc
+        raise
 
 
 def get_vehicle_by_id(vehicle_id: int) -> Vehicle | None:
@@ -173,8 +204,10 @@ def update_vehicle(
         with transaction.atomic():
             vehicle.save()
             return vehicle
-    except IntegrityError:
-        raise Conflict('A vehicle with this registration number already exists.')
+    except IntegrityError as exc:
+        if is_registration_number_unique_violation(exc):
+            raise Conflict('A vehicle with this registration number already exists.') from exc
+        raise
 
 
 def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
