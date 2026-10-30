@@ -303,6 +303,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
               className="form-input"
               placeholder={user?.username || 'Full Name'}
               value={formData.owner_name}
+              maxLength={100}
               onChange={handleChange}
               disabled={isSubmitting}
             />
@@ -317,6 +318,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
               className="form-input"
               placeholder="e.g. 9876543210"
               value={formData.owner_phone}
+              maxLength={20}
               onChange={handleChange}
               disabled={isSubmitting}
             />
@@ -416,6 +418,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
                           name="owner_name"
                           className="form-input-sm"
                           value={editFormData.owner_name}
+                          maxLength={100}
                           onChange={handleEditChange}
                           disabled={isSavingEdit}
                         />
@@ -429,6 +432,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
                           name="owner_phone"
                           className="form-input-sm"
                           value={editFormData.owner_phone}
+                          maxLength={20}
                           onChange={handleEditChange}
                           disabled={isSavingEdit}
                         />
