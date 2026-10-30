@@ -316,6 +316,44 @@ class VehicleValidationAPITests(TestCase):
         self.assertEqual(own_vehicle.registration_number, 'KA-01-OWN-1234')
 
 
+    def test_put_malformed_and_duplicate_plate_leave_record_unchanged(self):
+        own_vehicle = Vehicle.objects.create(
+            registration_number='KA-01-PUT-OWN-1234',
+            vehicle_type='Compact',
+            owner=self.owner,
+            owner_name='Original Owner',
+        )
+        Vehicle.objects.create(
+            registration_number='KA-01-PUT-OTHER-1234',
+            vehicle_type='SUV',
+            owner=self.other_owner,
+        )
+
+        for plate, expected_status in (
+            ('KA/01/PUT/OWN/1234', status.HTTP_400_BAD_REQUEST),
+            ('KA01PUTOTHER1234', status.HTTP_409_CONFLICT),
+        ):
+            with self.subTest(plate=plate):
+                response = self.client.put(
+                    f'{self.endpoint}{own_vehicle.pk}/',
+                    {
+                        'registration_number': plate,
+                        'vehicle_type': 'SUV',
+                        'owner_name': 'Should Not Persist',
+                    },
+                    format='json',
+                )
+                self.assertEqual(response.status_code, expected_status)
+                own_vehicle.refresh_from_db()
+                self.assertEqual(own_vehicle.registration_number, 'KA-01-PUT-OWN-1234')
+                self.assertEqual(own_vehicle.vehicle_type, 'Compact')
+                self.assertEqual(own_vehicle.owner_name, 'Original Owner')
+                if expected_status == status.HTTP_400_BAD_REQUEST:
+                    self.assertEqual(response.data['code'], 'VALIDATION_ERROR')
+                else:
+                    self.assertEqual(response.data['code'], 'CONFLICT')
+
+
 @skipUnless(connection.vendor == 'postgresql', 'Concurrent unique-conflict behavior is verified on PostgreSQL.')
 class VehicleConcurrentRegistrationTests(TransactionTestCase):
     reset_sequences = True
