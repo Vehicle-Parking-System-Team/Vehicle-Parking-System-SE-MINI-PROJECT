@@ -38,7 +38,7 @@ The master test plan requires 8–10+ cases across relevant test levels and says
 
 - Validation failures use HTTP 400 and exactly the shared `error`, `code`, and `details` envelope.
 - Duplicate normalized plates use HTTP 409 and `code: CONFLICT`.
-- The database separator-insensitive expression unique index remains authoritative under concurrent insert attempts; only its registration-number violation is mapped to 409.
+- The database separator-insensitive expression unique index from migration `0002_vehicle_registration_compact_uniq.py` remains authoritative under concurrent insert attempts; only its registration-number violation is mapped to 409.
 - Invalid and duplicate profile updates do not mutate persisted vehicle records.
 - Client-supplied ownership metadata cannot change the authenticated owner.
 - Frontend validation is a usability layer; backend validation is authoritative.
