@@ -12,7 +12,7 @@
 | TC-UC02-API-001 | Valid registration and canonical value persistence | `backend/vehicles/tests/test_vehicle_registration.py`; `backend/vehicles/tests/test_vehicle_validation.py` |
 | TC-UC02-API-002 | Duplicate normalized plate across owners returns structured 409 and no second record | `backend/vehicles/tests/test_vehicle_validation.py` |
 | TC-UC02-API-003 | Missing, blank, overlong, malformed and non-string plate values return field-specific 400 | `backend/vehicles/tests/test_vehicle_validation.py` |
-| TC-UC02-API-004 | Alias consistency, unknown keys, type validation, owner-field limits, and server-managed ownership protection | `backend/vehicles/tests/test_vehicle_validation.py`; existing registration tests |
+| TC-UC02-API-004 | Alias identity consistency and independent alias validation, unknown keys, type validation, owner-field limits, and server-managed ownership protection | `backend/vehicles/tests/test_vehicle_validation.py`; existing registration tests |
 | TC-UC02-API-005 | Malformed/duplicate profile updates return 400/409 and leave the stored record unchanged | `backend/vehicles/tests/test_vehicle_validation.py` |
 | TC-UC02-API-006 | PostgreSQL concurrent duplicate registration returns exactly one 201 and one 409 | PostgreSQL-only `VehicleConcurrentRegistrationTests` |
 | TC-UC02-UI-001 | Frontend normalization, accepted format examples, invalid format rejection, and non-string rejection | `frontend/tests/vehicles.test.js` |
