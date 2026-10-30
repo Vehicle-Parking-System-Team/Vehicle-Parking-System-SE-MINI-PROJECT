@@ -197,10 +197,13 @@ export default function ProfilePage() {
         return
       }
 
-      setPasswordSuccess('Password changed successfully. Please sign in again with your new password.')\n      setCurrentPassword('')\n      setNewPassword('')\n      setNewPasswordConfirm('')\n      // The backend increments token_version, revoking both access and refresh tokens.\n      // Purge the now-invalid local session so the UI cannot remain authenticated.\n      await logout()
+      setPasswordSuccess('Password changed successfully. Please sign in again with your new password.')
       setCurrentPassword('')
       setNewPassword('')
       setNewPasswordConfirm('')
+      // The backend increments token_version, revoking both access and refresh tokens.
+      // Purge the now-invalid local session so the UI cannot remain authenticated.
+      await logout()
     } catch {
       setPasswordGeneralError('Network error: Unable to contact password change service.')
     } finally {
