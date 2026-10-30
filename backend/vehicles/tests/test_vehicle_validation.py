@@ -4,13 +4,18 @@ Covers FR-13/FR-14 at service, serializer/API, and persistence boundaries.
 """
 
 from django.contrib.auth import get_user_model
-from django.db import IntegrityError, transaction
-from django.test import TestCase
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest.mock import patch
+
+from django.db import IntegrityError, transaction, close_old_connections, connection
+from django.test import TestCase, TransactionTestCase, skipUnless
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from vehicles.models import Vehicle
+from vehicles.serializers import VehicleSerializer
 from vehicles.services import (
     is_registration_number_unique_violation,
     is_valid_registration_number,
@@ -261,15 +266,6 @@ class VehicleValidationAPITests(TestCase):
         self.assertEqual(duplicate.data['code'], 'CONFLICT')
         own_vehicle.refresh_from_db()
         self.assertEqual(own_vehicle.registration_number, 'KA-01-OWN-1234')
-
-
-from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier
-from unittest.mock import patch
-
-from django.db import close_old_connections, connection
-from django.test import TransactionTestCase, skipUnlessDBFeature, skipUnless
-from vehicles.serializers import VehicleSerializer
 
 
 @skipUnless(connection.vendor == 'postgresql', 'Concurrent unique-conflict behavior is verified on PostgreSQL.')
