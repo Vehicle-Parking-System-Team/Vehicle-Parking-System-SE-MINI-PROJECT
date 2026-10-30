@@ -20,6 +20,9 @@ from vehicles.services import (
     is_registration_number_unique_violation,
     is_valid_registration_number,
     normalize_registration_number,
+    registration_number_comparison_key,
+    vehicle_registration_exists,
+    get_vehicle_by_registration_number,
 )
 
 User = get_user_model()
@@ -65,6 +68,28 @@ class VehicleValidationServiceTests(TestCase):
         ):
             with self.subTest(plate=plate):
                 self.assertFalse(is_valid_registration_number(plate))
+
+    def test_separator_insensitive_key_and_database_constraint_prevent_compact_duplicates(self):
+        vehicle = Vehicle.objects.create(
+            registration_number='KA-01-KEY-1234',
+            vehicle_type='Compact',
+            owner=self.owner,
+        )
+        self.assertEqual(registration_number_comparison_key('ka01key1234'), 'KA01KEY1234')
+        self.assertTrue(vehicle_registration_exists('KA01KEY1234'))
+        self.assertEqual(
+            get_vehicle_by_registration_number('KA01KEY1234').pk,
+            vehicle.pk,
+        )
+
+        with self.assertRaises(IntegrityError) as caught:
+            with transaction.atomic():
+                Vehicle.objects.create(
+                    registration_number='KA01KEY1234',
+                    vehicle_type='SUV',
+                    owner=self.owner,
+                )
+        self.assertTrue(is_registration_number_unique_violation(caught.exception))
 
     def test_non_string_values_are_not_coerced_into_registration_numbers(self):
         self.assertEqual(normalize_registration_number(12345), '')
@@ -176,16 +201,18 @@ class VehicleValidationAPITests(TestCase):
             owner=self.owner,
         )
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self._token(self.other_owner)}')
-        response = self.client.post(self.endpoint, {
-            'registration_number': 'ka 01 dup 1234',
-            'vehicle_type': 'SUV',
-        }, format='json')
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertEqual(response.data, {
-            'error': 'A vehicle with this registration number already exists.',
-            'code': 'CONFLICT',
-            'details': {},
-        })
+        for duplicate_plate in ('ka 01 dup 1234', 'KA01DUP1234'):
+            with self.subTest(duplicate_plate=duplicate_plate):
+                response = self.client.post(self.endpoint, {
+                    'registration_number': duplicate_plate,
+                    'vehicle_type': 'SUV',
+                }, format='json')
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+                self.assertEqual(response.data, {
+                    'error': 'A vehicle with this registration number already exists.',
+                    'code': 'CONFLICT',
+                    'details': {},
+                })
         self.assertEqual(Vehicle.objects.filter(registration_number='KA-01-DUP-1234').count(), 1)
 
     def test_conflicting_plate_aliases_return_field_specific_400(self):
@@ -259,7 +286,7 @@ class VehicleValidationAPITests(TestCase):
 
         duplicate = self.client.patch(
             f'{self.endpoint}{own_vehicle.pk}/',
-            {'registration_number': 'KA-01-OTHER-1234'},
+            {'registration_number': 'KA01OTHER1234'},
             format='json',
         )
         self.assertEqual(duplicate.status_code, status.HTTP_409_CONFLICT)
@@ -302,13 +329,14 @@ class VehicleConcurrentRegistrationTests(TransactionTestCase):
             barrier.wait(timeout=15)
             return validated
 
-        def submit(token):
+        def submit(index, token):
             close_old_connections()
             try:
                 client = APIClient()
                 client.credentials(HTTP_AUTHORIZATION=f'Bearer {token}')
+                plate = 'KA-01-RACE-1234' if index == 0 else 'KA01RACE1234'
                 response = client.post(self.endpoint, {
-                    'registration_number': 'KA-01-RACE-1234',
+                    'registration_number': plate,
                     'vehicle_type': 'Compact',
                 }, format='json')
                 return response.status_code, response.data
@@ -318,13 +346,19 @@ class VehicleConcurrentRegistrationTests(TransactionTestCase):
         self.endpoint = '/api/v1/vehicles/'
         with patch.object(VehicleSerializer, 'validate', synchronized_validate):
             with ThreadPoolExecutor(max_workers=2) as executor:
-                futures = [executor.submit(submit, token) for token in self.tokens]
+                futures = [
+                    executor.submit(submit, index, token)
+                    for index, token in enumerate(self.tokens)
+                ]
                 results = [future.result(timeout=25) for future in futures]
 
         self.assertEqual(sorted(status for status, _ in results), [201, 409])
         conflict_body = next(body for status, body in results if status == 409)
         self.assertEqual(conflict_body['code'], 'CONFLICT')
+        self.assertEqual(Vehicle.objects.count(), 1)
         self.assertEqual(
-            Vehicle.objects.filter(registration_number='KA-01-RACE-1234').count(),
-            1,
+            registration_number_comparison_key(
+                Vehicle.objects.get().registration_number
+            ),
+            'KA01RACE1234',
         )
