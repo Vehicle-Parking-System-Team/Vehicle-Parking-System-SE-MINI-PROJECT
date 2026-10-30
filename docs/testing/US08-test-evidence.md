@@ -46,11 +46,15 @@ The master test plan requires 8–10+ cases across relevant test levels and says
 
 ## Execution status
 
-**CI run 41107424010 — commit `6f78470dd76766f1cc42ec14eaf89ca5ca0360e7`.**
+**CI run 41108123894 — PR merge commit `7a1a15b049358cf1ece08d3235fd425c4d449c61` (PR head `6f8eb4ac144fac927d406d4ea2ac40fd738cf3cc`).**
 
-- Frontend CI: passed.
-- PostgreSQL slot and vehicle integrity: passed.
-- Security verification run 41107424077: passed.
-- Backend Django CI: still running when this evidence snapshot was recorded.
+- Frontend CI: **passed**.
+- PostgreSQL slot and vehicle integrity: **passed**, including the PostgreSQL-only concurrent duplicate-registration check.
+- Security verification run 41108124290: **passed**.
+- Backend Django CI: **failed** — 504 tests ran, with 2 errors and 12 skips. All vehicle validation, registration, and profile tests completed successfully. The two errors are in historical operations migration rollback tests:
+  - `CheckoutMigrationTests.test_existing_active_and_completed_records_survive_nullable_snapshot_migration`
+  - `ExistingDataMigrationTests.test_pr64_rows_survive_additive_floor_migration`
+  
+  Both fail while SQLite reverses the independent `operations.0006` migration leaves, reporting `no such column: payment_timestamp`. The vehicle-specific PostgreSQL integrity job passes; the full backend CI must not be reported as green until this migration rollback issue is resolved.
 
-The backend result must be checked before declaring CI fully green. Manual SYS-001/002 remain Not Run and require execution against the integrated application.
+Manual SYS-001/002 remain **Not Run** and require execution against the integrated application.
