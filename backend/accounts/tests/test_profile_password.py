@@ -120,6 +120,26 @@ class ProfileAndPasswordManagementTests(TestCase):
         )
         self.assertEqual(refresh_after.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_profile_rejects_malformed_phone_number(self):
+        """The API rejects malformed phone numbers for either supported field name."""
+        self.client.force_authenticate(user=self.user)
+        for field in ('phone_number', 'contact_number'):
+            with self.subTest(field=field):
+                response = self.client.patch(
+                    '/api/auth/profile/', {field: '123-ABC-7890'}, format='json'
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(field, response.data.get('details', {}))
+
+    def test_profile_accepts_blank_optional_phone_number(self):
+        """Phone number is optional and can be cleared."""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            '/api/auth/profile/', {'phone_number': ''}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['phone_number'], '')
+
     def test_ac3_incorrect_current_password_returns_400(self):
         """AC-3: Incorrect current password returns HTTP 400 Bad Request."""
         self.client.force_authenticate(user=self.user)
