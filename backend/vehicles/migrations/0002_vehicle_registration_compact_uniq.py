@@ -34,6 +34,54 @@ def reject_existing_compact_duplicates(apps, schema_editor):
         )
 
 
+def normalize_legacy_registration_formats(apps, schema_editor):
+    """
+    Canonicalize rows that were valid under the previous separator-tolerant
+    format. Compact display forms remain compact; mixed/space separators become
+    hyphens. Invalid legacy values are left untouched for explicit cleanup.
+    """
+    Vehicle = apps.get_model('vehicles', 'Vehicle')
+    database = schema_editor.connection.alias
+    legacy_pattern = re.compile(
+        r'^(?:[A-Z]{2}[-\\s]?(?:[0-9]{1,2}[-\\s]?)?[A-Z]{1,8}[-\\s]?[0-9]{1,4}|[0-9]{2}[-\\s]?BH[-\\s]?[0-9]{4}[-\\s]?[A-Z]{1,2})
+    dependencies = [
+        ('vehicles', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.RunPython(
+            reject_existing_compact_duplicates,
+            migrations.RunPython.noop,
+        ),
+        migrations.RunPython(
+            normalize_legacy_registration_formats,
+            migrations.RunPython.noop,
+        ),
+        migrations.AddConstraint(
+            model_name='vehicle',
+            constraint=models.UniqueConstraint(
+                Replace(
+                    Replace(Upper('registration_number'), Value('-'), Value('')),
+                    Value(' '),
+                    Value(''),
+                ),
+                name='veh_reg_compact_uniq',
+            ),
+        ),
+    ]
+
+    )
+
+    for vehicle in Vehicle.objects.using(database).only('pk', 'registration_number').iterator():
+        raw = vehicle.registration_number.strip().upper()
+        if legacy_pattern.fullmatch(raw):
+            canonical = re.sub(r'[-\\s]+', '-', raw)
+            if canonical != vehicle.registration_number:
+                Vehicle.objects.using(database).filter(pk=vehicle.pk).update(
+                    registration_number=canonical
+                )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ('vehicles', '0001_initial'),
