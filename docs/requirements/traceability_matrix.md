@@ -2,8 +2,8 @@
 
 **Project:** Vehicle Parking System (SE Mini-Project)<br>
 **Repository:** Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT<br>
-**Version:** 1.2.0 (Sprint 1 implementation and evidence snapshot)<br>
-**Baseline Date:** October 2026 (Updated 27 October 2026)<br>
+**Version:** 1.2.1 (US-08 vehicle validation implementation update)<br>
+**Baseline Date:** October 2026 (Updated 30 October 2026)<br>
 **Integration Lead & Scrum Master:** Member 1<br>
 **Agile Traceability Pipeline:** Requirement (FR/NFR) → Epic / User Story (US) → Design (SAD) → Implementation (Code File) → Test Case (Software Test Plan) → Status
 
@@ -13,6 +13,10 @@
 
 > [!NOTE]
 > **Product Backlog State (27 October 2026):** 32 canonical stories across eight epics. Sprint 1 currently contains 13 stories / 49 SP (10 closed / 38 SP; three open / 11 SP); Sprint 2 contains 10 stories / 38 SP (one closed / 5 SP); nine stories / 29 SP have no milestone. Original Sprint 1 commitment: six stories / 25 SP. These current allocations differ from the historical plan; see [Sprint 1 review](../meeting-notes/SPRINT1_REVIEW.md). Total remains 116 SP.
+
+### 1.1 US-08 vehicle validation alignment (30 October 2026)
+
+US-08 (#28) implements the vehicle-domain portion of FR-13: strict registration/profile payload schemas, canonical plate normalization, supported-format validation, and database-backed duplicate protection. FR-14 reuses the shared US-31 exception envelope; vehicle API views must raise DRF exceptions rather than return ad hoc error bodies. The shared contract remains a cross-cutting responsibility and is not duplicated in the vehicle module. Detailed behavior and test mapping: [US-08 design contract](../design/US08-vehicle-validation.md).
 
 ---
 
@@ -32,8 +36,8 @@
 | **FR-10** | Live parking occupancy status dashboard for operators and users | US-11 (#31) | E3: Parking Facility & Availability (#16) | Member 4 *(Reassigned from Member 2)* | docs/SAD/ §3.4.4 Slot Allocation Engine | backend/parking_slots/availability.py<br>frontend/src/pages/Slots.jsx (read-only availability) | TC-UC03-SYS-002 | Public availability implemented; private identity view absent | Covered checks passed; see scope limits | [US-11 evidence](../testing/US11-test-evidence.md) |
 | **FR-11** | Search vehicle by license plate and inspect current parking status | US-07 (#27) | E2: Vehicle Management (#15) | Member 1 | docs/SAD/ §3.4.3 Vehicle Management | backend/vehicles/views.py<br>frontend/src/pages/Search.jsx | TC-UC02-API-001<br>TC-UC02-API-002 | Implemented | Covered checks passed; see scope limits | [CI and test mapping](../testing/SPRINT1_TEST_SUMMARY.md) |
 | **FR-12** | Maintain persistent historical audit trail of parking sessions | US-20 (#40) | E5: Parking Operations (#18) | Member 3 | docs/SAD/ §3.4.5 Parking Operations | backend/operations/models.py<br>backend/operations/views.py (history API; frontend absent) | TC-UC06-SYS-001 | Implemented | Covered checks passed; see scope limits | [CI and test mapping](../testing/SPRINT1_TEST_SUMMARY.md) |
-| **FR-13** | Backend data validation for all client-submitted payload fields | US-08 (#28)<br>US-31 (#51) | E2: Vehicle Mgmt (#15)<br>E8: System Admin (#21) | Member 1<br>Member 4 | docs/SAD/ §3.4.9, §5.2 Error Handling | backend/vehicles/serializers.py; backend/parking_slots/serializers.py; domain serializers | TC-UC10-API-001 | Shared contract implemented; US-08 open | Covered checks passed; see scope limits | [US-31 evidence](../testing/US31-test-evidence.md) |
-| **FR-14** | Uniform structured error messaging and standard HTTP error codes | US-08 (#28)<br>US-31 (#51) | E2: Vehicle Mgmt (#15)<br>E8: System Admin (#21) | Member 1<br>Member 4 | docs/SAD/ §3.4.9, §5.2 Error Handling | backend/common/exceptions.py | TC-UC10-API-001 | Shared contract implemented; US-08 open | Covered checks passed; see scope limits | [US-31 evidence](../testing/US31-test-evidence.md) |
+| **FR-13** | Backend data validation for all client-submitted payload fields | US-08 (#28)<br>US-31 (#51) | E2: Vehicle Mgmt (#15)<br>E8: System Admin (#21) | Member 1<br>Member 4 | docs/SAD/ §3.4.9, §5.2 Error Handling | backend/vehicles/serializers.py; backend/vehicles/services.py; frontend/src/utils/vehicles.js; other domain serializers | TC-UC02-US08-UNIT-001<br>TC-UC02-US08-API-001/003/004<br>TC-UC10-API-001 | Vehicle-domain validation implemented; shared contract owned by US-31 | CI verification pending on US-08 PR head | [US-08 evidence](../testing/US08-test-evidence.md); [US-31 evidence](../testing/US31-test-evidence.md) |
+| **FR-14** | Uniform structured error messaging and standard HTTP error codes | US-08 (#28)<br>US-31 (#51) | E2: Vehicle Mgmt (#15)<br>E8: System Admin (#21) | Member 1<br>Member 4 | docs/SAD/ §3.4.9, §5.2 Error Handling | backend/common/exceptions.py; vehicle API views raise DRF exceptions | TC-UC02-US08-API-001/002/004<br>TC-UC10-API-001 | Vehicle endpoints reuse shared `{error, code, details}` contract | CI verification pending on US-08 PR head | [US-08 evidence](../testing/US08-test-evidence.md); [US-31 evidence](../testing/US31-test-evidence.md) |
 | **FR-15** | User authentication, token issuance, and secure logout | US-01 (#1) | E1: Identity & Access Management (#2) | Member 1 | docs/SAD/ §3.4.2 Auth, §3.9 Security | backend/accounts/views.py<br>frontend/src/context/AuthContext.jsx | TC-UC01-UNIT-001<br>TC-UC01-SYS-001 | Implemented | Covered checks passed; see scope limits | [CI and test mapping](../testing/SPRINT1_TEST_SUMMARY.md) |
 | **FR-16** | Role-Based Access Control enforcement (Admin, Operator, Customer) | US-02 (#22) | E1: Identity & Access Management (#2) | Member 1 | docs/SAD/ §3.4.2 Auth, §3.9 Security | backend/accounts/permissions.py<br>frontend/src/routes/ProtectedRoute.jsx | TC-UC01-API-002 | Implemented | Covered checks passed (16 Django tests, 7 frontend tests) | [US-02 contract & test mapping](../design/US02-rbac-contract.md) |
 | **FR-17** | Administrative management of user status (active, suspended, deactivated) | US-03 (#23) | E1: Identity & Access Management (#2) | Member 1 | docs/SAD/ §3.4.2 Auth, §3.9 Security | backend/accounts/views.py | TC-UC04-API-001 | Planned / story open | Not established | [CI and test mapping](../testing/SPRINT1_TEST_SUMMARY.md) |
