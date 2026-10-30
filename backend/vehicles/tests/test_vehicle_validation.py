@@ -325,6 +325,26 @@ class VehicleValidationAPITests(TestCase):
         self.assertEqual(own_vehicle.registration_number, 'KA-01-OWN-1234')
 
 
+    def test_put_can_retain_its_own_plate_with_different_separators(self):
+        own_vehicle = Vehicle.objects.create(
+            registration_number='KA-01-PUT-OWN-1234',
+            vehicle_type='Compact',
+            owner=self.owner,
+        )
+        response = self.client.put(
+            f'{self.endpoint}{own_vehicle.pk}/',
+            {
+                'registration_number': 'KA01PUTOWN1234',
+                'vehicle_type': 'Compact',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        self.assertEqual(response.data['registration_number'], 'KA01PUTOWN1234')
+        own_vehicle.refresh_from_db()
+        self.assertEqual(own_vehicle.registration_number, 'KA01PUTOWN1234')
+        self.assertEqual(Vehicle.objects.count(), 1)
+
     def test_put_malformed_and_duplicate_plate_leave_record_unchanged(self):
         own_vehicle = Vehicle.objects.create(
             registration_number='KA-01-PUT-OWN-1234',
