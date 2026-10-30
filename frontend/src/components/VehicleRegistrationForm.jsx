@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
-import { VEHICLE_TYPES, normalizePlate, validateRegistrationNumber, validateVehicleUpdateInput } from '../utils/vehicles'
+import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput } from '../utils/vehicles'
 
 export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfile }) {
   const { fetchWithAuth, user } = useAuth()
