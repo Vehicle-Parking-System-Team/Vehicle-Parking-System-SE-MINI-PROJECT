@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from common.exceptions import Conflict
 from parking_slots.models import ParkingSlot
+from operations.models import ParkingRecord
 from vehicles.models import Vehicle
 from .models import Reservation
 
@@ -84,10 +85,13 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
         raise serializers.ValidationError({
             'start_time': 'A reservation that has started cannot be changed or cancelled.'
         })
-    # A slot may currently be occupied by a different vehicle while this
-    # reservation is for a future window. The reservation's own start time
-    # determines whether it has commenced; slot.status does not identify
-    # which reservation, if any, was checked in.
+    # An early check-in must also block changes. Check the linked record,
+    # not physical slot occupancy (which may belong to another vehicle).
+    # Retain the guard after checkout: a commenced booking is never pending.
+    if ParkingRecord.objects.filter(reservation=reservation).exists():
+        raise serializers.ValidationError({
+            'status': 'A checked-in reservation cannot be changed or cancelled.'
+        })
 
     if cancel:
         reservation.status = Reservation.Status.CANCELLED
