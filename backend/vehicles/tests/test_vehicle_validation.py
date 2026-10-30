@@ -3,12 +3,12 @@ US-08 vehicle payload validation and duplicate-handling regression tests.
 Covers FR-13/FR-14 at service, serializer/API, and persistence boundaries.
 """
 
-from django.contrib.auth import get_user_model
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from unittest.mock import patch
 
-from django.db import IntegrityError, transaction, close_old_connections, connection
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError, close_old_connections, connection, transaction
 from django.test import TestCase, TransactionTestCase, skipUnless
 from rest_framework import status
 from rest_framework.test import APIClient
