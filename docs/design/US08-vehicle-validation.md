@@ -72,12 +72,15 @@ The registration and edit forms use the same normalization/format policy as the 
 
 | Test ID | Coverage |
 | --- | --- |
-| `TC-UC02-US08-UNIT-001` | Canonicalization, accepted formats, malformed formats, and duplicate-constraint classification |
-| `TC-UC02-US08-API-001` | Missing, blank, malformed, overlong and wrong-type registration payloads; 400 field errors |
-| `TC-UC02-US08-API-002` | Normalized duplicate registration, cross-owner collision and structured 409 |
-| `TC-UC02-US08-API-003` | Unknown keys, server-managed fields, alias consistency and payload sanitization |
-| `TC-UC02-US08-API-004` | Profile update validation, duplicate rejection and no-mutation guarantee |
-| `TC-UC02-US08-UI-001` | Frontend normalization, format validation and invalid-input rejection |
+| `TC-UC02-UNIT-001` | Canonicalization, accepted formats, malformed formats, and duplicate-constraint classification |
+| `TC-UC02-API-001` | Valid registration and canonical value persistence |
+| `TC-UC02-API-002` | Normalized duplicate registration, cross-owner collision and structured 409 |
+| `TC-UC02-API-003` | Missing, blank, malformed, overlong and wrong-type registration payloads; 400 field errors |
+| `TC-UC02-API-004` | Unknown keys, server-managed fields, alias consistency and payload sanitization |
+| `TC-UC02-API-005` | Profile update validation, duplicate rejection and no-mutation guarantee |
+| `TC-UC02-API-006` | PostgreSQL concurrent duplicate registration; exactly one 201 and one 409 |
+| `TC-UC02-UI-001` | Frontend normalization, format validation and invalid-input rejection |
+| `TC-UC02-SYS-001/002` | Manual end-to-end registration, duplicate feedback and profile update; execution pending |
 | `TC-UC10-API-001` | Shared US-31 structured error contract |
 
 Execution evidence and CI status are recorded in [US-08 test evidence](../testing/US08-test-evidence.md). The SRS generator source (`scripts/generate_srs.js`, v1.2.0) keeps FR-13/FR-14 system-wide and defines the vehicle registration acceptance criteria under FR-01. The checked-in SRS DOCX is Git LFS-backed: GitHub's contents API exposes a 131-byte pointer to a 216,166-byte object, not the document body. I therefore verified the SRS generator source, RTM, SAD, issue and code; I do not claim to have inspected the binary DOCX contents. The requirement wording is unchanged: US-08 implements the vehicle slice while US-31 owns the shared cross-cutting error mechanism.
