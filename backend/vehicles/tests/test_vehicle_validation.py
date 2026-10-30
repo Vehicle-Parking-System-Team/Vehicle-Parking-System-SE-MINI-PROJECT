@@ -285,6 +285,14 @@ class VehicleValidationAPITests(TestCase):
                 self._assert_validation_error(response, field)
         self.assertEqual(Vehicle.objects.count(), 0)
 
+    def test_overlong_legacy_plate_alias_is_rejected_before_normalization(self):
+        response = self.client.post(self.endpoint, {
+            'plate_number': 'KA      01      AB      1234',
+            'vehicle_type': 'Compact',
+        }, format='json')
+        self._assert_validation_error(response, 'plate_number')
+        self.assertEqual(Vehicle.objects.count(), 0)
+
     def test_profile_update_rejects_malformed_and_duplicate_plates_without_mutation(self):
         own_vehicle = Vehicle.objects.create(
             registration_number='KA-01-OWN-1234',
