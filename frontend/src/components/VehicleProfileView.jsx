@@ -141,9 +141,8 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
     setFormError(null)
     setSuccessMessage(null)
 
-    const normalizedPlate = normalizePlate(editFormData.registration_number)
     const validation = validateVehicleUpdateInput({
-      registration_number: normalizedPlate,
+      registration_number: editFormData.registration_number,
       vehicle_type: editFormData.vehicle_type,
       owner_name: editFormData.owner_name || '',
       owner_phone: editFormData.owner_phone || '',
@@ -154,6 +153,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
       return
     }
 
+    const normalizedPlate = normalizePlate(editFormData.registration_number)
     setIsSaving(true)
     try {
       const payload = {
