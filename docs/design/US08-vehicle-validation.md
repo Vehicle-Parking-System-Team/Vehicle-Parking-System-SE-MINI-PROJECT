@@ -60,7 +60,7 @@ All handled vehicle API errors use US-31's `{error, code, details}` envelope.
 
 ## 4. Duplicate and transaction integrity
 
-The vehicle table already has a unique constraint on `registration_number`; no schema migration is required. The serializer performs an early duplicate lookup for a useful response. Registration and update writes remain inside `transaction.atomic()`. If concurrent requests pass the early lookup, the database unique constraint decides the winner. Only a violation of the registration-number unique constraint is translated to HTTP 409. Other integrity failures are re-raised for the shared handler.
+The vehicle table retains its exact-value unique constraint and adds the expression unique index `veh_reg_compact_uniq`, which compares `UPPER(registration_number)` after removing spaces and hyphens. This prevents compact and hyphenated forms of the same plate from coexisting. Migration `0002_vehicle_registration_compact_uniq.py` preflights existing rows and aborts with the colliding vehicle IDs rather than deleting or silently merging data. The serializer/service perform an early separator-insensitive duplicate lookup for a useful response. Registration and update writes remain inside `transaction.atomic()`. If concurrent requests pass the early lookup, the expression unique index decides the winner. Only a violation of either registration uniqueness constraint is translated to HTTP 409. Other integrity failures are re-raised for the shared handler.
 
 On update, the current vehicle is excluded from the duplicate lookup so a profile can retain its own plate. A duplicate or malformed update must leave the persisted record unchanged.
 
