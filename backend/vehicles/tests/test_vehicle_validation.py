@@ -217,6 +217,16 @@ class VehicleValidationAPITests(TestCase):
                 })
         self.assertEqual(Vehicle.objects.filter(registration_number='KA-01-DUP-1234').count(), 1)
 
+    def test_matching_plate_aliases_with_different_separators_are_accepted(self):
+        response = self.client.post(self.endpoint, {
+            'registration_number': 'KA-01-ALIAS-1234',
+            'plate_number': 'KA01ALIAS1234',
+            'vehicle_type': 'Compact',
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.content)
+        self.assertEqual(response.data['registration_number'], 'KA-01-ALIAS-1234')
+        self.assertEqual(Vehicle.objects.count(), 1)
+
     def test_conflicting_plate_aliases_return_field_specific_400(self):
         response = self.client.post(self.endpoint, {
             'registration_number': 'KA-01-AB-1234',
