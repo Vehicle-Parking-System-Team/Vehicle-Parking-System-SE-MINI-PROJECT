@@ -1,5 +1,5 @@
 from django.db import IntegrityError, transaction
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -149,25 +149,15 @@ class VehicleSearchView(APIView):
     def get(self, request, plate=None):
         search_plate = plate or request.query_params.get('plate') or request.query_params.get('q')
         if not search_plate or not str(search_plate).strip():
-            return Response(
-                {
-                    'error': 'A license plate or registration number is required to search.',
-                    'code': 'MISSING_SEARCH_QUERY',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise serializers.ValidationError({
+                'plate': ['A license plate or registration number is required to search.']
+            })
 
         from vehicles.services import search_vehicle_by_plate
         try:
             result = search_vehicle_by_plate(search_plate, requesting_user=request.user)
         except ValueError as err:
-            return Response(
-                {
-                    'error': str(err),
-                    'code': 'INVALID_SEARCH_QUERY',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise serializers.ValidationError({'plate': [str(err)]}) from err
 
         if isinstance(result, list):
             data = [
