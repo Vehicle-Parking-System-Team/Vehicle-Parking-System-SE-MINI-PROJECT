@@ -33,6 +33,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
         allow_blank=True,
+        max_length=20,
         help_text='Alternative key for registration_number.',
     )
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
