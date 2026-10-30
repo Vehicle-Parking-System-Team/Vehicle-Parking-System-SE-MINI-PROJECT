@@ -17,6 +17,8 @@ from accounts.serializers import (
     AdminUserUpdateSerializer,
     CustomTokenRefreshSerializer,
     LoginSerializer,
+    ProfileUpdateSerializer,
+    PasswordChangeSerializer,
     LogoutSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -125,6 +127,33 @@ class CurrentUserView(APIView):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+class ProfileView(APIView):
+    permission_classes = [IsAuthenticatedAndActive]
+    def get(self, request):
+        return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+    def put(self, request):
+        return self.patch(request)
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticatedAndActive]
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
 
 
 class AdminUserManagementView(APIView):

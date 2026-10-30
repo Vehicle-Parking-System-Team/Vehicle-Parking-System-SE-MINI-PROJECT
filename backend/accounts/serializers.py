@@ -45,11 +45,11 @@ def validate_password_policy(password, user=None):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Public profile representation for authenticated users."""
-
+    """Public profile representation for authenticated users (US-01, US-02, US-04)."""
+    contact_number = serializers.CharField(source='phone_number', read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'role', 'status']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'contact_number', 'role', 'status']
         read_only_fields = fields
 
 class AdminUserListSerializer(serializers.ModelSerializer):
@@ -151,6 +151,89 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['status', 'role']
 
+
+
+
+def validate_phone_number_value(value):
+    """Validate a normalized phone number without accepting malformed punctuation."""
+    normalized = value.strip()
+    if len(normalized) > 20:
+        raise serializers.ValidationError('Phone number cannot exceed 20 characters.')
+    if not normalized:
+        return normalized
+    if not re.fullmatch(r'[0-9+() -]+', normalized):
+        raise serializers.ValidationError('Enter a valid phone number using digits, spaces, +, -, and parentheses only.')
+    if not re.search(r'\d', normalized):
+        raise serializers.ValidationError('Enter a valid phone number containing at least one digit.')
+    if '+' in normalized and (normalized.count('+') != 1 or normalized[0] != '+'):
+        raise serializers.ValidationError('The + sign is only allowed once at the beginning of the phone number.')
+    depth = 0
+    for character in normalized:
+        if character == '(':
+            depth += 1
+        elif character == ')':
+            depth -= 1
+            if depth < 0:
+                raise serializers.ValidationError('Phone number parentheses must be balanced.')
+    if depth != 0:
+        raise serializers.ValidationError('Phone number parentheses must be balanced.')
+    return normalized
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    contact_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    email = serializers.EmailField(required=False)
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone_number', 'contact_number', 'email']
+    def validate_phone_number(self, value):
+        return validate_phone_number_value(value)
+    def validate_contact_number(self, value):
+        return validate_phone_number_value(value)
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if not email:
+            raise serializers.ValidationError('Email address cannot be empty.')
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError('A user with that email address already exists.')
+        return email
+    def validate(self, attrs):
+        contact_number = attrs.pop('contact_number', None)
+        if contact_number is not None and 'phone_number' not in attrs:
+            attrs['phone_number'] = contact_number
+        return attrs
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password_confirm = serializers.CharField(required=False, write_only=True, style={'input_type': 'password'})
+    def validate_current_password(self, value):
+        if not self.context['request'].user.check_password(value):
+            raise serializers.ValidationError('Current password is incorrect.')
+        return value
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if attrs['current_password'] == attrs['new_password']:
+            raise serializers.ValidationError({'new_password': ['New password cannot be the same as the current password.']})
+        confirm = attrs.get('new_password_confirm')
+        if confirm is not None and attrs['new_password'] != confirm:
+            raise serializers.ValidationError({'new_password_confirm': ['Passwords do not match.']})
+        try:
+            validate_password_policy(attrs['new_password'], user=user)
+        except serializers.ValidationError as exc:
+            if isinstance(exc.detail, dict) and 'password' in exc.detail:
+                raise serializers.ValidationError({'new_password': exc.detail['password']})
+            raise
+        return attrs
+    def save(self):
+        user = self.context['request'].user
+        with transaction.atomic():
+            user.set_password(self.validated_data['new_password'])
+            user.token_version += 1
+            user.save(update_fields=['password', 'token_version'])
+        return user
 
 
 class LoginSerializer(serializers.Serializer):

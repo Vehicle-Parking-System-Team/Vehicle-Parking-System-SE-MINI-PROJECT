@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AuthContext } from './authContextDef'
+import { clearStoredAuthSession } from '../utils/authSession'
 
 const API_BASE = '/api/auth'
 const TOKEN_KEY = 'vps_access_token'
@@ -26,9 +27,7 @@ export function AuthProvider({ children }) {
     setAccessToken(null)
     setRefreshToken(null)
     setError(null)
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(REFRESH_KEY)
-    localStorage.removeItem(USER_KEY)
+    clearStoredAuthSession(localStorage)
   }, [])
 
   // Save credentials to state and storage
@@ -200,6 +199,14 @@ export function AuthProvider({ children }) {
 
   const clearError = useCallback(() => setError(null), [])
 
+  const updateUser = useCallback((userData) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...userData }
+      localStorage.setItem(USER_KEY, JSON.stringify(merged))
+      return merged
+    })
+  }, [])
+
   // Verify session on initial load if tokens exist
   useEffect(() => {
     if (accessToken) {
@@ -230,10 +237,11 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateUser,
     refreshTokens,
     fetchWithAuth,
     clearError,
-  }), [user, accessToken, isLoading, error, login, register, logout, refreshTokens, fetchWithAuth, clearError])
+  }), [user, accessToken, isLoading, error, login, register, logout, updateUser, refreshTokens, fetchWithAuth, clearError])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -36,6 +36,8 @@ class User(AbstractUser):
         help_text='Token generation version incremented upon logout for immediate access token revocation.',
     )
 
+    phone_number = models.CharField(max_length=20, blank=True, default='', db_default='', help_text='User contact phone number.')
+
     class Meta:
         db_table = 'users'
         ordering = ['id']
