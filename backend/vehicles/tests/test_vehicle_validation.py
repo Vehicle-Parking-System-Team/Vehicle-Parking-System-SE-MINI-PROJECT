@@ -4,6 +4,7 @@ Covers FR-13/FR-14 at service, serializer/API, and persistence boundaries.
 """
 
 from concurrent.futures import ThreadPoolExecutor
+from importlib import import_module
 from threading import Barrier
 from unittest import skipUnless
 from unittest.mock import patch
@@ -43,6 +44,15 @@ class VehicleValidationServiceTests(TestCase):
         self.assertEqual(normalize_registration_number('KA - 01 - AB - 1234'), 'KA-01-AB-1234')
         self.assertEqual(normalize_registration_number('dl3cbb1122'), 'DL3CBB1122')
         self.assertEqual(normalize_registration_number('22 bh 1234 aa'), '22-BH-1234-AA')
+
+    def test_migration_canonicalizes_legacy_separators_without_rewriting_compact_plates(self):
+        migration = import_module('vehicles.migrations.0002_vehicle_registration_compact_uniq')
+        normalize_legacy = migration.normalize_legacy_registration_value
+
+        self.assertEqual(normalize_legacy('ka 01 ab 1234'), 'KA-01-AB-1234')
+        self.assertEqual(normalize_legacy('KA-01 AB-1234'), 'KA-01-AB-1234')
+        self.assertEqual(normalize_legacy('ka01ab1234'), 'KA01AB1234')
+        self.assertEqual(normalize_legacy('KA--01-AB-1234'), 'KA--01-AB-1234')
 
     def test_valid_supported_state_and_bh_formats(self):
         for plate in (
