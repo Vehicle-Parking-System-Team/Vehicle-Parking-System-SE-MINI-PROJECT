@@ -123,8 +123,10 @@ class VehicleDetailView(APIView):
         try:
             with transaction.atomic():
                 updated = serializer.save()
-        except IntegrityError:
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
 
