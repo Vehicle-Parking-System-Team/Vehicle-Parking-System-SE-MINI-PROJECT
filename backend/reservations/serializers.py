@@ -53,3 +53,21 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
             actor=self.context['request'].user,
             customer=validated_data['vehicle'].owner, **validated_data,
         )
+
+
+class ReservationChangeSerializer(serializers.Serializer):
+    start_time = serializers.DateTimeField()
+    duration_minutes = serializers.IntegerField(min_value=1, max_value=1440)
+
+    def validate_start_time(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError('Start time must be in the future.')
+        return value
+
+
+class ReservationDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Reservation
+        fields = ['id', 'customer', 'vehicle', 'slot', 'start_time',
+                  'end_time', 'status', 'created_at']
+        read_only_fields = fields

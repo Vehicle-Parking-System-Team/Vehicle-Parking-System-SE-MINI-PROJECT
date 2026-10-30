@@ -116,6 +116,12 @@ else:
         }
     }
 
+# Minimum turnover time between confirmed reservations on the same slot or vehicle.
+# Zero preserves existing back-to-back booking behavior unless explicitly configured.
+RESERVATION_BUFFER_MINUTES = int(os.getenv('RESERVATION_BUFFER_MINUTES', '0'))
+if RESERVATION_BUFFER_MINUTES < 0:
+    raise ImproperlyConfigured('RESERVATION_BUFFER_MINUTES cannot be negative.')
+
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {

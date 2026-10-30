@@ -55,7 +55,13 @@
         <tr class="total"><td colspan="2">Total fee</td><td>{{ receipt.currency }} {{ receipt.fee_amount|floatformat:2 }}</td></tr>
       </tbody>
     </table>
-    <p class="muted" style="margin-top:20px">Receipt only. This document does not confirm payment settlement.</p>
+    <h2>Payment settlement</h2>
+    <section class="details">
+      <div><div class="detail-label">Payment status</div><div class="detail-value">{{ receipt.payment_status }}</div></div>
+      <div><div class="detail-label">Payment method</div><div class="detail-value">{{ receipt.payment_method|default:"—" }}</div></div>
+      <div><div class="detail-label">Amount recorded</div><div class="detail-value">{{ receipt.currency }} {{ receipt.payment_amount|floatformat:2 }}</div></div>
+      <div><div class="detail-label">Payment timestamp</div><div class="detail-value">{{ receipt.payment_timestamp|date:"Y-m-d H:i:s T"|default:"—" }}</div></div>
+    </section>
   </main>
   <div class="actions"><button type="button" onclick="window.print()">Print / Save as PDF</button></div>
 </body>

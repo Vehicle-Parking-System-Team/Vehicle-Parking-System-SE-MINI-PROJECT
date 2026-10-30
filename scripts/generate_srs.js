@@ -148,7 +148,7 @@ const FR = {
     [
       'Searching an existing license plate returns the vehicle and its current status (parked with slot, or not parked).',
       'A search with no match returns a structured not-found response (FR-14).',
-      'Partial or fuzzy license plate matching: TBD.'
+      'Fuzzy or typo-tolerant matching remains TBD; current exact and partial prefix/substring behavior is documented in US-07.'
     ],
     'T / TC-UC02-API-001, TC-UC02-API-002'
   ],
@@ -445,7 +445,7 @@ const cover = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [run('for', { italics: true, size: 24 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 300 }, border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: NAVY, space: 12 } },
     children: [run('VEHICLE PARKING SYSTEM', { bold: true, size: 48, color: NAVY })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300, after: 800 }, children: [run('Version 1.2.0 (Implementation Alignment)', { bold: true, size: 26 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300, after: 800 }, children: [run('Version 1.2.1 (US-08 Validation Alignment)', { bold: true, size: 26 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Prepared and Edited by (Lead Editor):', { italics: true, size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [run('Trisha Vallamkonda Prathap (Member 1)', { bold: true, size: 28, color: NAVY })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 400 }, children: [run('Scrum Master & Project Integration Lead', { size: 22, italics: true })] }),
@@ -453,7 +453,7 @@ const cover = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [run('Vishwas Gowda S (Member 4)', { bold: true, size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Course: UE24CS341A Software Engineering (Mini-Project)', { size: 22 })] }),
   new Paragraph({ alignment: AlignmentType.CENTER, children: [run('Repository: Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT', { size: 20 })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [run('27 October 2026', { size: 24 })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 400 }, children: [run('31 October 2026', { size: 24 })] }),
 ];
 
 const revision = [
@@ -463,6 +463,7 @@ const revision = [
     ['1.1', '12 Oct 2026', 'Trisha Vallamkonda Prathap (Member 1)', 'Consolidated & Expanded SRS (Lead Editor): Expands and revises the v1.0 baseline. Incorporated full agreed scope FR-15 to FR-30 (Identity & Access Management, advanced slot management, check-in/out ticketing, tariff calculation, and analytics reporting), synchronized with RTM v1.0.0, added formal acceptance criteria, data definitions, uniform error handling, verification criteria, and unresolved decision (TBD) register.'],
     ['1.1.1', '25 Oct 2026', 'Trisha Vallamkonda Prathap (Member 1)', 'Workload Balancing & Story Reassignment: Documented transfer of unfinished stories US-11 (#31, FR-10) and US-12 (#32, FR-07) from Member 2 to Member 4 due to Member 2 availability constraints. Member 2 retains completed stories US-09, US-10 and Epic E4 (US-13..16); Member 4 assumes US-11 and US-12 in addition to Epics E7 and E8.'],
     ['1.2.0', '27 Oct 2026', 'Project documentation maintenance', 'Added implementation snapshot and verification references; corrected actual paths and stale FR cross-references. Preserved unmet requirements and recorded functionality gaps rather than declaring full acceptance.'],
+    ['1.2.1', '31 Oct 2026', 'Project documentation maintenance', 'Aligned US-08 vehicle validation, search compatibility, and verification references; clarified that acceptance requires recorded passing test evidence.'],
   ], [1000, 1400, 2200, 4426]),
   gap(),
   new Paragraph({ children: [run('Source baseline: ', { bold: true, size: 20 }), run('Vehicle_Parking_System_SRS.docx (v1.0 authored by Vishwas Gowda S) and Requirements Traceability Matrix v1.0.0 (prepared by Trisha Vallamkonda Prathap, October 2026).', { size: 20 })] }),
@@ -481,7 +482,7 @@ const add = (...x) => body.push(...x);
 // 1 Introduction
 add(H1('1. Introduction'),
   H2('1.1 Purpose'),
-  P('This Software Requirements Specification (SRS) defines the functional and non-functional requirements of the Vehicle Parking System, with a version 1.2.0 implementation snapshot. It covers account and access management, vehicle registration and search, parking-slot and zone management, vehicle check-in and check-out, billing and payments, reporting, and cross-cutting validation and error handling. The document is organized after the IEEE SRS structure used in the course template and is the baseline for design, implementation, and verification.'),
+  P('This Software Requirements Specification (SRS) defines the functional and non-functional requirements of the Vehicle Parking System, with a version 1.2.1 implementation snapshot. It covers account and access management, vehicle registration and search, parking-slot and zone management, vehicle check-in and check-out, billing and payments, reporting, and cross-cutting validation and error handling. The document is organized after the IEEE SRS structure used in the course template and is the baseline for design, implementation, and verification.'),
   H2('1.2 Intended Audience and Reading Suggestions'),
   P('This document is intended for developers, testers, project team members, evaluators, and other stakeholders. Section 14 is the current implementation snapshot; earlier shall-statements retain the target requirements. General readers should read Sections 1 and 2. Developers and testers should read Sections 3 to 14 and Appendix B. Evaluators may use Section 12 and Appendix B to check traceability.'),
   H2('1.3 Product Scope'),
@@ -901,9 +902,9 @@ add(H1('12. Verification Criteria'),
   table(['ID', 'Verification Strategy', 'Target Criteria'], NFR.map(n => [`**${n[0]}**`, n[3], n[4]]), [1500, 3800, 3726]),
   gap(),
   H2('12.3 Acceptance Criteria for the Baseline'),
-  B('All requirements FR-01 to FR-30 have a defined test case and all of them pass.'),
-  B('All NFR targets in Section 12.2 are met.'),
-  B('Every TBD in Section 13 that affects a requirement under acceptance has been resolved and the SRS updated.'),
+  B('Release acceptance requires defined test cases and recorded passing execution results for requirements FR-01 to FR-30.'),
+  B('Release acceptance requires all NFR targets in Section 12.2 to be met and evidenced.'),
+  B('Every TBD in Section 13 that affects an accepted requirement must be resolved and the SRS updated.'),
   B('Appendix B remains consistent with the RTM.'),
 );
 
@@ -951,9 +952,9 @@ add(H1('13. Decision Register and Baseline Parameter Specifications'),
 
 // Dated implementation addendum; original requirements above remain normative.
 add(H1('14. Implementation Status and Remaining Gaps'),
-  P('Recorded 27 October 2026 against application commit c98346e7a219114a03f84a53cb2a0d017deb3315. This addendum distinguishes implemented behavior from requirements still awaiting delivery. It does not reduce unmet requirements to make the code appear complete.'),
+  P('Recorded 31 October 2026 against the current repository implementation. This addendum distinguishes implemented behavior from requirements still awaiting delivery. It does not reduce unmet requirements to make the code appear complete; exact revision and verification status are maintained in the RTM and linked test evidence.'),
   H2('14.1 Delivered Application'),
-  P('accounts implements Customer registration, JWT login/refresh/logout and current-user checks; vehicles implements registration/profile/search; parking_slots implements facility management and public availability; operations implements check-in, checkout and completed-history APIs; rates implements configuration and ordinary fee calculation; common implements shared DRF errors. Auth, vehicle, management and availability frontend views exist. Operations, history and rates have no dedicated frontend flow.'),
+  P('accounts implements Customer registration, JWT login/refresh/logout and current-user checks; vehicles implements strict registration/profile validation, canonical plate normalization, separator-insensitive duplicate protection, and exact/partial search; parking_slots implements facility management and public availability; operations implements check-in, checkout and completed-history APIs; rates implements configuration and ordinary fee calculation; common implements shared DRF errors. Auth, vehicle, management and availability frontend views exist. Operations, history and rates have no dedicated frontend flow.'),
   P('US-11 public availability exposes only slot/zone/type/state fields, without vehicle identities. Anonymous and signed-in access return the same safe projection. Clients refresh every 30 seconds or manually. Management remains limited to active Admin/Operator users. The legacy FR-10 private-identity illustration is not implemented as a separate authorized view and must never be read as permission to disclose identities publicly.'),
   P('ParkingSlot stores lowercase available/occupied/maintenance/reserved; ParkingRecord stores ACTIVE/COMPLETED. Slot numbers are unique per zone. Check-in and checkout update records and bays atomically. Checkout accepts registration_number, uses the configured hourly rate and inclusive grace period, and persists fee snapshots before releasing the bay. It does not record payment success.'),
   H2('14.2 Functionality Not Yet Satisfied'),
@@ -962,7 +963,7 @@ add(H1('14. Implementation Status and Remaining Gaps'),
   B('Reservations, administrative analytics, security audit logs and notifications are not implemented. The full role/admin/profile stories remain open despite foundational auth permissions. Preserve their requirements as planned scope.'),
   H2('14.3 Verification and Sprint Record'),
   P('The original Sprint 1 commitment was six stories / 25 SP. Current milestone membership is 13 stories / 49 SP, with 10 closed / 38 SP and three open / 11 SP. This does not establish formal milestone acceptance. docs/meeting-notes/SPRINT1_REVIEW.md records actual closure times and unresolved carryovers.'),
-  P('Main CI run 40451144341 passed 291 backend tests with nine concurrency skips, 75 targeted PostgreSQL tests and 68 frontend tests. docs/testing/SPRINT1_TEST_SUMMARY.md links evidence and execution limits. Performance targets, production deployment and whole-system acceptance remain unverified. docs/validation/SPRINT1_DOCUMENT_SYNC.md lists code/specification gaps. The RTM separates implementation status from verification; no blanket Pass is implied.'),
+  P('Historical CI run 40451144341 passed 291 backend tests with nine concurrency skips, 75 targeted PostgreSQL tests and 68 frontend tests. On 31 October 2026, the integrated local SQLite backend suite passed 504 tests with 12 platform-dependent skips; frontend tests passed 94/94, lint passed with warnings in untouched Users/Profile pages, and the production build succeeded. Vite reported a chunk-size advisory. PostgreSQL-only vehicle concurrency and manual system scenarios were not run locally; consult docs/testing/US08-test-evidence.md and the revision-specific PR checks. Performance targets, production deployment and whole-system acceptance remain unverified. docs/validation/SPRINT1_DOCUMENT_SYNC.md lists code/specification gaps. The RTM separates implementation status from verification; no blanket Pass is implied.'),
 );
 
 // Appendix A
@@ -1021,11 +1022,11 @@ appB.push(H1('Appendix B: Requirements Traceability Matrix'),
 const hdr = new Header({ children: [new Paragraph({
   border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
   tabStops: [{ type: TabStopType.RIGHT, position: PW }],
-  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.0', { size: 18, italics: true })] })] });
+  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.1', { size: 18, italics: true })] })] });
 const hdrL = new Header({ children: [new Paragraph({
   border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
   tabStops: [{ type: TabStopType.RIGHT, position: LW }],
-  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.0', { size: 18, italics: true })] })] });
+  children: [run('Vehicle Parking System: Software Requirements Specification', { size: 18, italics: true }), run('\tVersion 1.2.1', { size: 18, italics: true })] })] });
 const ftr = w => new Footer({ children: [new Paragraph({
   tabStops: [{ type: TabStopType.RIGHT, position: w }],
   border: { top: { style: BorderStyle.SINGLE, size: 6, color: '808080', space: 4 } },
@@ -1037,7 +1038,7 @@ const A4 = { width: 11906, height: 16838 };
 const mar = { top: 1440, right: 1440, bottom: 1300, left: 1440, header: 600, footer: 500 };
 
 const doc = new Document({
-  creator: 'Vehicle Parking System Team', title: 'Vehicle Parking System - Software Requirements Specification v1.2.0',
+  creator: 'Vehicle Parking System Team', title: 'Vehicle Parking System - Software Requirements Specification v1.2.1',
   features: { updateFields: true },
   styles: {
     default: { document: { run: { font: FONT, size: 22 } } },

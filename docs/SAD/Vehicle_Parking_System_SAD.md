@@ -6,7 +6,7 @@
 **Document Author / Architect:** Member 2 (Facility & Availability Architecture Lead)<br>
 **Integration Lead & Scrum Master:** Member 1<br>
 **Baseline Date:** October 2026; implementation snapshot 27 October 2026<br>
-**Status:** Current implementation and planned architecture distinguished; synchronized with SRS/RTM v1.2.0 and the Sprint 1 test-plan addendum
+**Status:** Current implementation and planned architecture distinguished; synchronized with SRS/RTM v1.2.1 and the Sprint 1 test-plan addendum
 
 ---
 
@@ -54,8 +54,8 @@ To maintain development integrity for the software engineering mini-project boun
 ## 2. Document Governance & Canonical Traceability
 
 This document supersedes all preliminary architectural drafts and aligns strictly with the project baseline:
-1. **Software Requirements Specification (SRS v1.2.0):** Defines functional requirements `FR-01` to `FR-30` and decisions `DEC-01` to `DEC-15`.
-2. **Requirements Traceability Matrix (RTM v1.2.0):** Maps all requirements to Epics E1–E8, Stories US-01–US-32, and Test Plan cases.
+1. **Software Requirements Specification (SRS v1.2.1):** Defines functional requirements `FR-01` to `FR-30` and decisions `DEC-01` to `DEC-15`.
+2. **Requirements Traceability Matrix (RTM v1.2.1):** Maps all requirements to Epics E1–E8, Stories US-01–US-32, and Test Plan cases.
 3. **Software Test Plan (v1.0):** Authoritative test cases `TC-UC01-UNIT-001` through `TC-SEC-002`.
 4. **Live GitHub Backlog:** 8 Epics (#2, #15, #16, #17, #18, #19, #20, #21) and 32 User Stories (#1, #22–#52).
 
@@ -134,6 +134,7 @@ This diagram is the logical target architecture. Reservation, reporting, audit a
 - Registers vehicles with license plate, vehicle class (`Two-Wheeler`, `Compact`, `SUV`, `EV Charging`), and owner info (`FR-01`).
 - Provides vehicle profile inspection and detail updates (`FR-02`).
 - Provides instant search by license plate returning vehicle details and active parking status (`FR-11`).
+- Preserves exact and partial prefix/substring search; strict whole-plate validation applies to registration and profile updates, not search terms.
 - Enforces canonical registration-number normalization and supported-format validation at the serializer/service boundary (US-08 / FR-13). Hyphenated, space-separated, and compact supported forms normalize consistently; malformed separators and illegal characters are rejected before persistence.
 - Enforces duplicate registration prevention with a separator-insensitive expression unique index as the concurrency-safe authority; compact and hyphenated spellings share one identity key. A migration preflights existing rows and fails safely on collisions; expected registration collisions return HTTP 409, while other integrity failures remain server errors.
 - Returns vehicle-domain validation and conflict failures through the shared `{error, code, details}` exception contract (FR-14 / US-31). See [US-08 validation contract](../design/US08-vehicle-validation.md).
@@ -395,14 +396,12 @@ DRF exceptions handled by `common.exceptions.exception_handler` use the shared c
 
 ## 6. Implementation Target Status & Project Roadmap
 
-### 6.1 Current implementation as of 27 October 2026
-
-Application baseline: `c98346e7a219114a03f84a53cb2a0d017deb3315`.
+### 6.1 Current implementation as of 31 October 2026
 
 | Component | Implemented scope | Remaining scope |
 | --- | --- | --- |
 | `backend/accounts/` | Customer registration, login/refresh/logout, current-user context, RBAC, admin account management, self-service profile updates, password changes, and token-version revocation | Remaining identity scope is limited to requirements not yet delivered by the current story set |
-| `backend/vehicles/` | Registration, profile update, plate search/current status | US-08 broader validation story remains open |
+| `backend/vehicles/` | Registration and profile validation, canonical registration normalization, separator-insensitive database uniqueness, exact/partial search and current status | External RTO registry verification and fuzzy search are not implemented |
 | `backend/parking_slots/` | Slot/zone CRUD, floor, guarded state transitions, public availability, concurrency safeguards | DEC-04/14 functionality gaps recorded below |
 | `backend/operations/` | Check-in, checkout with ordinary fee, completed history, snapshots and active-record constraints | Scanner/receipt/payment flows and dedicated frontend operations/history views |
 | `backend/rates/` | Rate configuration and ordinary hourly/grace calculation | Penalty application, advanced billing, invoices/payment recording |

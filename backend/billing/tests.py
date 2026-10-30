@@ -312,3 +312,260 @@ class BillingReceiptAPITests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+
+
+
+class BillingPaymentAPITests(BillingReceiptAPITests):
+    def payment_url(self, receipt_id=None):
+        receipt_id = receipt_id or self.generate().data['receipt_id']
+        return f'{RECEIPTS_URL}{receipt_id}/payment/'
+
+    def test_operator_records_paid_cash_payment_and_timestamp(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Cash',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_status'], 'Paid')
+        self.assertEqual(response.data['payment_method'], 'Cash')
+        self.assertEqual(response.data['payment_amount'], '160.00')
+        self.assertIsNotNone(response.data['payment_timestamp'])
+        self.assertEqual(response.data['payment_recorded_by_id'], self.operator.pk)
+
+    def test_card_payment_method_is_supported(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Card',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_method'], 'Card')
+
+    def test_upi_payment_method_is_supported(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'UPI',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_method'], 'UPI')
+
+    def test_pending_status_does_not_claim_settlement(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Pending'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_status'], 'Pending')
+        self.assertEqual(response.data['payment_amount'], '0.00')
+        self.assertIsNone(response.data['payment_timestamp'])
+
+    def test_repeated_pending_request_preserves_payment_audit_fields(self):
+        receipt_id = self.generate().data['receipt_id']
+        receipt = BillingReceipt.objects.get(receipt_number=receipt_id)
+        # Model a pre-existing audit attribution; a Pending retry is not a
+        # settlement event and must not replace it with the retrying operator.
+        receipt.payment_recorded_by = self.operator
+        receipt.save(update_fields=['payment_recorded_by'])
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Pending'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.payment_status, 'Pending')
+        self.assertEqual(receipt.payment_recorded_by_id, self.operator.pk)
+        self.assertIsNone(receipt.payment_method)
+        self.assertEqual(receipt.payment_amount, Decimal('0.00'))
+        self.assertIsNone(receipt.payment_timestamp)
+
+    def test_waived_status_records_zero_amount_without_method(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Waived'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_status'], 'Waived')
+        self.assertEqual(response.data['payment_amount'], '0.00')
+        self.assertIsNone(response.data['payment_method'])
+        self.assertIsNone(response.data['payment_timestamp'])
+
+    def test_invalid_method_negative_amount_and_partial_payment_are_rejected(self):
+        cases = [
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Cheque',
+                'payment_amount': '160.00',
+            },
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Cash',
+                'payment_amount': '-1.00',
+            },
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'UPI',
+                'payment_amount': '159.99',
+            },
+            {
+                'payment_status': 'Paid',
+                'payment_amount': '160.00',
+            },
+            {
+                'payment_status': 'Pending',
+                'payment_method': 'Cash',
+            },
+            {
+                'payment_status': 'Waived',
+                'payment_amount': '1.00',
+            },
+        ]
+        self.client.force_authenticate(user=self.operator)
+        for payload in cases:
+            with self.subTest(payload=payload):
+                receipt_id = self.generate().data['receipt_id']
+                response = self.client.post(
+                    self.payment_url(receipt_id), payload, format='json',
+                )
+                self.assertEqual(response.status_code, 400)
+                receipt = BillingReceipt.objects.get(receipt_number=receipt_id)
+                self.assertEqual(receipt.payment_status, 'Pending')
+                self.assertEqual(receipt.payment_amount, Decimal('0.00'))
+
+    def test_paid_and_waived_states_are_terminal_but_identical_retry_is_idempotent(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+        payload = {
+            'payment_status': 'Paid',
+            'payment_method': 'UPI',
+            'payment_amount': '160.00',
+        }
+
+        first = self.client.post(self.payment_url(receipt_id), payload, format='json')
+        retry = self.client.post(self.payment_url(receipt_id), payload, format='json')
+        changed = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Waived'},
+            format='json',
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(retry.status_code, 200)
+        self.assertEqual(retry.data['payment_timestamp'], first.data['payment_timestamp'])
+        self.assertEqual(changed.status_code, 409)
+        self.assertEqual(
+            BillingReceipt.objects.get(receipt_number=receipt_id).payment_status,
+            'Paid',
+        )
+
+    def test_only_active_admin_or_operator_can_record_payment(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.customer)
+        customer_response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Paid', 'payment_method': 'Cash', 'payment_amount': '160.00'},
+            format='json',
+        )
+        self.assertEqual(customer_response.status_code, 403)
+
+        self.operator.status = 'suspended'
+        self.operator.save(update_fields=['status'])
+        self.client.force_authenticate(user=self.operator)
+        suspended_response = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Paid', 'payment_method': 'Cash', 'payment_amount': '160.00'},
+            format='json',
+        )
+        self.assertEqual(suspended_response.status_code, 403)
+
+    def test_unauthenticated_and_unknown_receipt_are_rejected(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=None)
+        unauthenticated = self.client.post(
+            self.payment_url(receipt_id),
+            {'payment_status': 'Paid', 'payment_method': 'Cash', 'payment_amount': '160.00'},
+            format='json',
+        )
+        self.assertEqual(unauthenticated.status_code, 401)
+
+        self.client.force_authenticate(user=self.operator)
+        missing = self.client.post(
+            f'{RECEIPTS_URL}{uuid4()}/payment/',
+            {'payment_status': 'Paid', 'payment_method': 'Cash', 'payment_amount': '160.00'},
+            format='json',
+        )
+        self.assertEqual(missing.status_code, 404)
+
+    def test_zero_value_bill_can_be_marked_paid(self):
+        self.record.fee_amount = Decimal('0.00')
+        self.record.save(update_fields=['fee_amount'])
+        self.generate()
+        receipt = BillingReceipt.objects.get(parking_record=self.record)
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt.receipt_number),
+            {'payment_status': 'Paid', 'payment_method': 'UPI', 'payment_amount': '0.00'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['payment_status'], 'Paid')
+        self.assertEqual(response.data['payment_amount'], '0.00')
+        self.assertIsNotNone(response.data['payment_timestamp'])
+
+    def test_payment_settlement_is_reflected_on_parking_session(self):
+        receipt_id = self.generate().data['receipt_id']
+        self.client.force_authenticate(user=self.operator)
+
+        response = self.client.post(
+            self.payment_url(receipt_id),
+            {
+                'payment_status': 'Paid',
+                'payment_method': 'Card',
+                'payment_amount': '160.00',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.record.refresh_from_db()
+        self.assertEqual(self.record.payment_status, 'Paid')
+        self.assertEqual(self.record.payment_method, 'Card')
+        self.assertEqual(self.record.payment_amount, Decimal('160.00'))
+        self.assertIsNotNone(self.record.payment_timestamp)

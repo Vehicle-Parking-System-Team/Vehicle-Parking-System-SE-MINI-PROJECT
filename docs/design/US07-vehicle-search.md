@@ -95,7 +95,7 @@ All handled DRF failures use the shared [US-31 error contract](US31-error-contra
 | **Customer searches another owner's vehicle** | `403 Forbidden` | `PERMISSION_DENIED` |
 | **Vehicle plate not found** | `404 Not Found` | `NOT_FOUND` |
 
-Search intentionally accepts partial plate prefixes; complete registration-format validation is applied to registration and profile-update payloads, not search terms.
+Search intentionally accepts partial plate prefixes and substrings; complete registration-format validation is applied to registration and profile-update payloads, not search terms.
 
 ---
 

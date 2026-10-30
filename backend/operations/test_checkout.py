@@ -118,7 +118,13 @@ class CheckoutAPITests(TestCase):
         self.assertEqual(self.record.check_out_time, self.exit_time)
         self.assertEqual(self.record.fee_amount, Decimal('80.00'))
         self.assertEqual(self.record.operator_id, self.operator.pk)
-        self.assertNotIn('payment_status', response.data)
+        # US-24 exposes the checkout session's initial payment state.
+        self.assertEqual(response.data['payment_status'], 'Pending')
+        self.assertIsNone(response.data['payment_method'])
+        self.assertEqual(response.data['payment_amount'], '0.00')
+        self.assertIsNone(response.data['payment_timestamp'])
+        self.assertEqual(response.data['receipt']['payment_status'], 'Pending')
+        self.assertIsNone(response.data['receipt']['payment_timestamp'])
         after = self.client.get('/api/parking/availability/').data
         self.assertEqual(after[0]['status'], 'available')
         self.assertNotIn('fee_amount', after[0])
