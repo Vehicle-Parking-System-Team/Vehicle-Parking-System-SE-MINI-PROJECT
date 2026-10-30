@@ -3,9 +3,11 @@ from django.urls import path
 from accounts.views import (
     CurrentUserView,
     LoginView,
-    PasswordChangeView,
     ProfileView,
+    PasswordChangeView,
     LogoutView,
+    AdminUserDetailView,
+    AdminUserManagementView,
     RegisterView,
     TokenRefreshView,
 )
@@ -20,7 +22,9 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # US-02 Protected Identity Context
     path('me/', CurrentUserView.as_view(), name='current_user'),
-    # US-04 Profile and Password Management
+    # US-03 Admin User Account Management
+    path('users/', AdminUserManagementView.as_view(), name='admin_user_list_create'),
+    path('users/<int:pk>/', AdminUserDetailView.as_view(), name='admin_user_detail'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('password/change/', PasswordChangeView.as_view(), name='password_change'),
     path('change-password/', PasswordChangeView.as_view(), name='change_password'),

@@ -2,11 +2,13 @@ import re
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from common.exceptions import Conflict
 
 from accounts.models import User
 
@@ -44,52 +46,141 @@ def validate_password_policy(password, user=None):
 
 class UserSerializer(serializers.ModelSerializer):
     """Public profile representation for authenticated users (US-01, US-02, US-04)."""
-
     contact_number = serializers.CharField(source='phone_number', read_only=True)
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'contact_number', 'role', 'status']
+        read_only_fields = fields
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Admin-facing user account list and detail serializer (US-03)."""
 
     class Meta:
         model = User
-        fields = [
-            'id', 'username', 'email', 'first_name', 'last_name',
-            'phone_number', 'contact_number', 'role', 'status',
-        ]
+        fields = ['id', 'username', 'email', 'role', 'status', 'is_active', 'date_joined']
         read_only_fields = fields
 
 
+class AdminUserCreateSerializer(serializers.Serializer):
+    """
+    Administrator creation of Operator or Customer accounts (US-03).
+    Enforces password policy, sets hashed password, and returns 409 Conflict for duplicates.
+    """
+
+    username = serializers.CharField(max_length=150, trim_whitespace=True)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], default='Operator')
+
+    def validate_username(self, value):
+        username = value.strip()
+        if not username:
+            raise serializers.ValidationError('Username cannot be empty.')
+        if User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        return username
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if not email:
+            raise serializers.ValidationError('Email address cannot be empty.')
+        if User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        return email
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        email = attrs.get('email')
+        if username and User.objects.filter(username__iexact=username).exists():
+            raise Conflict(
+                'A user with that username already exists.',
+                details={'username': 'A user with that username already exists.'},
+            )
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise Conflict(
+                'A user with that email address already exists.',
+                details={'email': 'A user with that email address already exists.'},
+            )
+        validate_password_policy(attrs['password'])
+        return attrs
+
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            role=validated_data.get('role', 'Operator'),
+            status='active',
+            is_active=True,
+            token_version=1,
+        )
+        user.set_password(validated_data['password'])
+        try:
+            with transaction.atomic():
+                user.save()
+        except IntegrityError:
+            # Check after the failed transaction rolls back, so a competing
+            # successful insert is visible and can be reported as HTTP 409.
+            if User.objects.filter(username__iexact=user.username).exists():
+                raise Conflict(
+                    'A user with that username already exists.',
+                    details={'username': 'A user with that username already exists.'},
+                )
+            if User.objects.filter(email__iexact=user.email).exists():
+                raise Conflict(
+                    'A user with that email address already exists.',
+                    details={'email': 'A user with that email address already exists.'},
+                )
+            raise
+        return user
+
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    """Administrator update of user status and role (US-03)."""
+
+    status = serializers.ChoiceField(choices=User.STATUS_CHOICES, required=False)
+    # Privileged Admin accounts are provisioned outside this API.
+    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], required=False)
+
+    class Meta:
+        model = User
+        fields = ['status', 'role']
+
+
+
+
 def validate_phone_number_value(value):
-    """Accept common international phone notation; reject malformed API input."""
     normalized = value.strip()
     if len(normalized) > 20:
         raise serializers.ValidationError('Phone number cannot exceed 20 characters.')
-    if normalized and not re.fullmatch(r'[0-9+()\\- ]+', normalized):
-        raise serializers.ValidationError(
-            'Enter a valid phone number using digits, spaces, +, -, and parentheses only.'
-        )
+    if normalized and not re.fullmatch(r'[0-9+() -]+', normalized):
+        raise serializers.ValidationError('Enter a valid phone number using digits, spaces, +, -, and parentheses only.')
     return normalized
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
-    """
-    US-04: User profile update serializer.
-    Permits updating name, contact number, and email. Protects role, status, and credentials.
-    """
-
     contact_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    phone_number = serializers.CharField(required=False, allow_blank=True, max_length=20)
     email = serializers.EmailField(required=False)
-
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'phone_number', 'contact_number', 'email']
-
-    def validate_phone_number(self, value):\n        return validate_phone_number_value(value)\n\n    def validate_contact_number(self, value):\n        return validate_phone_number_value(value)\n\n    def validate_email(self, value):
+    def validate_phone_number(self, value):
+        return validate_phone_number_value(value)
+    def validate_contact_number(self, value):
+        return validate_phone_number_value(value)
+    def validate_email(self, value):
         email = value.strip().lower()
         if not email:
             raise serializers.ValidationError('Email address cannot be empty.')
-        user = self.instance
-        if User.objects.filter(email__iexact=email).exclude(pk=user.pk).exists():
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise serializers.ValidationError('A user with that email address already exists.')
         return email
-
     def validate(self, attrs):
         contact_number = attrs.pop('contact_number', None)
         if contact_number is not None and 'phone_number' not in attrs:
@@ -98,61 +189,31 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 
 
 class PasswordChangeSerializer(serializers.Serializer):
-    """
-    US-04: Secure password change with current password verification and policy enforcement.
-    """
-
-    current_password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-    )
-    new_password = serializers.CharField(
-        required=True,
-        write_only=True,
-        style={'input_type': 'password'},
-    )
-    new_password_confirm = serializers.CharField(
-        required=False,
-        write_only=True,
-        style={'input_type': 'password'},
-    )
-
+    current_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password_confirm = serializers.CharField(required=False, write_only=True, style={'input_type': 'password'})
     def validate_current_password(self, value):
-        user = self.context['request'].user
-        if not user.check_password(value):
+        if not self.context['request'].user.check_password(value):
             raise serializers.ValidationError('Current password is incorrect.')
         return value
-
     def validate(self, attrs):
         user = self.context['request'].user
-        current_password = attrs['current_password']
-        new_password = attrs['new_password']
-        new_password_confirm = attrs.get('new_password_confirm')
-
-        if current_password == new_password:
-            raise serializers.ValidationError({
-                'new_password': ['New password cannot be the same as the current password.']
-            })
-
-        if new_password_confirm is not None and new_password != new_password_confirm:
-            raise serializers.ValidationError({
-                'new_password_confirm': ['Passwords do not match.']
-            })
-
+        if attrs['current_password'] == attrs['new_password']:
+            raise serializers.ValidationError({'new_password': ['New password cannot be the same as the current password.']})
+        confirm = attrs.get('new_password_confirm')
+        if confirm is not None and attrs['new_password'] != confirm:
+            raise serializers.ValidationError({'new_password_confirm': ['Passwords do not match.']})
         try:
-            validate_password_policy(new_password, user=user)
-        except serializers.ValidationError as e:
-            if isinstance(e.detail, dict) and 'password' in e.detail:
-                raise serializers.ValidationError({'new_password': e.detail['password']})
+            validate_password_policy(attrs['new_password'], user=user)
+        except serializers.ValidationError as exc:
+            if isinstance(exc.detail, dict) and 'password' in exc.detail:
+                raise serializers.ValidationError({'new_password': exc.detail['password']})
             raise
         return attrs
-
     def save(self):
         user = self.context['request'].user
-        new_password = self.validated_data['new_password']
         with transaction.atomic():
-            user.set_password(new_password)
+            user.set_password(self.validated_data['new_password'])
             user.token_version += 1
             user.save(update_fields=['password', 'token_version'])
         return user
@@ -284,19 +345,37 @@ class RegisterSerializer(serializers.Serializer):
 
         # Enforce Customer role safeguard (DEC-13 / NFR-SEC-02)
         # Any client-supplied privileges or role fields are ignored/overridden
-        with transaction.atomic():
-            user = User(
-                username=username,
-                email=email,
-                role='Customer',
-                status='active',
-                is_active=True,
-                is_staff=False,
-                is_superuser=False,
-                token_version=1,
-            )
-            user.set_password(password)
-            user.save()
+        try:
+            with transaction.atomic():
+                user = User(
+                    username=username,
+                    email=email,
+                    role='Customer',
+                    status='active',
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                    token_version=1,
+                )
+                user.set_password(password)
+                user.save()
+        except IntegrityError:
+            # Validation checks can race with another registration. The failed
+            # atomic block has rolled back before these checks run, so report
+            # the winning insert as a normal client validation error.
+            if User.objects.filter(username__iexact=username).exists():
+                raise serializers.ValidationError({
+                    'username': ['A user with that username already exists.']
+                })
+            if User.objects.filter(email__iexact=email).exists():
+                raise serializers.ValidationError({
+                    'email': ['A user with that email address already exists.']
+                })
+            raise serializers.ValidationError({
+                'non_field_errors': [
+                    'Registration could not be completed because the username or email conflicts with another account.'
+                ]
+            })
 
         # Issue JWT tokens for instant authenticated session
         refresh = RefreshToken.for_user(user)

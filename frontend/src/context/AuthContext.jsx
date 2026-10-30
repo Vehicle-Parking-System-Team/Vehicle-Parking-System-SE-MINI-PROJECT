@@ -200,7 +200,6 @@ export function AuthProvider({ children }) {
 
   const clearError = useCallback(() => setError(null), [])
 
-  // Update local user state and storage (US-04)
   const updateUser = useCallback((userData) => {
     setUser((prev) => {
       const merged = { ...prev, ...userData }
