@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.exceptions import Conflict
+from vehicles.services import is_registration_number_unique_violation
 from vehicles.models import Vehicle
 from vehicles.serializers import VehicleSearchResultSerializer, VehicleSerializer
 
@@ -31,9 +32,10 @@ class VehicleRegistrationView(APIView):
         try:
             with transaction.atomic():
                 vehicle = serializer.save(owner=request.user)
-        except IntegrityError:
-            # Catch concurrent uniqueness violation
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         output_serializer = VehicleSerializer(vehicle)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
@@ -100,8 +102,10 @@ class VehicleDetailView(APIView):
         try:
             with transaction.atomic():
                 updated = serializer.save()
-        except IntegrityError:
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
 
