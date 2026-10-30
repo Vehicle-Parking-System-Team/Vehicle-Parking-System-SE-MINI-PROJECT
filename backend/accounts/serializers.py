@@ -155,11 +155,28 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
 
 def validate_phone_number_value(value):
+    """Validate a normalized phone number without accepting malformed punctuation."""
     normalized = value.strip()
     if len(normalized) > 20:
         raise serializers.ValidationError('Phone number cannot exceed 20 characters.')
-    if normalized and not re.fullmatch(r'[0-9+() -]+', normalized):
+    if not normalized:
+        return normalized
+    if not re.fullmatch(r'[0-9+() -]+', normalized):
         raise serializers.ValidationError('Enter a valid phone number using digits, spaces, +, -, and parentheses only.')
+    if not re.search(r'\d', normalized):
+        raise serializers.ValidationError('Enter a valid phone number containing at least one digit.')
+    if '+' in normalized and (normalized.count('+') != 1 or normalized[0] != '+'):
+        raise serializers.ValidationError('The + sign is only allowed once at the beginning of the phone number.')
+    depth = 0
+    for character in normalized:
+        if character == '(':
+            depth += 1
+        elif character == ')':
+            depth -= 1
+            if depth < 0:
+                raise serializers.ValidationError('Phone number parentheses must be balanced.')
+    if depth != 0:
+        raise serializers.ValidationError('Phone number parentheses must be balanced.')
     return normalized
 
 
