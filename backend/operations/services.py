@@ -267,7 +267,6 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
                         Reservation.objects.filter(
                             vehicle=vehicle, slot=slot,
                             status=Reservation.Status.CONFIRMED,
-                            start_time__lte=timezone.now(),
                             end_time__gt=timezone.now(),
                         )
                         .order_by('start_time', 'pk')
@@ -285,7 +284,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
                     status=ParkingRecord.Status.ACTIVE,
                 )
 
-                if linked_reservation is not None:
+                if linked_reservation is not None and linked_reservation.start_time <= timezone.now():
                     linked_reservation.status = Reservation.Status.FULFILLED
                     linked_reservation.save(update_fields=["status"])
 
