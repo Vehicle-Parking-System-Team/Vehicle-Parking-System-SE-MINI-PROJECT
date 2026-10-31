@@ -151,8 +151,9 @@ class ReservationModificationTests(TestCase):
             'registration_number': other_vehicle.registration_number,
             'slot_id': self.slot.pk,
         }, format='json')
-        self.assertEqual(response.status_code, 201, response.data)
-        self.assertIsNone(ParkingRecord.objects.get(vehicle=other_vehicle).reservation_id)
+        # US-16 protects the future booking against a walk-in allocation.
+        self.assertEqual(response.status_code, 409, response.data)
+        self.assertFalse(ParkingRecord.objects.filter(vehicle=other_vehicle).exists())
         self.client.force_authenticate(user=self.customer)
         response = self.client.delete(self.url)
         self.assertEqual(response.status_code, 200, response.data)
