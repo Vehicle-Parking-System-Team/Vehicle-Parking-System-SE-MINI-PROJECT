@@ -106,3 +106,49 @@ class ReservationCheckInTests(TestCase):
         self.reservation.save(update_fields=["status"])
         self.assertEqual(self.check_in(f"RES-{self.reservation.pk}").status_code, 400)
         self.assertFalse(ParkingRecord.objects.exists())
+
+    def test_future_reservation_protects_slot_from_other_vehicle_walk_in(self):
+        self.reservation.start_time = timezone.now() + timedelta(days=2)
+        self.reservation.end_time = self.reservation.start_time + timedelta(hours=1)
+        self.reservation.save(update_fields=["start_time", "end_time"])
+        other_vehicle = Vehicle.objects.create(
+            registration_number="KA-01-AB-9010",
+            vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, owner=self.customer,
+        )
+        response = self.client.post(self.url, {
+            "registration_number": other_vehicle.registration_number,
+            "slot_id": self.slot.pk,
+        }, format="json")
+        self.assertEqual(response.status_code, 409)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.status, ParkingSlot.Status.AVAILABLE)
+        self.assertFalse(ParkingRecord.objects.filter(vehicle=other_vehicle).exists())
+
+        # Automatic walk-in allocation must also skip the reserved slot.
+        response = self.client.post(self.url, {
+            "registration_number": other_vehicle.registration_number,
+        }, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["slot_id"], self.other_slot.pk)
+        self.reservation.refresh_from_db()
+        self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
+
+    def test_reservation_create_and_detail_return_same_code(self):
+        start = timezone.now() + timedelta(days=3)
+        response = self.client.post("/api/parking/reservations/", {
+            "vehicle": self.vehicle.pk,
+            "slot": self.other_slot.pk,
+            "start_time": start.isoformat(),
+            "duration_minutes": 60,
+        }, format="json")
+        self.assertEqual(response.status_code, 201, response.data)
+        reservation_id = response.data["id"]
+        self.assertEqual(response.data["reservation_code"], f"RES-{reservation_id}")
+        detail = self.client.patch(
+            f"/api/parking/reservations/{reservation_id}/", {
+                "start_time": (start + timedelta(hours=1)).isoformat(),
+                "duration_minutes": 60,
+            }, format="json",
+        )
+        self.assertEqual(detail.status_code, 200, detail.data)
+        self.assertEqual(detail.data["reservation_code"], f"RES-{reservation_id}")
