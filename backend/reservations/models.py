@@ -7,6 +7,7 @@ class Reservation(models.Model):
     class Status(models.TextChoices):
         CONFIRMED = 'Confirmed', 'Confirmed'
         CANCELLED = 'Cancelled', 'Cancelled'
+        FULFILLED = 'Fulfilled', 'Fulfilled'
 
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT,
