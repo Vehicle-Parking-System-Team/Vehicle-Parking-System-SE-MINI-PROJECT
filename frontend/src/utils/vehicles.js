@@ -1,5 +1,5 @@
 /**
- * Vehicle constants and utilities (US-05 / FR-01, DEC-14, SAD §3.4.3).
+ * Vehicle constants and validation utilities (US-05/06/08; FR-01/02/13).
  */
 
 export const VEHICLE_TYPES = [
@@ -9,55 +9,98 @@ export const VEHICLE_TYPES = [
   { value: 'EV Charging', label: 'EV Charging (Dedicated EV Bay)' },
 ]
 
+const REGISTRATION_NUMBER_PATTERN =
+  /^(?:[A-Z]{2}-?(?:[0-9]{1,2}-?)?[A-Z]{1,8}-?[0-9]{1,4}|[0-9]{2}-?BH-?[0-9]{4}-?[A-Z]{1,2})$/
+
 export function normalizePlate(plate) {
-  if (!plate || typeof plate !== 'string') return ''
-  return plate.trim().toUpperCase()
+  if (typeof plate !== 'string') return ''
+  let normalized = plate.trim().toUpperCase()
+
+  if (!normalized || !/^[A-Z0-9 -]+$/.test(normalized)) return normalized
+
+  if (normalized.includes('-')) {
+    return normalized.replace(/ *- */g, '-')
+  }
+
+  if (normalized.includes(' ')) {
+    const parts = normalized.split(/ +/)
+    if (parts.length === 3 || parts.length === 4) {
+      normalized = parts.join('-')
+    }
+  }
+
+  return normalized
 }
 
-export function validateVehicleUpdateInput({ registration_number, vehicle_type }) {
+export function validateRegistrationNumber(plate) {
+  const raw = typeof plate === 'string' ? plate.trim() : ''
+  const normalized = normalizePlate(plate)
+  if (!normalized) {
+    return { isValid: false, normalized, error: 'Registration number is required.' }
+  }
+  if (raw.length > 20) {
+    return {
+      isValid: false,
+      normalized,
+      error: 'Ensure this field has no more than 20 characters.',
+    }
+  }
+  if (!REGISTRATION_NUMBER_PATTERN.test(normalized)) {
+    return {
+      isValid: false,
+      normalized,
+      error: 'Enter a valid registration number (e.g. KA-01-AB-1234 or 22-BH-1234-AA).',
+    }
+  }
+  return { isValid: true, normalized, error: null }
+}
+
+export function validateVehicleUpdateInput({ registration_number, vehicle_type, owner_name, owner_phone }) {
   const errors = {}
 
   if (registration_number !== undefined) {
-    const trimmed = (registration_number || '').trim()
-    if (!trimmed) {
-      errors.registration_number = ['Registration number cannot be empty.']
-    } else if (trimmed.length > 20) {
-      errors.registration_number = ['Ensure this field has no more than 20 characters.']
-    }
+    const validation = validateRegistrationNumber(registration_number)
+    if (!validation.isValid) errors.registration_number = [validation.error]
   }
 
   if (vehicle_type !== undefined) {
     const validTypes = VEHICLE_TYPES.map((t) => t.value)
-    if (!vehicle_type || !validTypes.includes(vehicle_type)) {
+    if (typeof vehicle_type !== 'string' || !validTypes.includes(vehicle_type)) {
       errors.vehicle_type = ['A valid vehicle type is required.']
     }
   }
 
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors,
+  for (const [field, maxLength] of [['owner_name', 100], ['owner_phone', 20]]) {
+    const value = { owner_name, owner_phone }[field]
+    if (value !== undefined) {
+      if (typeof value !== 'string') {
+        errors[field] = ['Expected a string.']
+      } else if (value.length > maxLength) {
+        errors[field] = [`Ensure this field has no more than ${maxLength} characters.`]
+      }
+    }
   }
+
+  return { isValid: Object.keys(errors).length === 0, errors }
 }
 
+// Search deliberately supports partial plate prefixes, so validate only
+// presence and length here; the backend still validates and scopes the query.
 export function validateSearchPlateInput(plate) {
-  const trimmed = normalizePlate(plate)
-  if (!trimmed) {
+  const normalized = normalizePlate(plate)
+  if (!normalized) {
     return {
       isValid: false,
       error: 'Please enter a license plate number to search.',
       normalized: '',
     }
   }
-  if (trimmed.length > 20) {
+  if (normalized.length > 20) {
     return {
       isValid: false,
       error: 'Registration number cannot exceed 20 characters.',
-      normalized: trimmed,
+      normalized,
     }
   }
-  return {
-    isValid: true,
-    error: null,
-    normalized: trimmed,
-  }
+  return { isValid: true, error: null, normalized }
 }

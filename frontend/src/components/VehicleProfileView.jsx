@@ -141,10 +141,11 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
     setFormError(null)
     setSuccessMessage(null)
 
-    const normalizedPlate = normalizePlate(editFormData.registration_number)
     const validation = validateVehicleUpdateInput({
-      registration_number: normalizedPlate,
+      registration_number: editFormData.registration_number,
       vehicle_type: editFormData.vehicle_type,
+      owner_name: editFormData.owner_name || '',
+      owner_phone: editFormData.owner_phone || '',
     })
 
     if (!validation.isValid) {
@@ -152,6 +153,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
       return
     }
 
+    const normalizedPlate = normalizePlate(editFormData.registration_number)
     setIsSaving(true)
     try {
       const payload = {
@@ -436,11 +438,17 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
                           type="text"
                           id="edit-profile-owner"
                           name="owner_name"
-                          className="form-input"
+                          className={`form-input ${fieldErrors.owner_name ? 'input-error' : ''}`}
                           value={editFormData.owner_name}
+                          maxLength={100}
                           onChange={handleInputChange}
                           disabled={isSaving}
                         />
+                        {fieldErrors.owner_name && (
+                          <span className="field-error-text" id="edit-owner-error">
+                            {fieldErrors.owner_name.join(' ')}
+                          </span>
+                        )}
                       </div>
 
                       <div className="form-group col-half">
@@ -449,11 +457,17 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
                           type="tel"
                           id="edit-profile-phone"
                           name="owner_phone"
-                          className="form-input"
+                          className={`form-input ${fieldErrors.owner_phone ? 'input-error' : ''}`}
                           value={editFormData.owner_phone}
+                          maxLength={20}
                           onChange={handleInputChange}
                           disabled={isSaving}
                         />
+                        {fieldErrors.owner_phone && (
+                          <span className="field-error-text" id="edit-phone-error">
+                            {fieldErrors.owner_phone.join(' ')}
+                          </span>
+                        )}
                       </div>
                     </div>
 

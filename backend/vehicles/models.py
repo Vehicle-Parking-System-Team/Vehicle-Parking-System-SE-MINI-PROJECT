@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Replace, Upper
 
 
 class Vehicle(models.Model):
@@ -58,6 +59,18 @@ class Vehicle(models.Model):
         indexes = [
             models.Index(fields=['registration_number'], name='vehicle_reg_idx'),
             models.Index(fields=['owner'], name='vehicle_owner_idx'),
+        ]
+        constraints = [
+            # Registration formatting is not identity: spaces and hyphens are
+            # presentation separators and must not allow duplicate vehicles.
+            models.UniqueConstraint(
+                Replace(
+                    Replace(Upper('registration_number'), models.Value('-'), models.Value('')),
+                    models.Value(' '),
+                    models.Value(''),
+                ),
+                name='veh_reg_compact_uniq',
+            ),
         ]
 
     def __str__(self):

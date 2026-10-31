@@ -6,7 +6,7 @@
 **Document Author / Architect:** Member 2 (Facility & Availability Architecture Lead)<br>
 **Integration Lead & Scrum Master:** Member 1<br>
 **Baseline Date:** October 2026; implementation snapshot 27 October 2026<br>
-**Status:** Current implementation and planned architecture distinguished; synchronized with SRS/RTM v1.2.0 and the Sprint 1 test-plan addendum
+**Status:** Current implementation and planned architecture distinguished; synchronized with SRS/RTM v1.2.1 and the Sprint 1 test-plan addendum
 
 ---
 
@@ -54,8 +54,8 @@ To maintain development integrity for the software engineering mini-project boun
 ## 2. Document Governance & Canonical Traceability
 
 This document supersedes all preliminary architectural drafts and aligns strictly with the project baseline:
-1. **Software Requirements Specification (SRS v1.2.0):** Defines functional requirements `FR-01` to `FR-30` and decisions `DEC-01` to `DEC-15`.
-2. **Requirements Traceability Matrix (RTM v1.2.0):** Maps all requirements to Epics E1–E8, Stories US-01–US-32, and Test Plan cases.
+1. **Software Requirements Specification (SRS v1.2.1):** Defines functional requirements `FR-01` to `FR-30` and decisions `DEC-01` to `DEC-15`.
+2. **Requirements Traceability Matrix (RTM v1.2.1):** Maps all requirements to Epics E1–E8, Stories US-01–US-32, and Test Plan cases.
 3. **Software Test Plan (v1.0):** Authoritative test cases `TC-UC01-UNIT-001` through `TC-SEC-002`.
 4. **Live GitHub Backlog:** 8 Epics (#2, #15, #16, #17, #18, #19, #20, #21) and 32 User Stories (#1, #22–#52).
 
@@ -134,7 +134,10 @@ This diagram is the logical target architecture. Reservation, reporting, audit a
 - Registers vehicles with license plate, vehicle class (`Two-Wheeler`, `Compact`, `SUV`, `EV Charging`), and owner info (`FR-01`).
 - Provides vehicle profile inspection and detail updates (`FR-02`).
 - Provides instant search by license plate returning vehicle details and active parking status (`FR-11`).
-- Enforces license plate format normalization (alphanumeric, uppercase, whitespace trimmed) and duplicate prevention.
+- Preserves exact and partial prefix/substring search; strict whole-plate validation applies to registration and profile updates, not search terms.
+- Enforces canonical registration-number normalization and supported-format validation at the serializer/service boundary (US-08 / FR-13). Hyphenated, space-separated, and compact supported forms normalize consistently; malformed separators and illegal characters are rejected before persistence.
+- Enforces duplicate registration prevention with a separator-insensitive expression unique index as the concurrency-safe authority; compact and hyphenated spellings share one identity key. A migration preflights existing rows and fails safely on collisions; expected registration collisions return HTTP 409, while other integrity failures remain server errors.
+- Returns vehicle-domain validation and conflict failures through the shared `{error, code, details}` exception contract (FR-14 / US-31). See [US-08 validation contract](../design/US08-vehicle-validation.md).
 
 #### 3.4.4 Parking Slot Allocation Engine (`backend/parking_slots/`)
 - Manages slots and zones: add, modify properties, and deactivate bays (`FR-03`).
@@ -186,7 +189,7 @@ The table below reconciles the architecture components with the canonical baseli
 | Req ID | Canonical Requirement Title | Epic & Story Mapping | Architectural Component | Planned Target File Paths | Test Plan Case ID |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **FR-01** | Vehicle Registration | E2 / US-05 (#25) | Vehicle Management Module (§3.4.3) | `backend/vehicles/models.py`<br>`frontend/src/pages/Vehicles.jsx` | `TC-UC02-UNIT-001`<br>`TC-UC02-API-001` |
-| **FR-02** | Vehicle Profile & Update | E2 / US-06 (#26) | Vehicle Management Module (§3.4.3) | `backend/vehicles/views.py`<br>`frontend/src/pages/Vehicles.jsx` | `TC-UC02-API-002` |
+| **FR-02** | Vehicle Profile & Update | E2 / US-06 (#26) | Vehicle Management Module (§3.4.3) | `backend/vehicles/views.py`<br>`frontend/src/pages/Vehicles.jsx` | `TC-UC02-API-002`<br>`TC-UC02-US08-API-004` |
 | **FR-03** | Slot & Zone Lifecycle | E3 / US-09 (#29) | Slot Allocation Engine (§3.4.4) | `backend/parking_slots/models.py`<br>`frontend/src/pages/Slots.jsx` | `TC-UC03-UNIT-001` |
 | **FR-04** | Real-Time Slot State Management | E3 / US-10 (#30) | Slot Allocation Engine (§3.4.4) | `backend/parking_slots/services.py` | `TC-UC03-INT-001` |
 | **FR-05** | Check-In & Slot Allocation | E5 / US-17 (#37) | Operations Module (§3.4.5) | `backend/operations/views.py` | `TC-UC05-UNIT-001`<br>`TC-UC05-INT-001` |
@@ -197,8 +200,8 @@ The table below reconciles the architecture components with the canonical baseli
 | **FR-10** | Live Occupancy Dashboard | E3 / US-11 (#31) *(Owner: Member 4 [reassigned from Member 2])* | Slot Allocation Engine (§3.4.4) | `frontend/src/pages/Slots.jsx (read-only availability)` | `TC-UC03-SYS-002` |
 | **FR-11** | Search Vehicle by License Plate | E2 / US-07 (#27) | Vehicle Management Module (§3.4.3) | `backend/vehicles/views.py`<br>`frontend/src/pages/Search.jsx` | `TC-UC02-API-001`<br>`TC-UC02-API-002` |
 | **FR-12** | Persistent Parking History Trail | E5 / US-20 (#40) | Operations Module (§3.4.5) | `backend/operations/models.py`<br>`backend/operations/views.py (history API; frontend absent)` | `TC-UC06-SYS-001` |
-| **FR-13** | Server-Side Input Validation | E2 / US-08 (#28)<br>E8 / US-31 (#51) | Common Validation Layer (§3.4.9) | `domain serializers` | `TC-UC10-API-001` |
-| **FR-14** | Uniform Structured Error Responses | E2 / US-08 (#28)<br>E8 / US-31 (#51) | Common Exception Layer (§3.4.9) | `backend/common/exceptions.py` | `TC-UC10-API-001` |
+| **FR-13** | Server-Side Input Validation | E2 / US-08 (#28)<br>E8 / US-31 (#51) | Common Validation Layer (§3.4.9) | `backend/vehicles/models.py`<br>`backend/vehicles/migrations/0002_vehicle_registration_compact_uniq.py`<br>`backend/vehicles/serializers.py`<br>`backend/vehicles/services.py`<br>`domain serializers` | `TC-UC02-US08-UNIT-001`<br>`TC-UC02-US08-API-001/002/003/004/005`<br>`TC-UC02-US08-UI-001`<br>`TC-UC02-US08-SYS-001/002`<br>`TC-UC10-API-001` |
+| **FR-14** | Uniform Structured Error Responses | E2 / US-08 (#28)<br>E8 / US-31 (#51) | Common Exception Layer (§3.4.9) | `backend/common/exceptions.py`<br>`backend/vehicles/views.py` | `TC-UC02-US08-API-001/002/004/005`<br>`TC-UC02-US08-UI-001`<br>`TC-UC02-US08-SYS-002`<br>`TC-UC10-API-001` |
 | **FR-15** | User Authentication & Logout | E1 / US-01 (#1) | Security & IAM Module (§3.4.2) | `backend/accounts/views.py`<br>`frontend/src/context/AuthContext.jsx` | `TC-UC01-UNIT-001`<br>`TC-UC01-SYS-001` |
 | **FR-16** | Role-Based Access Control (RBAC) | E1 / US-02 (#22) | Security & IAM Module (§3.4.2) | `backend/accounts/permissions.py`<br>`frontend/src/routes/ProtectedRoute.jsx` | `TC-UC01-API-002` |
 | **FR-17** | User Account Administration | E1 / US-03 (#23) | Security & IAM Module (§3.4.2) | `backend/accounts/views.py` | `TC-UC04-API-001` |
@@ -393,14 +396,12 @@ DRF exceptions handled by `common.exceptions.exception_handler` use the shared c
 
 ## 6. Implementation Target Status & Project Roadmap
 
-### 6.1 Current implementation as of 27 October 2026
-
-Application baseline: `c98346e7a219114a03f84a53cb2a0d017deb3315`.
+### 6.1 Current implementation as of 31 October 2026
 
 | Component | Implemented scope | Remaining scope |
 | --- | --- | --- |
 | `backend/accounts/` | Customer registration, login/refresh/logout, current-user context, RBAC, admin account management, self-service profile updates, password changes, and token-version revocation | Remaining identity scope is limited to requirements not yet delivered by the current story set |
-| `backend/vehicles/` | Registration, profile update, plate search/current status | US-08 broader validation story remains open |
+| `backend/vehicles/` | Registration and profile validation, canonical registration normalization, separator-insensitive database uniqueness, exact/partial search and current status | External RTO registry verification and fuzzy search are not implemented |
 | `backend/parking_slots/` | Slot/zone CRUD, floor, guarded state transitions, public availability, concurrency safeguards | DEC-04/14 functionality gaps recorded below |
 | `backend/operations/` | Check-in, checkout with ordinary fee, completed history, snapshots and active-record constraints | Scanner/receipt/payment flows and dedicated frontend operations/history views |
 | `backend/rates/` | Rate configuration and ordinary hourly/grace calculation | Penalty application, advanced billing, invoices/payment recording |

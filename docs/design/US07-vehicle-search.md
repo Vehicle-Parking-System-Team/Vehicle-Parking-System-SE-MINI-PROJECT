@@ -86,12 +86,16 @@ US-07 delivers an instant vehicle search capability by license plate and inspect
 
 ### Error Responses
 
-| Scenario | HTTP Status | Response Payload |
+All handled DRF failures use the shared [US-31 error contract](US31-error-contract.md): `{error, code, details}`. Clients branch on the stable `code`, not message wording.
+
+| Scenario | HTTP Status | Structured response |
 | :--- | :--- | :--- |
-| **Missing query parameter** | `400 Bad Request` | `{"error": "A license plate or registration number is required to search.", "code": "MISSING_SEARCH_QUERY"}` |
-| **Unauthenticated request** | `401 Unauthorized` | `{"detail": "Authentication credentials were not provided."}` |
-| **Customer searches another owner's vehicle** | `403 Forbidden` | `{"detail": "You do not have permission to view details for this vehicle."}` |
-| **Vehicle plate not found** | `404 Not Found` | `{"detail": "No vehicle found with registration number \"MH-12-XX-9999\"."}` |
+| **Missing or invalid query** | `400 Bad Request` | `VALIDATION_ERROR`, with field-specific `details.plate` |
+| **Unauthenticated request** | `401 Unauthorized` | `AUTHENTICATION_REQUIRED` |
+| **Customer searches another owner's vehicle** | `403 Forbidden` | `PERMISSION_DENIED` |
+| **Vehicle plate not found** | `404 Not Found` | `NOT_FOUND` |
+
+Search intentionally accepts partial plate prefixes and substrings; complete registration-format validation is applied to registration and profile-update payloads, not search terms.
 
 ---
 

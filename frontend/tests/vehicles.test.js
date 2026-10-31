@@ -1,21 +1,18 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseApiError } from '../src/utils/apiErrors.js'
-import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput, validateSearchPlateInput } from '../src/utils/vehicles.js'
+import { VEHICLE_TYPES, normalizePlate, validateRegistrationNumber, validateVehicleUpdateInput, validateSearchPlateInput } from '../src/utils/vehicles.js'
 
 const CANONICAL_VEHICLE_TYPES = VEHICLE_TYPES.map((t) => t.value)
 
 // Client-side payload validator matching form requirements
 function validateVehicleRegistrationInput({ registration_number, vehicle_type }) {
   const errors = {}
-  const trimmedPlate = (registration_number || '').trim()
+  const plateValidation = validateRegistrationNumber(registration_number)
 
-  if (!trimmedPlate) {
-    errors.registration_number = ['Registration number is required.']
-  } else if (trimmedPlate.length > 20) {
-    errors.registration_number = ['Ensure this field has no more than 20 characters.']
+  if (!plateValidation.isValid) {
+    errors.registration_number = [plateValidation.error]
   }
-
   if (!vehicle_type || !CANONICAL_VEHICLE_TYPES.includes(vehicle_type)) {
     errors.vehicle_type = ['A valid vehicle type is required.']
   }
@@ -24,7 +21,7 @@ function validateVehicleRegistrationInput({ registration_number, vehicle_type })
     isValid: Object.keys(errors).length === 0,
     errors,
     normalizedPayload: Object.keys(errors).length === 0
-      ? { registration_number: trimmedPlate.toUpperCase(), vehicle_type }
+      ? { registration_number: plateValidation.normalized, vehicle_type }
       : null,
   }
 }
@@ -410,7 +407,7 @@ test('simulateVehicleUpdateSubmit handles 400 validation error from backend', as
       error: 'Validation failed.',
       code: 'VALIDATION_ERROR',
       details: {
-        registration_number: ['Ensure this field has no more than 20 characters.'],
+        registration_number: ['The registration number was rejected by server-side validation.'],
       },
     }),
   })
@@ -418,7 +415,7 @@ test('simulateVehicleUpdateSubmit handles 400 validation error from backend', as
   const res = await simulateVehicleUpdateSubmit({
     vehicleId: 42,
     formData: {
-      registration_number: 'A'.repeat(20),
+      registration_number: 'KA-01-AB-1234',
       vehicle_type: 'Compact',
     },
     mockFetch,
@@ -964,3 +961,75 @@ test('simulateVehicleSearch handles empty array [] response as not found (US-07 
   assert.match(res.error, /No vehicle found/)
 })
 
+
+
+test('US-08 frontend plate validation matches backend supported formats', () => {
+  for (const [input, expected] of [
+    ['  ka 01 ab 1234 ', 'KA-01-AB-1234'],
+    ['dl3cbb1122', 'DL3CBB1122'],
+    ['22 bh 1234 aa', '22-BH-1234-AA'],
+    ['KA - 01 - TEST - 99', 'KA-01-TEST-99'],
+  ]) {
+    const result = validateRegistrationNumber(input)
+    assert.equal(result.isValid, true, input)
+    assert.equal(result.normalized, expected)
+  }
+})
+
+test('US-08 frontend rejects illegal and malformed plate characters', () => {
+  for (const input of [
+    'KA/01/AB/1234',
+    'KA--01-AB-1234',
+    'KA-01 AB-1234',
+    'KA-01-AB-12345',
+    'KA-01-AB-1234<script>',
+    'KA\t01\tAB\t1234',
+  ]) {
+    assert.equal(validateRegistrationNumber(input).isValid, false, input)
+  }
+})
+
+test('US-08 frontend rejects non-string plate values', () => {
+  assert.equal(validateRegistrationNumber(12345).isValid, false)
+})
+
+
+test('US-08 frontend enforces owner contact field types and model length limits', () => {
+  const valid = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 'A'.repeat(100),
+    owner_phone: '9'.repeat(20),
+  })
+  assert.equal(valid.isValid, true)
+
+  const longName = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 'A'.repeat(101),
+  })
+  assert.equal(longName.isValid, false)
+  assert.ok(longName.errors.owner_name)
+
+  const longPhone = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_phone: '9'.repeat(21),
+  })
+  assert.equal(longPhone.isValid, false)
+  assert.ok(longPhone.errors.owner_phone)
+
+  const nonStringContact = validateVehicleUpdateInput({
+    registration_number: 'KA-01-AB-1234',
+    vehicle_type: 'Compact',
+    owner_name: 123,
+  })
+  assert.equal(nonStringContact.isValid, false)
+  assert.ok(nonStringContact.errors.owner_name)
+})
+
+test('US-08 frontend rejects raw overlong plate input before normalization', () => {
+  const result = validateRegistrationNumber('KA      01      AB      1234')
+  assert.equal(result.isValid, false)
+  assert.match(result.error, /no more than 20/)
+})

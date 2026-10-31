@@ -1,9 +1,10 @@
 from django.db import IntegrityError, transaction
-from rest_framework import permissions, status
+from rest_framework import permissions, serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.exceptions import Conflict
+from vehicles.services import is_registration_number_unique_violation
 from vehicles.models import Vehicle
 from vehicles.serializers import VehicleSearchResultSerializer, VehicleSerializer
 
@@ -31,9 +32,10 @@ class VehicleRegistrationView(APIView):
         try:
             with transaction.atomic():
                 vehicle = serializer.save(owner=request.user)
-        except IntegrityError:
-            # Catch concurrent uniqueness violation
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         output_serializer = VehicleSerializer(vehicle)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
@@ -100,8 +102,10 @@ class VehicleDetailView(APIView):
         try:
             with transaction.atomic():
                 updated = serializer.save()
-        except IntegrityError:
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
 
@@ -119,8 +123,10 @@ class VehicleDetailView(APIView):
         try:
             with transaction.atomic():
                 updated = serializer.save()
-        except IntegrityError:
-            raise Conflict('A vehicle with this registration number already exists.')
+        except IntegrityError as exc:
+            if is_registration_number_unique_violation(exc):
+                raise Conflict('A vehicle with this registration number already exists.') from exc
+            raise
 
         return Response(VehicleSerializer(updated).data, status=status.HTTP_200_OK)
 
@@ -143,25 +149,15 @@ class VehicleSearchView(APIView):
     def get(self, request, plate=None):
         search_plate = plate or request.query_params.get('plate') or request.query_params.get('q')
         if not search_plate or not str(search_plate).strip():
-            return Response(
-                {
-                    'error': 'A license plate or registration number is required to search.',
-                    'code': 'MISSING_SEARCH_QUERY',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise serializers.ValidationError({
+                'plate': ['A license plate or registration number is required to search.']
+            })
 
         from vehicles.services import search_vehicle_by_plate
         try:
             result = search_vehicle_by_plate(search_plate, requesting_user=request.user)
         except ValueError as err:
-            return Response(
-                {
-                    'error': str(err),
-                    'code': 'INVALID_SEARCH_QUERY',
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise serializers.ValidationError({'plate': [str(err)]}) from err
 
         if isinstance(result, list):
             data = [

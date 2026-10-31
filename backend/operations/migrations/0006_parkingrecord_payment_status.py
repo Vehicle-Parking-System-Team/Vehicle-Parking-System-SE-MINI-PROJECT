@@ -3,7 +3,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ('operations', '0005_parkingrecord_vehicle_multiplier_snapshot'),
+        ('operations', '0006_parkingrecord_reservation'),
     ]
 
     operations = [

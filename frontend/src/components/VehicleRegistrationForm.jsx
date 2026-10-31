@@ -81,19 +81,17 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
     setFormError(null)
     setSuccessMessage(null)
 
+    const validation = validateVehicleUpdateInput({
+      registration_number: formData.registration_number,
+      vehicle_type: formData.vehicle_type,
+      owner_name: formData.owner_name,
+      owner_phone: formData.owner_phone,
+    })
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors)
+      return
+    }
     const trimmedPlate = normalizePlate(formData.registration_number)
-    if (!trimmedPlate) {
-      setFieldErrors({ registration_number: ['Registration number is required.'] })
-      return
-    }
-    if (trimmedPlate.length > 20) {
-      setFieldErrors({ registration_number: ['Ensure this field has no more than 20 characters.'] })
-      return
-    }
-    if (!formData.vehicle_type) {
-      setFieldErrors({ vehicle_type: ['Vehicle type is required.'] })
-      return
-    }
 
     setIsSubmitting(true)
     try {
@@ -170,10 +168,11 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
     setEditFormError(null)
     setEditSuccessMessage(null)
 
-    const normalizedPlate = normalizePlate(editFormData.registration_number)
     const validation = validateVehicleUpdateInput({
-      registration_number: normalizedPlate,
+      registration_number: editFormData.registration_number,
       vehicle_type: editFormData.vehicle_type,
+      owner_name: editFormData.owner_name || '',
+      owner_phone: editFormData.owner_phone || '',
     })
 
     if (!validation.isValid) {
@@ -181,6 +180,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
       return
     }
 
+    const normalizedPlate = normalizePlate(editFormData.registration_number)
     setIsSavingEdit(true)
     try {
       const payload = {
@@ -303,12 +303,14 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
               type="text"
               id="owner_name"
               name="owner_name"
-              className="form-input"
+              className={`form-input ${fieldErrors.owner_name ? 'input-error' : ''}`}
               placeholder={user?.username || 'Full Name'}
               value={formData.owner_name}
+              maxLength={100}
               onChange={handleChange}
               disabled={isSubmitting}
             />
+            {fieldErrors.owner_name && <span className="field-error-text">{fieldErrors.owner_name.join(' ')}</span>}
           </div>
 
           <div className="form-group col-half">
@@ -317,12 +319,14 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
               type="tel"
               id="owner_phone"
               name="owner_phone"
-              className="form-input"
+              className={`form-input ${fieldErrors.owner_phone ? 'input-error' : ''}`}
               placeholder="e.g. 9876543210"
               value={formData.owner_phone}
+              maxLength={20}
               onChange={handleChange}
               disabled={isSubmitting}
             />
+            {fieldErrors.owner_phone && <span className="field-error-text">{fieldErrors.owner_phone.join(' ')}</span>}
           </div>
         </div>
 
@@ -417,11 +421,13 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
                           type="text"
                           id={`edit-owner-${v.id}`}
                           name="owner_name"
-                          className="form-input-sm"
+                          className={`form-input-sm ${editFieldErrors.owner_name ? 'input-error' : ''}`}
                           value={editFormData.owner_name}
+                          maxLength={100}
                           onChange={handleEditChange}
                           disabled={isSavingEdit}
                         />
+                        {editFieldErrors.owner_name && <span className="field-error-text-sm">{editFieldErrors.owner_name.join(' ')}</span>}
                       </div>
 
                       <div className="form-group-sm">
@@ -430,11 +436,13 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
                           type="tel"
                           id={`edit-phone-${v.id}`}
                           name="owner_phone"
-                          className="form-input-sm"
+                          className={`form-input-sm ${editFieldErrors.owner_phone ? 'input-error' : ''}`}
                           value={editFormData.owner_phone}
+                          maxLength={20}
                           onChange={handleEditChange}
                           disabled={isSavingEdit}
                         />
+                        {editFieldErrors.owner_phone && <span className="field-error-text-sm">{editFieldErrors.owner_phone.join(' ')}</span>}
                       </div>
 
                       <div className="edit-btn-group">
