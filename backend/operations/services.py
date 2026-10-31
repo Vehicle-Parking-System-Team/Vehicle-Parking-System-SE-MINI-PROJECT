@@ -1,4 +1,7 @@
 import json
+from datetime import timedelta
+
+from django.conf import settings
 
 from django.core.signing import Signer
 from django.db import IntegrityError, transaction
@@ -231,6 +234,20 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
             with transaction.atomic():
                 # Locks and updates the slot within the transaction.
                 slot = occupy_slot(candidate_id)
+
+                # A walk-in has no known departure time. Conservatively
+                # protect every upcoming confirmed reservation on this slot,
+                # including its configured turnover buffer. This check runs
+                # after occupy_slot locks the slot, matching reservation
+                # creation's slot lock and preventing a booking/allocation race.
+                if reservation is None and Reservation.objects.filter(
+                    slot_id=slot.pk,
+                    status=Reservation.Status.CONFIRMED,
+                    end_time__gt=timezone.now() - timedelta(
+                        minutes=settings.RESERVATION_BUFFER_MINUTES,
+                    ),
+                ).exclude(vehicle_id=vehicle.pk).exists():
+                    raise Conflict("This slot is protected for a confirmed reservation.")
 
                 # Recheck compatibility after the slot lifecycle service
                 # has locked and refreshed the slot.
