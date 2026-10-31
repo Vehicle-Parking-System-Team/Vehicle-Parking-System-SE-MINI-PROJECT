@@ -1,4 +1,7 @@
 import json
+from datetime import timedelta
+
+from django.conf import settings
 
 from django.core.signing import Signer
 from django.db import IntegrityError, transaction
@@ -109,7 +112,7 @@ def create_signed_ticket(record):
 
 
 @transaction.atomic
-def check_in_vehicle(registration_number, operator, slot_id=None):
+def check_in_vehicle(registration_number, operator, slot_id=None, reservation_code=None):
     """
     Check in a registered vehicle and allocate a compatible parking slot.
 
@@ -158,6 +161,26 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
 
     # 4. Reject a duplicate check-in and return existing session details.
     _raise_duplicate_active_record_conflict(vehicle)
+
+    reservation = None
+    if reservation_code is not None:
+        # Reservation codes are exposed as RES-<id> in reservation details.
+        # Reject malformed, unknown, mismatched and expired codes without
+        # falling through to an unintended walk-in session.
+        code = reservation_code.strip()
+        if not code.startswith("RES-") or not code[4:].isdigit():
+            raise ValidationError({"reservation_code": "Invalid reservation code. Use standard walk-in check-in without a code."})
+        reservation = Reservation.objects.filter(pk=int(code[4:]), vehicle=vehicle).first()
+        now = timezone.now()
+        if (
+            reservation is None
+            or reservation.status != Reservation.Status.CONFIRMED
+            or not (reservation.start_time <= now < reservation.end_time)
+        ):
+            raise ValidationError({"reservation_code": "Reservation is invalid or outside its permitted window. Use standard walk-in check-in without a code."})
+        if ParkingRecord.objects.filter(reservation=reservation).exists():
+            raise Conflict("This reservation has already been checked in.")
+        slot_id = reservation.slot_id
 
     compatible_slots = ParkingSlot.objects.filter(
         Q(vehicle_type__iexact=vehicle.vehicle_type)
@@ -212,6 +235,20 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                 # Locks and updates the slot within the transaction.
                 slot = occupy_slot(candidate_id)
 
+                # A walk-in has no known departure time. Conservatively
+                # protect every upcoming confirmed reservation on this slot,
+                # including its configured turnover buffer. This check runs
+                # after occupy_slot locks the slot, matching reservation
+                # creation's slot lock and preventing a booking/allocation race.
+                if reservation is None and Reservation.objects.filter(
+                    slot_id=slot.pk,
+                    status=Reservation.Status.CONFIRMED,
+                    end_time__gt=timezone.now() - timedelta(
+                        minutes=settings.RESERVATION_BUFFER_MINUTES,
+                    ),
+                ).exclude(vehicle_id=vehicle.pk).exists():
+                    raise Conflict("This slot is protected for a confirmed reservation.")
+
                 # Recheck compatibility after the slot lifecycle service
                 # has locked and refreshed the slot.
                 if not _is_compatible_slot(slot, vehicle):
@@ -223,18 +260,38 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                 # Associate an early check-in with its specific future booking.
                 # A different vehicle occupying this slot must never mark
                 # someone else's reservation as checked in.
-                reservation = (
-                    Reservation.objects.filter(
-                        vehicle=vehicle, slot=slot,
-                        status=Reservation.Status.CONFIRMED,
-                        end_time__gt=timezone.now(),
+                linked_reservation = reservation
+                if linked_reservation is not None:
+                    # Lock and revalidate after slot allocation. A concurrent
+                    # cancellation or check-in cannot consume the same booking.
+                    linked_reservation = Reservation.objects.select_for_update().get(
+                        pk=linked_reservation.pk,
                     )
-                    .order_by('start_time', 'pk')
-                    .first()
-                )
+                    now = timezone.now()
+                    if (
+                        linked_reservation.status != Reservation.Status.CONFIRMED
+                        or linked_reservation.vehicle_id != vehicle.pk
+                        or linked_reservation.slot_id != slot.pk
+                        or not (linked_reservation.start_time <= now < linked_reservation.end_time)
+                    ):
+                        raise ValidationError({"reservation_code": "Reservation is no longer valid. Use standard walk-in check-in without a code."})
+                    if ParkingRecord.objects.filter(reservation=linked_reservation).exists():
+                        raise Conflict("This reservation has already been checked in.")
+                else:
+                    # Preserve legacy automatic linkage for an arriving vehicle
+                    # with a reservation on the assigned slot during its window.
+                    linked_reservation = (
+                        Reservation.objects.filter(
+                            vehicle=vehicle, slot=slot,
+                            status=Reservation.Status.CONFIRMED,
+                            end_time__gt=timezone.now(),
+                        )
+                        .order_by('start_time', 'pk')
+                        .first()
+                    )
                 record = ParkingRecord.objects.create(
                     vehicle=vehicle,
-                    reservation=reservation,
+                    reservation=linked_reservation,
                     slot=slot,
                     operator=operator,
                     registration_number_snapshot=vehicle.registration_number,
@@ -243,6 +300,10 @@ def check_in_vehicle(registration_number, operator, slot_id=None):
                     zone_name_snapshot=slot.zone.name,
                     status=ParkingRecord.Status.ACTIVE,
                 )
+
+                if linked_reservation is not None and linked_reservation.start_time <= timezone.now():
+                    linked_reservation.status = Reservation.Status.FULFILLED
+                    linked_reservation.save(update_fields=["status"])
 
                 # 8. Generate the signed ticket after the database ID exists.
                 # Keep token creation in the same transaction.

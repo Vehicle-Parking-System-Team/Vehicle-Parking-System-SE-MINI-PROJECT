@@ -9,6 +9,11 @@ from .models import Reservation
 
 
 class ReservationCreateSerializer(serializers.ModelSerializer):
+    reservation_code = serializers.SerializerMethodField()
+
+    def get_reservation_code(self, obj):
+        return f"RES-{obj.pk}"
+
     slot = serializers.PrimaryKeyRelatedField(queryset=ParkingSlot.objects.all())
     vehicle = serializers.PrimaryKeyRelatedField(queryset=Vehicle.objects.all())
     duration_minutes = serializers.IntegerField(min_value=1, max_value=1440, write_only=True)
@@ -18,7 +23,7 @@ class ReservationCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Reservation
-        fields = ['id', 'customer', 'vehicle', 'slot', 'start_time',
+        fields = ['id', 'reservation_code', 'customer', 'vehicle', 'slot', 'start_time',
                   'duration_minutes', 'end_time', 'status', 'created_at']
         read_only_fields = ['id', 'customer', 'end_time', 'status', 'created_at']
 
@@ -66,8 +71,13 @@ class ReservationChangeSerializer(serializers.Serializer):
 
 
 class ReservationDetailSerializer(serializers.ModelSerializer):
+    reservation_code = serializers.SerializerMethodField()
+
+    def get_reservation_code(self, obj):
+        return f"RES-{obj.pk}"
+
     class Meta:
         model = Reservation
-        fields = ['id', 'customer', 'vehicle', 'slot', 'start_time',
+        fields = ['id', 'reservation_code', 'customer', 'vehicle', 'slot', 'start_time',
                   'end_time', 'status', 'created_at']
         read_only_fields = fields
