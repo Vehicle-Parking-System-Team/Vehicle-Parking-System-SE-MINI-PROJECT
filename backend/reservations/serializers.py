@@ -66,8 +66,13 @@ class ReservationChangeSerializer(serializers.Serializer):
 
 
 class ReservationDetailSerializer(serializers.ModelSerializer):
+    reservation_code = serializers.SerializerMethodField()
+
+    def get_reservation_code(self, obj):
+        return f"RES-{obj.pk}"
+
     class Meta:
         model = Reservation
-        fields = ['id', 'customer', 'vehicle', 'slot', 'start_time',
+        fields = ['id', 'reservation_code', 'customer', 'vehicle', 'slot', 'start_time',
                   'end_time', 'status', 'created_at']
         read_only_fields = fields
