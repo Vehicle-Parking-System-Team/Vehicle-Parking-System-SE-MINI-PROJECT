@@ -37,6 +37,7 @@ class VehicleCheckInView(APIView):
             ),
             operator=request.user,
             slot_id=request_serializer.validated_data.get("slot_id"),
+            reservation_code=request_serializer.validated_data.get("reservation_code"),
         )
 
         return Response(
