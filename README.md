@@ -45,11 +45,16 @@ Authoritative specifications, architectural models, and traceability registers a
 
 **Sprint 1 delivery recorded; formal milestone reconciliation pending.** The application implements JWT authentication/logout, vehicle registration/profile/search, slot/zone management, public availability, transactional check-in, checkout with ordinary fee snapshots and slot release, completed-session history API, and rate configuration. Authentication, vehicles, facility management and public availability have frontend views; check-in, checkout, history and rates currently expose backend APIs without dedicated frontend flows.
 
-The current main baseline also includes work outside Sprint 1. Reservations, administrative analytics, audit logs, notifications, invoices/payments and receipts remain incomplete. See the [Sprint 1 review](docs/meeting-notes/SPRINT1_REVIEW.md), [verification summary and test-plan addendum](docs/testing/SPRINT1_TEST_SUMMARY.md), [RTM](docs/requirements/traceability_matrix.md) and [known specification gaps](docs/validation/SPRINT1_DOCUMENT_SYNC.md). The original six-story commitment is closed; the milestone currently contains 10 closed and three open stories.
+Delivery beyond Sprint 1 includes reservation APIs, audit logging, receipt/payment APIs, occupancy and revenue reports, and the US-25 admin dashboard. Notifications and report exports remain planned; dedicated reservation, billing and audit screens are outside this dashboard increment. For the historical Sprint 1 scope, see the [Sprint 1 review](docs/meeting-notes/SPRINT1_REVIEW.md), [verification summary and test-plan addendum](docs/testing/SPRINT1_TEST_SUMMARY.md), [RTM](docs/requirements/traceability_matrix.md) and [known specification gaps](docs/validation/SPRINT1_DOCUMENT_SYNC.md).
 
 The shared US-31 API error handler and frontend error helper are available for domain modules to reuse. See the [error contract and usage](docs/design/US31-error-contract.md) and [test cases and execution evidence](docs/testing/US31-test-evidence.md).
 
 ## Development checks
+
+US-25 adds an admin dashboard with live facility counters, hourly activity and
+collected-revenue graphs, zone occupancy, and labelled pace estimates. See the
+[dashboard API and calculations](docs/design/US25-admin-dashboard.md) and
+[verification evidence](docs/testing/US25-test-evidence.md).
 
 US-11 adds public, read-only parking availability from the sign-in screen and
 signed-in navigation, with zone/type filters and a 30-second refresh. See the

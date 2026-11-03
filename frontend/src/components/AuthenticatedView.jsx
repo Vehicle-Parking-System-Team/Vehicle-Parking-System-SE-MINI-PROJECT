@@ -7,6 +7,7 @@ import SlotsPage from '../pages/Slots'
 import SearchPage from '../pages/Search'
 import ProfilePage from '../pages/Profile'
 import UsersPage from '../pages/Users'
+import AdminDashboard from '../pages/AdminDashboard'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
@@ -14,11 +15,12 @@ export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
   const canManage = isRoleAuthorized(user?.role, [ROLES.ADMIN, ROLES.OPERATOR])
   const isAdmin = isRoleAuthorized(user?.role, [ROLES.ADMIN])
-  const [page, setPage] = useState(canManage ? 'facility' : 'vehicles')
+  const [page, setPage] = useState(isAdmin ? 'dashboard' : canManage ? 'facility' : 'vehicles')
   const [selectedVehicleId, setSelectedVehicleId] = useState(null)
 
   const activePage = page === 'facility' && !canManage ? 'vehicles' : page
   const navigation = [
+    ...(isAdmin ? [['dashboard', 'Admin dashboard', 'layers']] : []),
     ['availability', 'Parking availability', 'map'],
     ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
     ...(isAdmin ? [['users', 'User management', 'user']] : []),
@@ -67,6 +69,7 @@ export function AuthenticatedView() {
               key={key}
               type="button"
               id={`nav-${key}`}
+              title={title}
               className={activePage === key ? 'is-active' : ''}
               aria-current={activePage === key ? 'page' : undefined}
               onClick={() => setPage(key)}
@@ -133,7 +136,11 @@ export function AuthenticatedView() {
           </span>
         </header>
         <main id="bay-main" className="bay-main" tabIndex={-1}>
-          {activePage === 'availability' ? (
+          {activePage === 'dashboard' ? (
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          ) : activePage === 'availability' ? (
             <SlotsPage key="availability" availability />
           ) : activePage === 'facility' ? (
             <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
