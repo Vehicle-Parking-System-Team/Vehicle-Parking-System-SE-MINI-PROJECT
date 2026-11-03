@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from common.exceptions import Conflict
+from common.audit import record_audit_event
 from rates.calculations import billable_hours
 
 from .models import BillingReceipt
@@ -75,7 +76,7 @@ def generate_receipt(record):
 
 @transaction.atomic
 def record_payment(receipt_number, operator, payment_status, payment_method=None,
-                   payment_amount=Decimal('0.00')):
+                   payment_amount=Decimal('0.00'), request=None):
     """Atomically record settlement; paid and waived states cannot be reversed."""
     receipt = (
         BillingReceipt.objects.select_for_update()
@@ -146,5 +147,19 @@ def record_payment(receipt_number, operator, payment_status, payment_method=None
         payment_method=payment_method,
         payment_amount=payment_amount,
         payment_timestamp=receipt.payment_timestamp,
+    )
+    waived = payment_status == BillingReceipt.PaymentStatus.WAIVED
+    details = (
+        {'payment_status': payment_status, 'fee_amount': str(receipt.fee_amount)}
+        if waived else {
+            'payment_status': payment_status,
+            'payment_method': payment_method,
+            'payment_amount': str(payment_amount),
+        }
+    )
+    record_audit_event(
+        'billing.fee_waived' if waived else 'billing.payment_recorded',
+        actor=operator, request=request,
+        resource_type='billing_receipt', resource_id=receipt.pk, details=details,
     )
     return receipt, True

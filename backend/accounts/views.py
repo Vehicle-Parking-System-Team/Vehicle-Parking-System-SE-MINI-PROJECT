@@ -23,6 +23,7 @@ from accounts.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+from common.audit import record_audit_event
 
 
 class RegisterView(APIView):
@@ -50,8 +51,22 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        serializer = LoginSerializer(data=request.data, context={'request': request})
+        try:
+            with transaction.atomic():
+                serializer.is_valid(raise_exception=True)
+                record_audit_event(
+                    'auth.login_succeeded', actor=serializer.user, request=request,
+                    resource_type='user', resource_id=serializer.user.pk,
+                    details={'outcome': 'success'},
+                )
+        except exceptions.AuthenticationFailed:
+            # Write after the failed login transaction exits, so it is retained.
+            # Never store the submitted username or password for a failed attempt.
+            record_audit_event(
+                'auth.login_failed', request=request, details={'outcome': 'failure'},
+            )
+            raise
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
@@ -94,6 +109,11 @@ class LogoutView(APIView):
             user = request.user
             user.token_version += 1
             user.save(update_fields=['token_version'])
+            record_audit_event(
+                'auth.logout', actor=user, request=request,
+                resource_type='user', resource_id=user.pk,
+                details={'outcome': 'success'},
+            )
 
         return Response(
             {'message': 'Successfully logged out.'},
@@ -152,7 +172,12 @@ class PasswordChangeView(APIView):
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with transaction.atomic():
+            serializer.save()
+            record_audit_event(
+                'auth.password_changed', actor=request.user, request=request,
+                resource_type='user', resource_id=request.user.pk,
+            )
         return Response({'message': 'Password changed successfully.'}, status=status.HTTP_200_OK)
 
 
@@ -184,7 +209,13 @@ class AdminUserManagementView(APIView):
     def post(self, request):
         serializer = AdminUserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        with transaction.atomic():
+            user = serializer.save()
+            record_audit_event(
+                'account.created', actor=request.user, request=request,
+                resource_type='user', resource_id=user.pk,
+                details={'role': user.role, 'status': user.status},
+            )
         dispatch_user_account_change(
             UserAccountChangeEvent(
                 actor_id=request.user.pk,
@@ -260,6 +291,14 @@ class AdminUserDetailView(APIView):
                 user.role = new_role
             if status_changed or role_changed:
                 user.save()
+                record_audit_event(
+                    'account.updated', actor=request.user, request=request,
+                    resource_type='user', resource_id=user.pk,
+                    details={
+                        'previous_state': previous_state,
+                        'new_state': {'status': user.status, 'role': user.role},
+                    },
+                )
         if status_changed or role_changed:
             event_type = 'STATUS_CHANGED' if status_changed and not role_changed else ('ROLE_CHANGED' if role_changed and not status_changed else 'ACCOUNT_UPDATED')
             dispatch_user_account_change(UserAccountChangeEvent(actor_id=request.user.pk, actor_username=request.user.username, target_user_id=user.pk, target_username=user.username, event_type=event_type, previous_state=previous_state, new_state={'status': user.status, 'role': user.role}, timestamp=timezone.now().isoformat()))

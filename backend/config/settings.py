@@ -51,6 +51,7 @@ INSTALLED_APPS = [
 
     # Local domain apps
     'accounts',
+    'common.apps.CommonConfig',
     'vehicles',
     'rates',
     'parking_slots',

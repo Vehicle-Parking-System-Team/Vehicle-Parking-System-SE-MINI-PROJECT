@@ -35,6 +35,6 @@ class ReservationDetailView(generics.GenericAPIView):
 
     def delete(self, request, pk):
         reservation = change_reservation(
-            reservation_id=pk, actor=request.user, cancel=True,
+            reservation_id=pk, actor=request.user, cancel=True, request=request,
         )
         return Response(ReservationDetailSerializer(reservation).data, status=status.HTTP_200_OK)

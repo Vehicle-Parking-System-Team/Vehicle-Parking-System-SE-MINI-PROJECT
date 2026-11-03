@@ -286,6 +286,8 @@ class LoginSerializer(serializers.Serializer):
         access['role'] = user.role
         access['username'] = user.username
 
+        self.user = user
+
         return {
             'access': str(access),
             'refresh': str(refresh),

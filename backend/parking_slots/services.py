@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from common.exceptions import Conflict
+from common.audit import record_audit_event
 from .models import ParkingSlot, ParkingZone
 
 
@@ -82,27 +83,47 @@ def update_slot(slot_id, values):
 
 
 @transaction.atomic
-def update_zone(zone_id, values):
+def update_zone(zone_id, values, actor=None, request=None):
     zone = get_object_or_404(ParkingZone.objects.select_for_update(), pk=zone_id)
+    previous_is_active = zone.is_active
+    affected_slot_count = 0
     if values.get('is_active') is False:
         children = list(zone.slots.select_for_update().order_by('pk'))
         if any(slot.status in PROTECTED_STATES for slot in children) or _has_active_records(
             [slot.pk for slot in children]
         ):
             raise Conflict('A zone with active records or occupied/reserved bays cannot be deactivated.')
-        zone.slots.filter(is_active=True).update(is_active=False, updated_at=timezone.now())
+        affected_slot_count = zone.slots.filter(is_active=True).update(
+            is_active=False, updated_at=timezone.now(),
+        )
     for key, value in values.items():
         setattr(zone, key, value)
     zone.save()
+    if values.get('is_active') is False and (previous_is_active or affected_slot_count):
+        record_audit_event(
+            'parking_zone.deactivated', actor=actor, request=request,
+            resource_type='parking_zone', resource_id=zone.pk,
+            details={
+                'previous_is_active': previous_is_active,
+                'is_active': zone.is_active,
+                'affected_slot_count': affected_slot_count,
+            },
+        )
     return zone
 
 
 @transaction.atomic
-def set_maintenance(slot_id, enabled):
+def set_maintenance(slot_id, enabled, actor=None, request=None):
     slot, _ = _lock_slot(slot_id)
     expected = ParkingSlot.Status.AVAILABLE if enabled else ParkingSlot.Status.MAINTENANCE
     target = ParkingSlot.Status.MAINTENANCE if enabled else ParkingSlot.Status.AVAILABLE
-    return _transition(slot, expected, target)
+    slot = _transition(slot, expected, target)
+    record_audit_event(
+        'parking_slot.maintenance_changed', actor=actor, request=request,
+        resource_type='parking_slot', resource_id=slot.pk,
+        details={'previous_status': expected, 'status': slot.status},
+    )
+    return slot
 
 
 def _transition(slot, expected, target):
