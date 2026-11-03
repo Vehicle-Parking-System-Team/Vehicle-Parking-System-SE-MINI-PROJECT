@@ -51,6 +51,11 @@ The shared US-31 API error handler and frontend error helper are available for d
 
 ## Development checks
 
+US-25 adds an admin dashboard with live facility counters, hourly activity and
+collected-revenue graphs, zone occupancy, and labelled pace estimates. See the
+[dashboard API and calculations](docs/design/US25-admin-dashboard.md) and
+[verification evidence](docs/testing/US25-test-evidence.md).
+
 US-11 adds public, read-only parking availability from the sign-in screen and
 signed-in navigation, with zone/type filters and a 30-second refresh. See the
 [availability API and behavior](docs/design/US11-parking-availability.md) and
