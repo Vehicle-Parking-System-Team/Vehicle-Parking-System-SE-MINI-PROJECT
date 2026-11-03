@@ -31,4 +31,3 @@ class AuditEventListView(APIView):
         paginator = AuditEventPagination()
         page = paginator.paginate_queryset(events, request, view=self)
         return paginator.get_paginated_response(AuditEventSerializer(page, many=True).data)
-
