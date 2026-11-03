@@ -24,6 +24,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ('-occurred_at', '-pk'),
+                'base_manager_name': 'objects',
                 'indexes': [models.Index(fields=['event_type', 'occurred_at'], name='audit_event_type_time')],
             },
         ),

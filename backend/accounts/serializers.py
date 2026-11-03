@@ -11,7 +11,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from common.exceptions import Conflict
 
 from accounts.models import User
-from common.audit import record_audit_event
 
 
 def validate_password_policy(password, user=None):
@@ -270,18 +269,10 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(username=lookup_username, password=password)
 
         if not user:
-            record_audit_event(
-                'auth.login_failed', request=self.context.get('request'),
-                details={'outcome': 'failure'},
-            )
             # Generic message prevents leaking whether the username or email exists
             raise exceptions.AuthenticationFailed('Invalid username or password.')
 
         if not user.is_active or user.status != 'active':
-            record_audit_event(
-                'auth.login_failed', request=self.context.get('request'),
-                details={'outcome': 'failure'},
-            )
             raise exceptions.AuthenticationFailed('User account is inactive or suspended.')
 
         # Generate tokens with embedded claims
@@ -295,11 +286,7 @@ class LoginSerializer(serializers.Serializer):
         access['role'] = user.role
         access['username'] = user.username
 
-        record_audit_event(
-            'auth.login_succeeded', actor=user, request=self.context.get('request'),
-            resource_type='user', resource_id=user.pk,
-            details={'outcome': 'success'},
-        )
+        self.user = user
 
         return {
             'access': str(access),

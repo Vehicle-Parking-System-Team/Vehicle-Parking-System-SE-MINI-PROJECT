@@ -104,12 +104,11 @@ def set_maintenance(slot_id, enabled, actor=None, request=None):
     expected = ParkingSlot.Status.AVAILABLE if enabled else ParkingSlot.Status.MAINTENANCE
     target = ParkingSlot.Status.MAINTENANCE if enabled else ParkingSlot.Status.AVAILABLE
     slot = _transition(slot, expected, target)
-    if actor is not None:
-        record_audit_event(
-            'parking_slot.maintenance_changed', actor=actor, request=request,
-            resource_type='parking_slot', resource_id=slot.pk,
-            details={'status': slot.status},
-        )
+    record_audit_event(
+        'parking_slot.maintenance_changed', actor=actor, request=request,
+        resource_type='parking_slot', resource_id=slot.pk,
+        details={'previous_status': expected, 'status': slot.status},
+    )
     return slot
 
 

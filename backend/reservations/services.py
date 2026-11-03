@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from common.exceptions import Conflict
+from common.audit import record_audit_event
 from parking_slots.models import ParkingSlot
 from operations.models import ParkingRecord
 from vehicles.models import Vehicle
@@ -73,7 +74,8 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
 
 
 @transaction.atomic
-def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, end_time=None):
+def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, end_time=None,
+                       request=None):
     """Lock vehicle, then slot, then reservation to serialize all writers."""
     from rest_framework.exceptions import NotFound, PermissionDenied
 
@@ -118,6 +120,14 @@ def change_reservation(*, reservation_id, actor, cancel=False, start_time=None, 
     if cancel:
         reservation.status = Reservation.Status.CANCELLED
         reservation.save(update_fields=['status'])
+        record_audit_event(
+            'reservation.cancelled', actor=actor, request=request,
+            resource_type='reservation', resource_id=reservation.pk,
+            details={
+                'previous_status': Reservation.Status.CONFIRMED,
+                'status': reservation.status,
+            },
+        )
         # Reservations hold a time window rather than changing slot.status.
         # Excluding Cancelled rows releases the slot immediately for rebooking.
         return reservation

@@ -119,6 +119,7 @@ class RecordPaymentView(APIView):
             payment_status=values['payment_status'],
             payment_method=values.get('payment_method'),
             payment_amount=values['payment_amount'],
+            request=request,
         )
         return Response(
             BillingReceiptSerializer(

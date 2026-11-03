@@ -14,6 +14,11 @@ class ImmutableAuditQuerySet(models.QuerySet):
     def bulk_update(self, objs, fields, **kwargs):
         raise TypeError('Audit events are immutable.')
 
+    def bulk_create(self, objs, **kwargs):
+        if kwargs.get('update_conflicts'):
+            raise TypeError('Audit events are immutable.')
+        return super().bulk_create(objs, **kwargs)
+
 
 class AuditEvent(models.Model):
     """An append-only snapshot; actor/resource strings survive source deletion."""
@@ -32,12 +37,13 @@ class AuditEvent(models.Model):
 
     class Meta:
         ordering = ('-occurred_at', '-pk')
+        base_manager_name = 'objects'
         indexes = [
             models.Index(fields=('event_type', 'occurred_at'), name='audit_event_type_time'),
         ]
 
     def save(self, *args, **kwargs):
-        if self.pk and type(self).objects.filter(pk=self.pk).exists():
+        if not self._state.adding or self.pk is not None:
             raise TypeError('Audit events are immutable.')
         return super().save(*args, **kwargs)
 
