@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from common.exceptions import Conflict
+from common.audit import record_audit_event
 from .models import ParkingSlot, ParkingZone
 
 
@@ -98,11 +99,18 @@ def update_zone(zone_id, values):
 
 
 @transaction.atomic
-def set_maintenance(slot_id, enabled):
+def set_maintenance(slot_id, enabled, actor=None, request=None):
     slot, _ = _lock_slot(slot_id)
     expected = ParkingSlot.Status.AVAILABLE if enabled else ParkingSlot.Status.MAINTENANCE
     target = ParkingSlot.Status.MAINTENANCE if enabled else ParkingSlot.Status.AVAILABLE
-    return _transition(slot, expected, target)
+    slot = _transition(slot, expected, target)
+    if actor is not None:
+        record_audit_event(
+            'parking_slot.maintenance_changed', actor=actor, request=request,
+            resource_type='parking_slot', resource_id=slot.pk,
+            details={'status': slot.status},
+        )
+    return slot
 
 
 def _transition(slot, expected, target):

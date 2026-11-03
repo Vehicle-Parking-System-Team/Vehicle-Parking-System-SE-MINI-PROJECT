@@ -72,5 +72,6 @@ class ParkingSlotStatusView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         slot = services.set_maintenance(
             slot.pk, serializer.validated_data['status'] == ParkingSlot.Status.MAINTENANCE,
+            actor=request.user, request=request,
         )
         return Response(ParkingSlotSerializer(slot).data)

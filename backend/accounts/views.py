@@ -23,6 +23,7 @@ from accounts.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+from common.audit import record_audit_event
 
 
 class RegisterView(APIView):
@@ -50,7 +51,7 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
@@ -94,6 +95,11 @@ class LogoutView(APIView):
             user = request.user
             user.token_version += 1
             user.save(update_fields=['token_version'])
+            record_audit_event(
+                'auth.logout', actor=user, request=request,
+                resource_type='user', resource_id=user.pk,
+                details={'outcome': 'success'},
+            )
 
         return Response(
             {'message': 'Successfully logged out.'},
