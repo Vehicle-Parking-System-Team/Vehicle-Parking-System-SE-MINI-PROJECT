@@ -174,10 +174,10 @@ The bullets below describe the target billing scope. Current code implements Par
 - Historical reporting: generates occupancy, throughput, and revenue reports filtered by date range and vehicle class (`FR-28`).
 - Export engine: exports structured reports in CSV and PDF formats (`FR-28`).
 
-#### 3.4.9 Audit, Notifications & Common Component (`backend/common/`; notifications and audit planned)
+#### 3.4.9 Audit, Notifications & Common Component (`backend/common/`; notifications planned)
 - Server-side payload validation: validates all incoming client parameters, rejecting malformed input with HTTP 400 (`FR-13`, `NFR-SEC-03`).
 - Uniform structured error responses: wraps errors in `{error, code, details}` schema (`FR-14`).
-- Planned security & event audit logging: appends immutable log entries for user status changes, manual overrides, cancellations, and tariff updates; 90-day retention (`FR-29`, `DEC-12`).
+- Security & event audit logging: appends application-immutable entries for login attempts, logout, password changes, admin account creation and role/status changes, manual maintenance overrides, settlements/waivers, cancellations and tariff changes. `GET /api/audit/` is admin-only and paginated. Records are retained without an automatic purge, including beyond 90 days (`FR-29`, `DEC-12`). See [US-29 contract](../design/US29-audit-log.md) for transaction semantics and the ORM/database protection boundary.
 - Planned in-app notification delivery: dispatches alerts for reservation confirmations, expiry warnings, and payment receipts (`FR-30`).
 
 ---
@@ -405,9 +405,9 @@ DRF exceptions handled by `common.exceptions.exception_handler` use the shared c
 | `backend/parking_slots/` | Slot/zone CRUD, floor, guarded state transitions, public availability, concurrency safeguards | DEC-04/14 functionality gaps recorded below |
 | `backend/operations/` | Check-in, checkout with ordinary fee, completed history, snapshots and active-record constraints | Scanner/receipt/payment flows and dedicated frontend operations/history views |
 | `backend/rates/` | Rate configuration and ordinary hourly/grace calculation | Penalty application, advanced billing, invoices/payment recording |
-| `backend/common/` | Shared DRF errors and sanitized diagnostic logging | Security audit domain is not implemented |
+| `backend/common/` | Shared DRF errors, sanitized diagnostic logging, audit store/recorder and admin read API | Application-level append-only safeguards; no database-owner tamper protection or automated purge |
 | `frontend/src/` | Auth, vehicles, search, management and public availability; React 19/CSS/Three.js | Reservations, operations forms, history, rates, executive reporting, audit and notifications |
-| Reservations, reporting, audit and notifications | No corresponding application domains/routes | Remain planned, not scaffolded production features |
+| Notifications | No corresponding application domain/routes | Remains planned |
 
 Current root routes are `/api/auth/`, `/api/v1/vehicles/` (plus `/api/vehicles/` registration alias), `/api/parking/`, and `/api/v1/rates/`. Existing design documents describe each delivered contract. Current-module presence is not proof of whole-story or NFR acceptance.
 
