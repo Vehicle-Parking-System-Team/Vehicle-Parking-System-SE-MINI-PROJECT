@@ -1699,21 +1699,30 @@
   }
   .bay-sidebar nav {
     flex-direction: row;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
     gap: 4px;
   }
   .bay-sidebar nav button {
-    width: 40px;
-    height: 38px;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
   }
   .bay-sidebar-bottom {
     margin: 0;
     padding: 0;
     width: auto;
     border: none;
+    flex-shrink: 0;
   }
   .bay-topbar {
     padding: 0 16px;
     height: 52px;
+  }
+  .bay-workspace-status > span {
+    display: none;
   }
   .bay-main {
     padding: 20px 16px;

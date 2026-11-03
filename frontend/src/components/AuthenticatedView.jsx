@@ -69,6 +69,7 @@ export function AuthenticatedView() {
               key={key}
               type="button"
               id={`nav-${key}`}
+              title={title}
               className={activePage === key ? 'is-active' : ''}
               aria-current={activePage === key ? 'page' : undefined}
               onClick={() => setPage(key)}
