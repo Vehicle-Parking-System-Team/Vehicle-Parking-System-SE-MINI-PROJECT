@@ -13,6 +13,7 @@ EVENT_DETAIL_FIELDS = {
     'account.created': {'role', 'status'},
     'account.updated': {'previous_state', 'new_state'},
     'parking_slot.maintenance_changed': {'previous_status', 'status'},
+    'parking_zone.deactivated': {'previous_is_active', 'is_active', 'affected_slot_count'},
     'billing.payment_recorded': {'payment_status', 'payment_method', 'payment_amount'},
     'billing.fee_waived': {'payment_status', 'fee_amount'},
     'reservation.cancelled': {'previous_status', 'status'},

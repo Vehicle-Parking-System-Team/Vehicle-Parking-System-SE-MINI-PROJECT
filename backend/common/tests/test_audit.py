@@ -271,6 +271,105 @@ class AuditTests(TestCase):
         self.slot.refresh_from_db()
         self.assertEqual(self.slot.status, ParkingSlot.Status.AVAILABLE)
 
+    def test_zone_deactivation_methods_record_actor_resource_and_changed_slot_count(self):
+        self.client.force_authenticate(self.admin)
+        for method in ('patch', 'put', 'delete'):
+            with self.subTest(method=method):
+                zone = ParkingZone.objects.create(name=f'Audit {method}')
+                ParkingSlot.objects.create(zone=zone, slot_number='01')
+                ParkingSlot.objects.create(zone=zone, slot_number='02')
+                ParkingSlot.objects.create(zone=zone, slot_number='03', is_active=False)
+                response = getattr(self.client, method)(
+                    f'/api/parking/zones/{zone.pk}/',
+                    {'name': zone.name, 'is_active': False}, format='json',
+                )
+                self.assertEqual(response.status_code, 204 if method == 'delete' else 200)
+                zone.refresh_from_db()
+                self.assertFalse(zone.is_active)
+                self.assertFalse(zone.slots.filter(is_active=True).exists())
+                event = AuditEvent.objects.get(
+                    event_type='parking_zone.deactivated', resource_id=str(zone.pk),
+                )
+                self.assertIsNotNone(event.occurred_at)
+                self.assertEqual(event.ip_address, PEER_IP)
+                self.assertEqual(event.actor_id, str(self.admin.pk))
+                self.assertEqual(event.actor_username, self.admin.username)
+                self.assertEqual(event.actor_role, 'Admin')
+                self.assertEqual(event.resource_type, 'parking_zone')
+                self.assertEqual(event.details, {
+                    'previous_is_active': True, 'is_active': False, 'affected_slot_count': 2,
+                })
+        self.slot.refresh_from_db()
+        self.assertTrue(self.slot.is_active)
+        self.assertEqual(AuditEvent.objects.count(), 3)
+
+    def test_zone_audit_insert_failure_rolls_back_zone_and_all_child_changes(self):
+        self.client.force_authenticate(self.admin)
+        other = ParkingSlot.objects.create(zone=self.zone, slot_number='AUD-02')
+        inactive = ParkingSlot.objects.create(zone=self.zone, slot_number='AUD-03', is_active=False)
+        originals = {
+            slot.pk: (slot.is_active, slot.updated_at)
+            for slot in (self.slot, other, inactive)
+        }
+        original_updated_at = self.zone.updated_at
+        for method in ('patch', 'put', 'delete'):
+            with self.subTest(method=method):
+                with patch('common.audit.AuditEvent.objects.create', side_effect=DatabaseError('audit unavailable')):
+                    with self.assertLogs('common.exceptions', level='ERROR'):
+                        response = getattr(self.client, method)(
+                            f'/api/parking/zones/{self.zone.pk}/',
+                            {'name': 'Must roll back', 'is_active': False}, format='json',
+                        )
+                self.assertEqual(response.status_code, 500)
+                self.zone.refresh_from_db()
+                self.assertTrue(self.zone.is_active)
+                self.assertEqual(self.zone.name, 'Audit Zone')
+                self.assertEqual(self.zone.updated_at, original_updated_at)
+                for slot in (self.slot, other, inactive):
+                    slot.refresh_from_db()
+                    self.assertEqual((slot.is_active, slot.updated_at), originals[slot.pk])
+                self.assertFalse(AuditEvent.objects.exists())
+
+    def test_repeated_zone_deactivation_does_not_duplicate_event(self):
+        self.client.force_authenticate(self.admin)
+        for method in ('patch', 'put', 'delete'):
+            response = getattr(self.client, method)(
+                f'/api/parking/zones/{self.zone.pk}/',
+                {'name': self.zone.name, 'is_active': False}, format='json',
+            )
+            self.assertEqual(response.status_code, 204 if method == 'delete' else 200)
+        self.assertEqual(AuditEvent.objects.count(), 1)
+        self.assertEqual(self.event('parking_zone.deactivated').details['affected_slot_count'], 1)
+
+    def test_empty_zone_deactivation_is_still_audited(self):
+        self.client.force_authenticate(self.admin)
+        zone = ParkingZone.objects.create(name='Empty audited zone')
+        self.assertEqual(self.client.delete(f'/api/parking/zones/{zone.pk}/').status_code, 204)
+        self.assertEqual(self.event('parking_zone.deactivated').details, {
+            'previous_is_active': True, 'is_active': False, 'affected_slot_count': 0,
+        })
+
+    def test_rejected_zone_deactivation_does_not_create_success_event(self):
+        self.client.force_authenticate(self.admin)
+        self.slot.status = ParkingSlot.Status.RESERVED
+        self.slot.save(update_fields=['status'])
+        for method in ('patch', 'put', 'delete'):
+            response = getattr(self.client, method)(
+                f'/api/parking/zones/{self.zone.pk}/',
+                {'name': self.zone.name, 'is_active': False}, format='json',
+            )
+            self.assertEqual(response.status_code, 409)
+        self.assertFalse(AuditEvent.objects.exists())
+
+    def test_other_zone_updates_do_not_create_deactivation_event(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f'/api/parking/zones/{self.zone.pk}/',
+            {'name': 'Renamed zone', 'is_active': True}, format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AuditEvent.objects.exists())
+
     def test_payment_and_waiver_events_and_idempotent_retries(self):
         for waived in (False, True):
             receipt = self.completed_receipt()

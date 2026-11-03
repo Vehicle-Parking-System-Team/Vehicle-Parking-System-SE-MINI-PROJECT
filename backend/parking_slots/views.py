@@ -19,7 +19,10 @@ class ParkingZoneDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = ParkingZone.objects.all()
 
     def perform_destroy(self, instance):
-        services.update_zone(instance.pk, {'is_active': False})
+        services.update_zone(
+            instance.pk, {'is_active': False},
+            actor=self.request.user, request=self.request,
+        )
 
 
 class ParkingSlotListCreateView(generics.ListCreateAPIView):

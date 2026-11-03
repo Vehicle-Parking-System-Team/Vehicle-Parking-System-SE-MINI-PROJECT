@@ -26,6 +26,7 @@ outside this protection. No claim of database-level or cryptographic tamper proo
 | `account.created` | Admin account-create API | Role and status |
 | `account.updated` | Admin role/status API | Before and after role/status |
 | `parking_slot.maintenance_changed` | Maintenance service/API | Before and after status |
+| `parking_zone.deactivated` | Zone update (PATCH/PUT) and soft-delete (DELETE) service/API | Zone resource ID, previous/current active flags and count of child slots changed from active to inactive |
 | `billing.payment_recorded` / `billing.fee_waived` | Settlement service/API | Settlement fields or waived fee amount |
 | `reservation.cancelled` | Cancellation service/API | Before and after status |
 | `tariff.created` / `tariff.updated` | Rate APIs | Tariff snapshots including penalty and multiplier |
@@ -40,10 +41,15 @@ success events. Idempotent settlement retries and unchanged role/status or tarif
 updates do not duplicate events. Existing account-change notification signals
 remain separate best-effort consumers; audit persistence does not depend on them.
 
+Zone deactivation records one event in the transaction that updates the zone and
+its child slots. Already inactive children are excluded from `affected_slot_count`.
+An active zone with no active children still produces an event; repeating an
+unchanged deactivation produces none. Rejected deactivations produce no success event.
+
 HTTP producers take the actor from authentication and the IP from `REMOTE_ADDR`,
 ignoring supplied role, actor and forwarded-IP headers. Services called without an
-HTTP request still record an event but have no IP; maintenance calls without an
-actor have a null actor. Invalid peer addresses are omitted. Reverse-proxy headers
+HTTP request still record an event but have no IP; maintenance and zone-deactivation
+calls without an actor have a null actor. Invalid peer addresses are omitted. Reverse-proxy headers
 must not be trusted without a separate deployment trust policy.
 
 Audit entries are retained without a foreign key to the actor, so deleting an

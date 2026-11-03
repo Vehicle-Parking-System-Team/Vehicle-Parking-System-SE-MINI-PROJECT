@@ -18,7 +18,11 @@ class ParkingZoneSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
 
     def update(self, instance, validated_data):
-        return services.update_zone(instance.pk, validated_data)
+        request = self.context.get('request')
+        return services.update_zone(
+            instance.pk, validated_data,
+            actor=request.user if request else None, request=request,
+        )
 
 
 class ParkingSlotSerializer(serializers.ModelSerializer):

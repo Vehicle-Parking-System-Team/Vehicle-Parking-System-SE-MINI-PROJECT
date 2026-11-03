@@ -177,7 +177,7 @@ The bullets below describe the target billing scope. Current code implements Par
 #### 3.4.9 Audit, Notifications & Common Component (`backend/common/`; notifications planned)
 - Server-side payload validation: validates all incoming client parameters, rejecting malformed input with HTTP 400 (`FR-13`, `NFR-SEC-03`).
 - Uniform structured error responses: wraps errors in `{error, code, details}` schema (`FR-14`).
-- Security & event audit logging: appends application-immutable entries for login attempts, logout, password changes, admin account creation and role/status changes, manual maintenance overrides, settlements/waivers, cancellations and tariff changes. `GET /api/audit/` is admin-only and paginated. Records are retained without an automatic purge, including beyond 90 days (`FR-29`, `DEC-12`). See [US-29 contract](../design/US29-audit-log.md) for transaction semantics and the ORM/database protection boundary.
+- Security & event audit logging: appends application-immutable entries for login attempts, logout, password changes, admin account creation and role/status changes, manual maintenance overrides, zone deactivation with affected bay counts, settlements/waivers, cancellations and tariff changes. `GET /api/audit/` is admin-only and paginated. Records are retained without an automatic purge, including beyond 90 days (`FR-29`, `DEC-12`). See [US-29 contract](../design/US29-audit-log.md) for transaction semantics and the ORM/database protection boundary.
 - Planned in-app notification delivery: dispatches alerts for reservation confirmations, expiry warnings, and payment receipts (`FR-30`).
 
 ---

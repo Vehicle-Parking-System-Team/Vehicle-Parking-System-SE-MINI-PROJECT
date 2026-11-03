@@ -36,6 +36,21 @@ python manage.py test --verbosity 1
 The full suite included the initial 27 audit tests. Six further audit cases were
 added while it ran; the subsequent targeted run passed all 33 audit cases.
 
+## PR #90 zone-deactivation review fix
+
+Added six audit regressions covering PATCH, PUT and DELETE deactivation, actor and
+peer-IP attribution, zone identity, counts that exclude already inactive bays,
+empty zones, retries, rejected transitions and unrelated zone updates. Injected
+audit-insert failures restore zone metadata and all child active flags/timestamps
+for each HTTP method.
+
+`python manage.py test common.tests.test_audit parking_slots --verbosity 1` ran
+104 tests in 8.046 seconds: passed with four PostgreSQL-only skips. The subsequent
+full backend run passed all 552 tests in 209.310 seconds with 12 skips (including
+PostgreSQL-only concurrency checks). System check, migration drift check and
+`git diff --check` also passed. The PostgreSQL CI job already includes the
+expanded audit test module.
+
 The tests exercise migrations against a fresh test database. They do not apply
 the migration to a developer/production database or establish production load,
 a frontend audit screen, or database-owner/SQL tamper resistance. See the
