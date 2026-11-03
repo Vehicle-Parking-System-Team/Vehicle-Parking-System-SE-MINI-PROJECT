@@ -12,10 +12,17 @@ class CheckInRequestSerializer(serializers.Serializer):
         trim_whitespace=True,
     )
 
+    reservation_code = serializers.CharField(required=False, max_length=32, trim_whitespace=True)
+
     slot_id = serializers.IntegerField(
         required=False,
         min_value=1,
     )
+
+    def validate(self, attrs):
+        if attrs.get("reservation_code") and attrs.get("slot_id") is not None:
+            raise serializers.ValidationError({"slot_id": "A reservation assigns its own slot; omit slot_id."})
+        return attrs
 
     def validate_registration_number(self, value):
         plate = normalize_registration_number(value)
@@ -79,6 +86,7 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
     )
 
     operator_id = serializers.IntegerField(read_only=True)
+    reservation_id = serializers.IntegerField(read_only=True)
 
     duration_seconds = serializers.SerializerMethodField()
 
@@ -93,6 +101,7 @@ class ParkingRecordSerializer(serializers.ModelSerializer):
             "slot_number",
             "zone_name",
             "operator_id",
+            "reservation_id",
             "check_in_time",
             "check_out_time",
             "duration_seconds",
