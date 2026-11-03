@@ -1,4 +1,4 @@
-"""Admin-only occupancy and collected-revenue APIs (US-26/US-27)."""
+"""Admin-only dashboard, occupancy and collected-revenue APIs (US-25–US-27)."""
 
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -6,9 +6,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin
+from .dashboard import dashboard_metrics
 from .serializers import OccupancyQuerySerializer, RevenueQuerySerializer
 from .revenue import revenue_report
 from .services import occupancy_report
+
+
+@method_decorator(never_cache, name='dispatch')
+class DashboardMetricsView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        return Response(dashboard_metrics())
 
 
 @method_decorator(never_cache, name='dispatch')
