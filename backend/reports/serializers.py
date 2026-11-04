@@ -38,3 +38,23 @@ class RevenueQuerySerializer(serializers.Serializer):
         if attrs['end'] - attrs['start'] > timedelta(days=366):
             raise serializers.ValidationError({'end': 'Request at most 366 days per report.'})
         return attrs
+
+
+class ExportQuerySerializer(OccupancyQuerySerializer):
+    report = serializers.ChoiceField(choices=('logs', 'occupancy', 'revenue'), default='logs')
+    export_format = serializers.ChoiceField(choices=('csv', 'pdf'), default='csv')
+    status = serializers.ChoiceField(choices=('ACTIVE', 'COMPLETED'), required=False)
+    payment_method = serializers.ChoiceField(choices=BillingReceipt.PaymentMethod.choices, required=False)
+    vehicle_type = serializers.ChoiceField(choices=Vehicle.VEHICLE_TYPE_CHOICES, required=False)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        allowed = {
+            'logs': {'zone', 'status', 'vehicle_type'},
+            'occupancy': {'zone', 'interval'},
+            'revenue': {'payment_method', 'vehicle_type', 'interval'},
+        }[attrs['report']]
+        for field in self.initial_data:
+            if field not in allowed | {'report', 'export_format', 'start', 'end'}:
+                raise serializers.ValidationError({field: 'Unsupported filter for this report.'})
+        return attrs

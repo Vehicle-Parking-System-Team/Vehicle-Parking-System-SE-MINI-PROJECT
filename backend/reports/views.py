@@ -10,6 +10,8 @@ from .dashboard import dashboard_metrics
 from .serializers import OccupancyQuerySerializer, RevenueQuerySerializer
 from .revenue import revenue_report
 from .services import occupancy_report
+from .exports import export_response
+from .serializers import ExportQuerySerializer
 
 
 @method_decorator(never_cache, name='dispatch')
@@ -38,3 +40,13 @@ class RevenueReportView(APIView):
         query = RevenueQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         return Response(revenue_report(**query.validated_data))
+
+
+@method_decorator(never_cache, name='dispatch')
+class ReportExportView(APIView):
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        query = ExportQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        return export_response(query.validated_data)

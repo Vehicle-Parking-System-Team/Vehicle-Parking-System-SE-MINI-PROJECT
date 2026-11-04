@@ -51,6 +51,9 @@ The shared US-31 API error handler and frontend error helper are available for d
 
 ## Development checks
 
+US-28 adds Admin-only filtered CSV/PDF downloads for parking logs, occupancy and
+collected revenue from the dashboard. See the [export contract](docs/design/US28-report-exports.md).
+
 US-25 adds an admin dashboard with live facility counters, hourly activity and
 collected-revenue graphs, zone occupancy, and labelled pace estimates. See the
 [dashboard API and calculations](docs/design/US25-admin-dashboard.md) and

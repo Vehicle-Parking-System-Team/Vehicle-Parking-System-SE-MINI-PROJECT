@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
 import BayIcon from '../components/BayIcon'
+import ReportExport from '../components/ReportExport'
 import './AdminDashboard.css'
 
 const money = new Intl.NumberFormat('en-IN', {
@@ -249,6 +250,7 @@ export default function AdminDashboard() {
             : 'Metrics unavailable'}
         <span>Asia/Kolkata</span>
       </div>
+      <ReportExport />
       {error && (
         <div className="bay-alert" role="alert">
           {error}{' '}
