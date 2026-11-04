@@ -513,3 +513,18 @@
     font-size: 24px;
   }
 }
+.report-export { margin-bottom: 24px; }
+.report-export-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 16px;
+  align-items: end;
+  margin-top: 20px;
+}
+.report-export-form label { display: grid; gap: 8px; font-size: 14px; }
+.report-export-form input, .report-export-form select {
+  width: 100%; min-width: 0; min-height: 44px;
+  border: 1px solid var(--bay-line, #d7d8d0); border-radius: 8px;
+  background: var(--bay-paper, #fff); color: inherit; padding: 8px;
+  font: inherit;
+}
