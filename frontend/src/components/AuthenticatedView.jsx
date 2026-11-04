@@ -8,6 +8,7 @@ import SearchPage from '../pages/Search'
 import ProfilePage from '../pages/Profile'
 import UsersPage from '../pages/Users'
 import AdminDashboard from '../pages/AdminDashboard'
+import Notifications from './Notifications'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
@@ -136,6 +137,7 @@ export function AuthenticatedView() {
           </span>
         </header>
         <main id="bay-main" className="bay-main" tabIndex={-1}>
+          <Notifications key={user?.id} />
           {activePage === 'dashboard' ? (
             <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
               <AdminDashboard />

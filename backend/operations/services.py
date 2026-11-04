@@ -19,6 +19,7 @@ from vehicles.models import Vehicle
 from vehicles.services import normalize_registration_number
 
 from .models import ParkingRecord
+from notifications.services import schedule_parking_notification
 from reservations.models import Reservation
 
 
@@ -310,6 +311,7 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
                 record.ticket_qr_token = create_signed_ticket(record)
                 record.save(update_fields=["ticket_qr_token"])
 
+            schedule_parking_notification('facility_full', record.pk)
             return record
 
         except _SlotCompatibilityChanged:
@@ -408,4 +410,5 @@ def check_out_vehicle(registration_number, operator):
     # A release failure rolls the fee, completion and timestamp back together.
     record.slot = release_slot(record.slot_id)
     record.vehicle = vehicle
+    schedule_parking_notification('checkout', record.pk)
     return record
