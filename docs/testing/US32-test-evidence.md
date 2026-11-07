@@ -1,5 +1,6 @@
 # US-32 shared security verification evidence
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#52](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/52).
 Executed locally on 27 October 2026. This is evidence for the
 [shared security increment](../design/US32-security.md), not full story acceptance.

@@ -1,5 +1,6 @@
 # US-24 — Payment Recording Contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 **Story:** US-24 (#44)  
 **Epic:** E6 — Pricing, Billing & Payment (#19)  
 **Owner:** Member 3  

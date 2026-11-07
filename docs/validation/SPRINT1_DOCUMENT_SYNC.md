@@ -1,5 +1,6 @@
 # Sprint 1 documentation consistency report
 
+Historical record. Current delivery and verification are indexed in [the documentation guide](../README.md).
 Recorded 27 October 2026 against application commit `c98346e7a219114a03f84a53cb2a0d017deb3315`, current issue states and [integration CI](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/actions/runs/40451144341). Historical Phase 1/Phase 3 reports remain dated baseline records, not current completion claims.
 
 ## Corrections made

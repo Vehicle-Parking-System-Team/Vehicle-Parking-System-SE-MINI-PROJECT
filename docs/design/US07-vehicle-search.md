@@ -1,5 +1,6 @@
 # US-07 — Vehicle Search & Live Parking Status Implementation
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 - **User Story:** US-07 (#27) — Search vehicle and current status
 - **Parent Epic:** E2 (#15) — Vehicle Management
 - **Owner:** Member 1

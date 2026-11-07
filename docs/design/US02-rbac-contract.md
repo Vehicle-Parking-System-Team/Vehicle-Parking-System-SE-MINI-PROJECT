@@ -1,5 +1,6 @@
 # US-02 Role-Based Access Control (RBAC) — Architecture & Integration Contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 **Document Version:** 1.0.0  
 **Effective Date:** 27 October 2026  
 **Traceability:** US-02 (#22, 5 SP), FR-16, NFR-SEC-01, NFR-SEC-02  

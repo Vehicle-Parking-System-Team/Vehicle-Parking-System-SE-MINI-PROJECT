@@ -1,5 +1,6 @@
 # US-29 audit log verification
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Validated on 3 November 2026 against `origin/main` at `286df4a` (merged PR #89).
 Uses the existing development virtual environment and temporary SQLite test databases.
 

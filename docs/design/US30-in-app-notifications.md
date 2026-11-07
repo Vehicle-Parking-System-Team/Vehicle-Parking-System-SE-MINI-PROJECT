@@ -1,5 +1,6 @@
 # US-30 in-app notifications (#50)
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Signed-in active accounts have an inbox above their workspace content. Unread
 alerts appear as banners (up to three), with a live unread count, manual refresh,
 dismiss buttons, and paginated history including dismissed alerts. Dismissal is

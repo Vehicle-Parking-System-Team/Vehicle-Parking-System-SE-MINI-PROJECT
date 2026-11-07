@@ -1,5 +1,6 @@
 # US-26 occupancy report execution evidence
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#46](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/46).
 Contract: [occupancy report API and calculation rules](../design/US26-occupancy-reports.md).
 Executed locally on 27 October 2026 with merged US-02/US-22 base `03335a9`.

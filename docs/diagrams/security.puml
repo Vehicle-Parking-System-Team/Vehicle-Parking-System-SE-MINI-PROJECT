@@ -1,0 +1,42 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam componentStyle uml2
+title Vehicle Parking System\nSecurity Boundaries and Controls
+package "Browser boundary" {
+ [React workspace\nRole aware navigation] as UI
+ [AuthContext\nJWT in localStorage] as TOKENS
+}
+package "Django application boundary" {
+ [CORS and CSRF middleware\nDeployment HTTPS policy] as EDGE
+ [JWT signature expiry and token version\nActive account and role permissions] as AUTH
+ [Strict serializers\nOwnership and state validation] as VALID
+ [Atomic domain services] as SERVICES
+ [Safe error envelope\nSanitized diagnostic logging] as ERR
+}
+package "Database boundary" {
+ database "PostgreSQL\nForeign keys unique constraints row locks" as DB
+ [Password hashes\nPBKDF2] as HASH
+ [Application immutable audit events\nAdmin read access] as AUDIT
+}
+UI --> TOKENS
+TOKENS --> EDGE : Bearer JWT with explicit origins
+EDGE --> AUTH
+AUTH --> VALID
+VALID --> SERVICES
+SERVICES --> DB
+AUTH --> HASH
+SERVICES --> AUDIT
+VALID --> ERR
+SERVICES --> ERR
+ERR --> UI : HTTP status and safe message
+note bottom
+Frontend guards improve navigation; backend checks enforce access.
+Local benchmarks use loopback HTTP. HTTPS is a deployment control.
+Database administrator privileges are outside application audit immutability.
+end note
+@enduml

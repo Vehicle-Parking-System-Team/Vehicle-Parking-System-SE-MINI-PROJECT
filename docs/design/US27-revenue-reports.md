@@ -1,5 +1,6 @@
 # US-27 collected revenue reports
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Implements [#47](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/47).
 The bill/receipt feature (US-23, #43), settlement feature (US-24, #44),
 and administrator permissions (US-02, #22) are already merged into the base

@@ -1,5 +1,6 @@
 # Vehicle Parking System — Document & GitHub Backlog Audit Report
 **Phase 1: Pull, Audit, and Compare All Project Documents Against GitHub Issues**
+Historical record. Current delivery and verification are indexed in [the documentation guide](../README.md).
 
 **Repository:** `Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT`  
 **Workspace:** `c:\Users\Trisha V P\Vehicle-Parking-System-SE-MINI-PROJECT-1`  

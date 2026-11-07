@@ -1,0 +1,31 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam packageStyle rectangle
+skinparam usecaseBackgroundColor #F1F5F9
+skinparam usecaseBorderColor #334155
+title Vehicle Parking System\nAdministrative and Shared Use Cases
+actor Administrator as A
+actor "Authenticated user" as U
+rectangle "Vehicle Parking System" {
+ usecase "Manage accounts and status\nFR17" as accounts
+ usecase "Configure vehicle class tariffs\nFR23" as rates
+ usecase "Inspect dashboard and reports\nFR27 FR28" as reports
+ usecase "Export CSV or PDF reports\nFR28" as exports
+ usecase "Read immutable audit history\nFR29" as audit
+ usecase "View and dismiss own notifications\nFR30" as notifications
+ usecase "Receive consistent validation errors\nFR13 FR14" as validation
+}
+A -- accounts
+A -- rates
+A -- reports
+A -- exports
+A -- audit
+A -- notifications
+notifications -- U
+validation -- U
+@enduml

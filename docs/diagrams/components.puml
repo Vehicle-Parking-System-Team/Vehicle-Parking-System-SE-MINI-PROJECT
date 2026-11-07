@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam componentStyle uml2
+title Vehicle Parking System\nModular Monolith Component Architecture
+[React workspace\nAuth context role guards dashboard and inbox] as UI
+[REST interface\nJWT permissions and strict serializers] as GUARD
+package "Domain application" as DOMAIN {
+  [Accounts and vehicles] as ACC
+  [Zones and slots] as SLOT
+  [Reservations] as RES
+  [Parking operations] as OPS
+  [Rates and billing] as BILL
+  [Reports and exports] as REP
+}
+[Common services\nSafe errors audit and notifications] as COMMON
+[Django ORM\nAtomic transactions and row locks] as ORM
+database "PostgreSQL\nIndexes foreign keys and conditional uniqueness" as DB
+UI --> GUARD : REST JSON and Bearer JWT
+GUARD --> DOMAIN : validated requests
+OPS --> SLOT : guarded transitions
+OPS --> RES : reservation linkage
+OPS --> BILL : fee calculation
+DOMAIN --> COMMON : shared policies and events
+DOMAIN --> ORM : persistence
+COMMON --> ORM : append events and alerts
+ORM --> DB : parameterized SQL
+note bottom of COMMON
+Notification dispatch runs after commit.
+Audit persistence follows each domain contract.
+end note
+@enduml

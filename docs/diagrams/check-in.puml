@@ -1,0 +1,43 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+autonumber
+title Check In and Slot Assignment
+actor Operator
+boundary "REST endpoint" as API
+control "Operations service" as Service
+database PostgreSQL as DB
+control Notifications as N
+Operator -> API : POST /api/parking/check-in/\nregistration_number slot_id? reservation_code?
+activate API
+API -> API : Verify active Admin or Operator\nValidate request schema
+alt Invalid identity or payload
+ API --> Operator : 401 or 403 or 400\nShared error envelope
+else Valid request
+ API -> Service : check_in_vehicle(...)
+ activate Service
+ group Atomic transaction
+  Service -> DB : Lock vehicle and candidate zone and slot
+  DB --> Service : Current active session and slot state
+  alt Duplicate session or unavailable slot
+   Service --> API : 409 Conflict and rollback
+  else Incompatible explicitly selected slot
+   Service --> API : 422 Validation and rollback
+  else Compatible available slot
+   Service -> DB : Occupy slot and insert ACTIVE record\nLink reservation when applicable
+   Service -> DB : Save identity snapshots and signed ticket token
+   DB --> Service : Commit record and slot together
+  end
+ end
+ opt Transaction committed
+  Service -> N : Dispatch registered after commit callback
+  note right of N : Best effort dispatch cannot\nundo the parking transaction
+ end
+ Service --> API : Parking record or domain error
+ deactivate Service
+ API --> Operator : 201 Created or structured error
+end
+deactivate API
+@enduml

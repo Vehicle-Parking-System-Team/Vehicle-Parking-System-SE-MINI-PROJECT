@@ -1,5 +1,6 @@
 # US-08 — Test Evidence
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 - **Story:** [US-08 (#28)](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/28)
 - **Requirements:** FR-13 / FR-14
 - **Design:** [US-08 validation contract](../design/US08-vehicle-validation.md)

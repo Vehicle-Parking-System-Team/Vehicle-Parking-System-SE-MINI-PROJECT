@@ -1,5 +1,6 @@
 # Sprint 1 retrospective observations
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Recorded 27 October 2026 from repository and tracker evidence. This is an evidence-based retrospective input, not minutes of a meeting or a record of team approval. Private sprint planning is not included.
 
 | Observation | Evidence | Proposed improvement | Responsible role | Follow-up |

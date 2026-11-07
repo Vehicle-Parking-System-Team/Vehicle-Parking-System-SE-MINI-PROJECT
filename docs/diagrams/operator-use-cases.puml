@@ -1,0 +1,28 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 17
+skinparam usecaseBackgroundColor #F1F5F9
+skinparam usecaseBorderColor #334155
+title Vehicle Parking System\nOperator Use Cases
+actor Operator as O
+rectangle "Vehicle Parking System" {
+ usecase "Search vehicle and current state\nFR11" as search
+ usecase "Manage facility zones and slots\nFR03 FR04 FR07" as facility
+ usecase "Check in and assign a slot\nFR05 FR06 FR07 FR25" as entry
+ usecase "Check out and release a slot\nFR08 FR09 FR24" as exit
+ usecase "Read completed session history\nFR12" as history
+ usecase "Generate receipts and record settlement\nFR25 FR26" as bill
+ usecase "Assist with customer reservations\nFR19 FR20 FR21 FR22" as reservation
+}
+O -- search
+O -- facility
+O -- entry
+O -- exit
+O -- history
+O -- bill
+O -- reservation
+@enduml

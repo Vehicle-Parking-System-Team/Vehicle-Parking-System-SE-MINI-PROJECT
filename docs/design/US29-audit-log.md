@@ -1,5 +1,6 @@
 # US-29 audit log contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 The audit log is an append-only application record of security and operational events. Each
 entry snapshots the actor ID, username and role, timestamp, connected peer IP,
 event type, affected resource and a small JSON details object. The recorder accepts

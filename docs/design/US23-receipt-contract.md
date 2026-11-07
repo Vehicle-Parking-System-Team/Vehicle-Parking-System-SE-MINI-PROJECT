@@ -1,5 +1,6 @@
 # US-23 receipt API contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#43 — Generate bill and receipt](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/43).
 
 ## Generate a receipt

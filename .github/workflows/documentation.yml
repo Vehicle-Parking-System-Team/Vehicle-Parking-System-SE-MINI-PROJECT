@@ -1,0 +1,26 @@
+name: Engineering documentation
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**', 'scripts/**', 'README.md', '.github/workflows/documentation.yml']
+  pull_request:
+    branches: [main]
+    paths: ['docs/**', 'scripts/**', 'README.md', '.github/workflows/documentation.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Requirements links and verification evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Validate specifications diagrams and test evidence
+        run: python scripts/check_documents.py

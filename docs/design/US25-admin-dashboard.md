@@ -1,5 +1,6 @@
 # US-25 — Admin dashboard metrics
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Story #45, Epic #20, Member 4, Sprint 2 (5 SP). Handbook FR-27 maps to
 dashboard metrics; the issue also preserves SRS v1.1 FR-29 for daily revenue
 and occupancy. The current RTM tracks this story under FR-27.

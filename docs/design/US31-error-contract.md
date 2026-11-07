@@ -1,5 +1,6 @@
 # Shared API errors (US-31)
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Implements [US-31 / issue #51](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/51), FR-13 (backend validation) and FR-14 (meaningful errors). Use this top-level format for errors raised from DRF endpoints:
 
 ```json
