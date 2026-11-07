@@ -67,6 +67,22 @@ class VehicleSearchServiceTests(TestCase):
         self.assertEqual(parking_status['status'], 'NOT_PARKED')
         self.assertIsNone(parking_status['slot'])
 
+    def test_partial_search_batches_owner_and_active_session_lookups(self):
+        """A result page and its serialization use three queries, regardless of size."""
+        from vehicles.serializers import VehicleSearchResultSerializer
+
+        Vehicle.objects.bulk_create([
+            Vehicle(registration_number=f'KA-02-BATCH-{i:04d}',
+                    vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, owner=self.owner)
+            for i in range(25)
+        ])
+        with self.assertNumQueries(3):
+            results = search_vehicles('KA-02-BATCH', requesting_user=self.owner)
+            data = [VehicleSearchResultSerializer(vehicle, context={'parking_status': state}).data
+                    for vehicle, state in results]
+        self.assertEqual(len(data), 25)
+        self.assertTrue(all(item['parking_status']['status'] == 'NOT_PARKED' for item in data))
+
     def test_search_vehicle_plate_normalization(self):
         """Search normalizes whitespace and lower/mixed case input."""
         found_vehicle, _ = search_vehicle_by_plate('  ka-01-mg-1000   ', requesting_user=self.owner)
