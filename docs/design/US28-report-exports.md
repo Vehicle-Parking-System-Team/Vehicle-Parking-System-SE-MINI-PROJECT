@@ -1,5 +1,6 @@
 # US-28 report exports (#48)
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Active administrators can download reports from **Admin dashboard → Export
 reports**, or `GET /api/reports/export/`. Both CSV and PDF require the same
 authentication and Admin permission as the report APIs. Responses are private,

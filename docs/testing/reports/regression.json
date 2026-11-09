@@ -1,0 +1,2492 @@
+{
+  "date": "2026-11-08",
+  "application_commit": "0c883054fc84897bf303c3b766b60e0152fac1e9",
+  "backend": {
+    "command": "python manage.py test --verbosity 2 (from backend)",
+    "database": "PostgreSQL 18.1",
+    "executed": 611,
+    "passed": 611,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 168.656,
+    "cases": [
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_deactivated_user_rejected.test_login_deactivated_user_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_inactive_user_rejected.test_login_inactive_user_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_invalid_password_returns_401_with_generic_message.test_login_invalid_password_returns_401_with_generic_message",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_missing_credentials_returns_400.test_login_missing_credentials_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_success_returns_jwt_pair_and_user_profile.test_login_success_returns_jwt_pair_and_user_profile",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_suspended_user_rejected.test_login_suspended_user_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_login_unknown_user_returns_401_with_identical_generic_message.test_login_unknown_user_returns_401_with_identical_generic_message",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_blacklists_refresh_token.test_logout_blacklists_refresh_token",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_cross_user_token_rejected_without_state_change.test_logout_cross_user_token_rejected_without_state_change",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_immediately_revokes_already_issued_access_token.test_logout_immediately_revokes_already_issued_access_token",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_missing_refresh_token_returns_400.test_logout_missing_refresh_token_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_unexpected_server_failure_returns_sanitized_500.test_logout_unexpected_server_failure_returns_sanitized_500",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_with_already_blacklisted_token_returns_401.test_logout_with_already_blacklisted_token_returns_401",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_with_malformed_token_returns_401.test_logout_with_malformed_token_returns_401",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_with_malformed_token_version_claims_rejected.test_logout_with_malformed_token_version_claims_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_with_missing_token_version_rejected.test_logout_with_missing_token_version_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_logout_with_superseded_token_version_rejected.test_logout_with_superseded_token_version_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_protected_route_accessible_with_valid_bearer_token.test_protected_route_accessible_with_valid_bearer_token",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_protected_route_rejected_with_invalid_token.test_protected_route_rejected_with_invalid_token",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_protected_route_rejected_without_token.test_protected_route_rejected_without_token",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_protected_route_with_missing_or_malformed_token_version_rejected.test_protected_route_with_missing_or_malformed_token_version_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_refresh_with_malformed_token_version_claims_rejected.test_refresh_with_malformed_token_version_claims_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_refresh_with_missing_token_version_rejected.test_refresh_with_missing_token_version_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_token_refresh_flow.test_token_refresh_flow",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.AuthenticationTests.test_token_refresh_unexpected_server_failure_returns_sanitized_500.test_token_refresh_unexpected_server_failure_returns_sanitized_500",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_customer_registration_success.test_customer_registration_success",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_login_with_newly_registered_customer.test_login_with_newly_registered_customer",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_duplicate_email_rejected.test_registration_duplicate_email_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_duplicate_username_rejected.test_registration_duplicate_username_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_enforces_customer_role_safeguard.test_registration_enforces_customer_role_safeguard",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_integrity_race_returns_controlled_validation_error.test_registration_integrity_race_returns_controlled_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_password_mismatch_rejected.test_registration_password_mismatch_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.CustomerRegistrationTests.test_registration_password_policy_enforcement.test_registration_password_policy_enforcement",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_generic_authentication_failure_consistency_prevents_user_enumeration.test_generic_authentication_failure_consistency_prevents_user_enumeration",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_case_insensitive_email.test_login_with_case_insensitive_email",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_email_success.test_login_with_email_success",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_email_whitespace_trimmed.test_login_with_email_whitespace_trimmed",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_mixed_case_email.test_login_with_mixed_case_email",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_nonexistent_email_returns_generic_401.test_login_with_nonexistent_email_returns_generic_401",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.EmailAuthenticationTests.test_login_with_valid_email_and_incorrect_password_returns_generic_401.test_login_with_valid_email_and_incorrect_password_returns_generic_401",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.SeedDemoUsersCommandTests.test_seed_demo_users_creates_accounts.test_seed_demo_users_creates_accounts",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.SeedDemoUsersCommandTests.test_seed_demo_users_is_idempotent.test_seed_demo_users_is_idempotent",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_ac1_update_profile_name_and_contact.test_ac1_update_profile_name_and_contact",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_ac2_secure_password_change_success.test_ac2_secure_password_change_success",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_ac3_incorrect_current_password_returns_400.test_ac3_incorrect_current_password_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_ac3_same_new_password_returns_400.test_ac3_same_new_password_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_ac3_weak_new_password_violating_policy_returns_400.test_ac3_weak_new_password_violating_policy_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_authenticated_user_can_view_own_profile.test_authenticated_user_can_view_own_profile",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_duplicate_email_update_rejected.test_duplicate_email_update_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_password_mismatch_returns_400.test_password_mismatch_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_profile_accepts_blank_optional_phone_number.test_profile_accepts_blank_optional_phone_number",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_profile_accepts_well_formed_phone_number_formats.test_profile_accepts_well_formed_phone_number_formats",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_profile_rejects_malformed_phone_number.test_profile_rejects_malformed_phone_number",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_suspended_account_rejected.test_suspended_account_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_unauthenticated_requests_rejected.test_unauthenticated_requests_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_profile_password.ProfileAndPasswordManagementTests.test_user_cannot_escalate_role_or_status_via_profile_update.test_user_cannot_escalate_role_or_status_via_profile_update",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_admin_and_customer_denied_from_operator_strict_endpoints.test_admin_and_customer_denied_from_operator_strict_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_admin_can_access_any_users_resource.test_admin_can_access_any_users_resource",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_admin_has_access_to_admin_and_operations_endpoints.test_admin_has_access_to_admin_and_operations_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_base_role_permission_fails_closed_on_empty_or_invalid_allowed_roles.test_base_role_permission_fails_closed_on_empty_or_invalid_allowed_roles",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_customer_can_access_own_resource.test_customer_can_access_own_resource",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_customer_cannot_access_another_customers_resource.test_customer_cannot_access_another_customers_resource",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_customer_denied_from_operations_endpoints.test_customer_denied_from_operations_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_customer_has_access_to_customer_and_self_endpoints.test_customer_has_access_to_customer_and_self_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_deactivated_user_is_denied_access.test_deactivated_user_is_denied_access",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_explicit_owner_attribute_and_custom_predicate_ownership.test_explicit_owner_attribute_and_custom_predicate_ownership",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_has_roles_factory_creates_correct_permission_class.test_has_roles_factory_creates_correct_permission_class",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_has_roles_rejects_empty_configuration.test_has_roles_rejects_empty_configuration",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_has_roles_rejects_invalid_or_unsupported_roles.test_has_roles_rejects_invalid_or_unsupported_roles",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_object_level_owner_permission_helpers.test_object_level_owner_permission_helpers",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_operator_and_customer_denied_from_admin_endpoints.test_operator_and_customer_denied_from_admin_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_operator_has_access_to_operator_and_operations_endpoints.test_operator_has_access_to_operator_and_operations_endpoints",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_privilege_escalation_via_request_parameters_is_prevented.test_privilege_escalation_via_request_parameters_is_prevented",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_suspended_user_is_denied_access.test_suspended_user_is_denied_access",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_unauthenticated_requests_to_protected_endpoints_return_401.test_unauthenticated_requests_to_protected_endpoints_return_401",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_unknown_or_invalid_role_values_denied_by_default.test_unknown_or_invalid_role_values_denied_by_default",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_rbac.RBACTests.test_unrelated_resource_matching_user_id_denies_ownership.test_unrelated_resource_matching_user_id_denies_ownership",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_ac1_admin_creates_customer_account.test_ac1_admin_creates_customer_account",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_ac1_admin_creates_operator_account_with_hashed_password.test_ac1_admin_creates_operator_account_with_hashed_password",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_ac2_admin_updates_status_enforced_immediately.test_ac2_admin_updates_status_enforced_immediately",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_ac3_duplicate_email_returns_409_conflict.test_ac3_duplicate_email_returns_409_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_ac3_duplicate_username_returns_409_conflict.test_ac3_duplicate_username_returns_409_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_admin_can_change_role_and_emits_integration_signal.test_admin_can_change_role_and_emits_integration_signal",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_admin_can_list_users.test_admin_can_list_users",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_admin_cannot_create_another_admin_account.test_admin_cannot_create_another_admin_account",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_admin_cannot_promote_user_to_admin.test_admin_cannot_promote_user_to_admin",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_admin_cannot_suspend_or_demote_self.test_admin_cannot_suspend_or_demote_self",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_cannot_suspend_last_active_admin.test_cannot_suspend_last_active_admin",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_case_insensitive_duplicate_email_returns_409.test_case_insensitive_duplicate_email_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_case_insensitive_duplicate_username_returns_409.test_case_insensitive_duplicate_username_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_database_enforces_case_insensitive_email_uniqueness.test_database_enforces_case_insensitive_email_uniqueness",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_database_enforces_case_insensitive_username_uniqueness.test_database_enforces_case_insensitive_username_uniqueness",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_database_uniqueness_race_is_translated_to_conflict.test_database_uniqueness_race_is_translated_to_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_last_active_admin_cannot_be_demoted.test_last_active_admin_cannot_be_demoted",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_non_admin_cannot_list_or_create_users.test_non_admin_cannot_list_or_create_users",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_receiver_failure_does_not_fail_create_or_lose_account.test_receiver_failure_does_not_fail_create_or_lose_account",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_user_management.AdminUserManagementTests.test_receiver_failure_does_not_fail_update_or_lose_change.test_receiver_failure_does_not_fail_update_or_lose_change",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_admin_can_retrieve_customer_receipt.test_admin_can_retrieve_customer_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_card_payment_method_is_supported.test_card_payment_method_is_supported",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_checkout_api_generates_receipt_atomically.test_checkout_api_generates_receipt_atomically",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_customer_cannot_generate_receipt_for_another_customer.test_customer_cannot_generate_receipt_for_another_customer",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_customer_cannot_retrieve_someone_elses_receipt.test_customer_cannot_retrieve_someone_elses_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_generated_receipt_has_unique_invoice_and_itemized_snapshots.test_generated_receipt_has_unique_invoice_and_itemized_snapshots",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_generating_twice_returns_same_receipt.test_generating_twice_returns_same_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_invalid_method_negative_amount_and_partial_payment_are_rejected.test_invalid_method_negative_amount_and_partial_payment_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_invalid_payload_and_unknown_session_are_rejected.test_invalid_payload_and_unknown_session_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_invoice_number_handles_uuid_and_string_values.test_invoice_number_handles_uuid_and_string_values",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_missing_receipt_returns_404.test_missing_receipt_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_only_active_admin_or_operator_can_record_payment.test_only_active_admin_or_operator_can_record_payment",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_open_session_receipt_returns_http_400.test_open_session_receipt_returns_http_400",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_operator_can_generate_receipt.test_operator_can_generate_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_operator_records_paid_cash_payment_and_timestamp.test_operator_records_paid_cash_payment_and_timestamp",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_paid_and_waived_states_are_terminal_but_identical_retry_is_idempotent.test_paid_and_waived_states_are_terminal_but_identical_retry_is_idempotent",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_payment_settlement_is_reflected_on_parking_session.test_payment_settlement_is_reflected_on_parking_session",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_pending_status_does_not_claim_settlement.test_pending_status_does_not_claim_settlement",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_receipt_access_denies_user_without_role_attribute.test_receipt_access_denies_user_without_role_attribute",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_receipt_data_is_retrievable_via_api.test_receipt_data_is_retrievable_via_api",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_receipt_has_printable_html_view.test_receipt_has_printable_html_view",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_receipt_snapshot_is_unchanged_after_session_details_change.test_receipt_snapshot_is_unchanged_after_session_details_change",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_repeated_pending_request_preserves_payment_audit_fields.test_repeated_pending_request_preserves_payment_audit_fields",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_suspended_customer_cannot_retrieve_receipt.test_suspended_customer_cannot_retrieve_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_unauthenticated_and_unknown_receipt_are_rejected.test_unauthenticated_and_unknown_receipt_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_unauthenticated_generation_is_rejected.test_unauthenticated_generation_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_upi_payment_method_is_supported.test_upi_payment_method_is_supported",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_waived_status_records_zero_amount_without_method.test_waived_status_records_zero_amount_without_method",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_zero_fee_checkout_within_grace_period.test_zero_fee_checkout_within_grace_period",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingPaymentAPITests.test_zero_value_bill_can_be_marked_paid.test_zero_value_bill_can_be_marked_paid",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_admin_can_retrieve_customer_receipt.test_admin_can_retrieve_customer_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_checkout_api_generates_receipt_atomically.test_checkout_api_generates_receipt_atomically",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_customer_cannot_generate_receipt_for_another_customer.test_customer_cannot_generate_receipt_for_another_customer",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_customer_cannot_retrieve_someone_elses_receipt.test_customer_cannot_retrieve_someone_elses_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_generated_receipt_has_unique_invoice_and_itemized_snapshots.test_generated_receipt_has_unique_invoice_and_itemized_snapshots",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_generating_twice_returns_same_receipt.test_generating_twice_returns_same_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_invalid_payload_and_unknown_session_are_rejected.test_invalid_payload_and_unknown_session_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_invoice_number_handles_uuid_and_string_values.test_invoice_number_handles_uuid_and_string_values",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_missing_receipt_returns_404.test_missing_receipt_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_open_session_receipt_returns_http_400.test_open_session_receipt_returns_http_400",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_operator_can_generate_receipt.test_operator_can_generate_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_receipt_access_denies_user_without_role_attribute.test_receipt_access_denies_user_without_role_attribute",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_receipt_data_is_retrievable_via_api.test_receipt_data_is_retrievable_via_api",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_receipt_has_printable_html_view.test_receipt_has_printable_html_view",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_receipt_snapshot_is_unchanged_after_session_details_change.test_receipt_snapshot_is_unchanged_after_session_details_change",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_suspended_customer_cannot_retrieve_receipt.test_suspended_customer_cannot_retrieve_receipt",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_unauthenticated_generation_is_rejected.test_unauthenticated_generation_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "billing.tests.BillingReceiptAPITests.test_zero_fee_checkout_within_grace_period.test_zero_fee_checkout_within_grace_period",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_account_creation_audit_failure_rolls_back_new_account.test_account_creation_audit_failure_rolls_back_new_account",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_admin_account_creation_records_privileges_without_password_or_email.test_admin_account_creation_records_privileges_without_password_or_email",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_admin_reads_stable_newest_first_order_and_filters.test_admin_reads_stable_newest_first_order_and_filters",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_admin_role_and_status_change_has_before_and_after_and_noop_is_not_duplicated.test_admin_role_and_status_change_has_before_and_after_and_noop_is_not_duplicated",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_cancellation_audit_failure_rolls_back_reservation.test_cancellation_audit_failure_rolls_back_reservation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_deleting_source_user_does_not_delete_or_rewrite_actor_snapshot.test_deleting_source_user_does_not_delete_or_rewrite_actor_snapshot",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_denied_role_change_and_rejected_override_have_no_success_event.test_denied_role_change_and_rejected_override_have_no_success_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_empty_zone_deactivation_is_still_audited.test_empty_zone_deactivation_is_still_audited",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_even_admin_cannot_modify_audit_events_through_api.test_even_admin_cannot_modify_audit_events_through_api",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_failed_login_is_durable_and_does_not_record_unverified_identity.test_failed_login_is_durable_and_does_not_record_unverified_identity",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_instance_queryset_base_manager_and_bulk_tampering_are_rejected.test_instance_queryset_base_manager_and_bulk_tampering_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_invalid_login_payload_does_not_create_success_event.test_invalid_login_payload_does_not_create_success_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_invalid_peer_address_is_omitted_and_proxy_header_is_ignored.test_invalid_peer_address_is_omitted_and_proxy_header_is_ignored",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_login_audit_failure_rolls_back_token_creation.test_login_audit_failure_rolls_back_token_creation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_logout_audit_failure_rolls_back_revocation.test_logout_audit_failure_rolls_back_revocation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_logout_records_event_and_revokes_access.test_logout_records_event_and_revokes_access",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_non_admins_cannot_read_or_write_and_role_spoofing_does_not_help.test_non_admins_cannot_read_or_write_and_role_spoofing_does_not_help",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_other_zone_updates_do_not_create_deactivation_event.test_other_zone_updates_do_not_create_deactivation_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_outer_transaction_rollback_removes_event_with_its_operation.test_outer_transaction_rollback_removes_event_with_its_operation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_pagination_cannot_return_more_than_100_rows.test_pagination_cannot_return_more_than_100_rows",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_password_audit_failure_rolls_back_password_and_token_version.test_password_audit_failure_rolls_back_password_and_token_version",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_password_change_records_only_event_metadata.test_password_change_records_only_event_metadata",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_payment_and_waiver_events_and_idempotent_retries.test_payment_and_waiver_events_and_idempotent_retries",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_payment_audit_failure_rolls_back_receipt_and_session.test_payment_audit_failure_rolls_back_receipt_and_session",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_pending_payment_noop_does_not_create_settlement_event.test_pending_payment_noop_does_not_create_settlement_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_recorder_rejects_secret_fields_and_unknown_events.test_recorder_rejects_secret_fields_and_unknown_events",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_rejected_zone_deactivation_does_not_create_success_event.test_rejected_zone_deactivation_does_not_create_success_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_repeated_zone_deactivation_does_not_duplicate_event.test_repeated_zone_deactivation_does_not_duplicate_event",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_reservation_cancellation_is_audited.test_reservation_cancellation_is_audited",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_role_change_audit_failure_rolls_back_user_update.test_role_change_audit_failure_rolls_back_user_update",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_slot_audit_failure_rolls_back_override.test_slot_audit_failure_rolls_back_override",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_slot_override_records_actor_and_before_after_states.test_slot_override_records_actor_and_before_after_states",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_successful_login_has_actor_peer_ip_and_no_credentials_or_tokens.test_successful_login_has_actor_peer_ip_and_no_credentials_or_tokens",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_tariff_audit_failure_rolls_back_change.test_tariff_audit_failure_rolls_back_change",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_tariff_change_including_penalty_is_audited_and_noop_is_omitted.test_tariff_change_including_penalty_is_audited_and_noop_is_omitted",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_tariff_creation_has_audit_entry.test_tariff_creation_has_audit_entry",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_unauthenticated_request_is_401_and_inactive_admin_is_403.test_unauthenticated_request_is_401_and_inactive_admin_is_403",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_zone_audit_insert_failure_rolls_back_zone_and_all_child_changes.test_zone_audit_insert_failure_rolls_back_zone_and_all_child_changes",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_audit.AuditTests.test_zone_deactivation_methods_record_actor_resource_and_changed_slot_count.test_zone_deactivation_methods_record_actor_resource_and_changed_slot_count",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_allowed_cors_preflight_echoes_exact_origin.test_allowed_cors_preflight_echoes_exact_origin",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_cors_allowlist_does_not_grant_csrf_trust.test_cors_allowlist_does_not_grant_csrf_trust",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_customer_cannot_read_or_modify_another_vehicle.test_customer_cannot_read_or_modify_another_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_production_redirect_and_secure_session_cookie.test_production_redirect_and_secure_session_cookie",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_session_write_without_csrf_is_forbidden.test_session_write_without_csrf_is_forbidden",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_sql_payload_cannot_broaden_vehicle_search.test_sql_payload_cannot_broaden_vehicle_search",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_untrusted_origin_does_not_bypass_authentication.test_untrusted_origin_does_not_bypass_authentication",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_untrusted_preflight_has_no_allow_origin.test_untrusted_preflight_has_no_allow_origin",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityBoundaryTests.test_valid_csrf_reaches_payload_validation.test_valid_csrf_reaches_payload_validation",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_capacity_alert_only_reaches_active_staff_after_commit.test_capacity_alert_only_reaches_active_staff_after_commit",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_checkout_confirms_owner_once_without_claiming_payment.test_checkout_confirms_owner_once_without_claiming_payment",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_dispatch_database_failure_does_not_block_parking.test_dispatch_database_failure_does_not_block_parking",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_expiry_window_ownership_and_dismissed_event_deduplication.test_expiry_window_ownership_and_dismissed_event_deduplication",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_full_alert_can_trigger_again_after_release_and_refill.test_full_alert_can_trigger_again_after_release_and_refill",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_inbox_read_is_owned_idempotent_and_not_implicit_on_view.test_inbox_read_is_owned_idempotent_and_not_implicit_on_view",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_jwt_and_account_status_authorization.test_jwt_and_account_status_authorization",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_pagination_query_validation_and_read_only_list.test_pagination_query_validation_and_read_only_list",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_real_checkout_api_succeeds_when_notification_dispatch_fails.test_real_checkout_api_succeeds_when_notification_dispatch_fails",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_receipt_failure_rolls_back_checkout_and_alert.test_receipt_failure_rolls_back_checkout_and_alert",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_remaining_available_space_does_not_trigger_full_alert.test_remaining_available_space_does_not_trigger_full_alert",
+        "status": "passed"
+      },
+      {
+        "id": "notifications.tests.NotificationTests.test_rolled_back_checkin_emits_nothing.test_rolled_back_checkin_emits_nothing",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_admin_can_checkout_without_replacing_check_in_operator.test_admin_can_checkout_without_replacing_check_in_operator",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_anonymous_and_customer_cannot_checkout.test_anonymous_and_customer_cannot_checkout",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_check_in_response_is_unchanged.test_check_in_response_is_unchanged",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_client_cannot_supply_fee_time_status_or_payment.test_client_cannot_supply_fee_time_status_or_payment",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_current_configured_rate_is_used_then_snapshot_is_preserved.test_current_configured_rate_is_used_then_snapshot_is_preserved",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_duration_type_is_shared_without_rounding_fee_boundaries.test_duration_type_is_shared_without_rounding_fee_boundaries",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_free_checkout_still_completes_and_releases.test_free_checkout_still_completes_and_releases",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_future_check_in_does_not_close_record.test_future_check_in_does_not_close_record",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_inactive_operator_and_direct_customer_service_are_denied.test_inactive_operator_and_direct_customer_service_are_denied",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_inconsistent_active_record_is_not_silently_rewritten.test_inconsistent_active_record_is_not_silently_rewritten",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_inconsistent_slot_state_rolls_back_fee_and_completion.test_inconsistent_slot_state_rolls_back_fee_and_completion",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_jwt_authenticated_api_pipeline.test_jwt_authenticated_api_pipeline",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_missing_blank_and_malformed_plate_are_rejected.test_missing_blank_and_malformed_plate_are_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_missing_or_invalid_tariff_keeps_record_and_slot_unchanged.test_missing_or_invalid_tariff_keeps_record_and_slot_unchanged",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_plate_normalization_and_reentry_after_checkout.test_plate_normalization_and_reentry_after_checkout",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_real_check_in_fee_checkout_and_public_availability.test_real_check_in_fee_checkout_and_public_availability",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_record_save_failure_does_not_release_bay.test_record_save_failure_does_not_release_bay",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_slot_release_failure_rolls_back_completed_record_and_fee.test_slot_release_failure_rolls_back_completed_record_and_fee",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_there_is_one_checkout_route.test_there_is_one_checkout_route",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutAPITests.test_unknown_and_repeated_checkout_return_404.test_unknown_and_repeated_checkout_return_404",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_check_in_captures_historical_snapshots.test_check_in_captures_historical_snapshots",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_customer_cannot_access_history.test_customer_cannot_access_history",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_endpoint_does_not_allow_delete.test_history_endpoint_does_not_allow_delete",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_filters_by_inclusive_date_range.test_history_filters_by_inclusive_date_range",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_filters_by_registration_number.test_history_filters_by_registration_number",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_filters_by_slot_id.test_history_filters_by_slot_id",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_filters_by_vehicle_id.test_history_filters_by_vehicle_id",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_rejects_start_date_after_end_date.test_history_rejects_start_date_after_end_date",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_requires_authentication.test_history_requires_authentication",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_returns_completed_records_and_stored_fee.test_history_returns_completed_records_and_stored_fee",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_supports_pagination.test_history_supports_pagination",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_history.ParkingHistoryAPITests.test_history_uses_snapshots_after_related_details_change.test_history_uses_snapshots_after_related_details_change",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_cancelled_reservation_rejected.test_cancelled_reservation_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_code_assigns_reserved_slot_and_fulfills_reservation.test_code_assigns_reserved_slot_and_fulfills_reservation",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_expired_and_not_yet_started_codes_rejected.test_expired_and_not_yet_started_codes_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_future_reservation_protects_slot_from_other_vehicle_walk_in.test_future_reservation_protects_slot_from_other_vehicle_walk_in",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_invalid_code_does_not_create_walk_in.test_invalid_code_does_not_create_walk_in",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_manual_slot_override_rejected_with_code.test_manual_slot_override_rejected_with_code",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_other_vehicle_code_is_rejected.test_other_vehicle_code_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_repeated_code_cannot_create_second_session.test_repeated_code_cannot_create_second_session",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_reservation_checkin.ReservationCheckInTests.test_reservation_create_and_detail_return_same_code.test_reservation_create_and_detail_return_same_code",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_us22_fee_acceptance.US22CheckoutMultiplierIntegrationTests.test_checkout_applies_and_snapshots_the_configured_multiplier.test_checkout_applies_and_snapshots_the_configured_multiplier",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_automatic_allocation_rechecks_compatibility_after_lock.test_automatic_allocation_rechecks_compatibility_after_lock",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_checkout_records_exit_time_duration_and_releases_slot.test_checkout_records_exit_time_duration_and_releases_slot",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_checkout_release_failure_rolls_back_completion.test_checkout_release_failure_rolls_back_completion",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_checkout_unknown_vehicle_returns_404.test_checkout_unknown_vehicle_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_checkout_without_active_session_returns_404.test_checkout_without_active_session_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_completed_session_allows_reentry.test_completed_session_allows_reentry",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_customer_cannot_check_in.test_customer_cannot_check_in",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_customer_cannot_check_out.test_customer_cannot_check_out",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_duplicate_active_check_in_returns_409.test_duplicate_active_check_in_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_inactive_manual_slot_is_rejected.test_inactive_manual_slot_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_incompatible_manual_slot_is_rejected.test_incompatible_manual_slot_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_manual_selection_rechecks_compatibility_after_lock.test_manual_selection_rechecks_compatibility_after_lock",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_manual_slot_override_is_respected.test_manual_slot_override_is_respected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_no_compatible_available_slot_returns_409.test_no_compatible_available_slot_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_repeated_checkout_returns_404.test_repeated_checkout_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_session_creation_failure_rolls_back_slot_occupation.test_session_creation_failure_rolls_back_slot_occupation",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_successful_check_in_records_operator.test_successful_check_in_records_operator",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_ticket_contains_signed_canonical_payload.test_ticket_contains_signed_canonical_payload",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_unauthenticated_checkout_is_rejected.test_unauthenticated_checkout_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_unauthenticated_request_is_rejected.test_unauthenticated_request_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInAPITests.test_unknown_vehicle_returns_404.test_unknown_vehicle_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_all_active_states_remain_visible.test_all_active_states_remain_visible",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_all_roles_can_read.test_all_roles_can_read",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_anonymous_read_and_safe_fields.test_anonymous_read_and_safe_fields",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_check_in_refreshes_occupancy_without_exposing_vehicle.test_check_in_refreshes_occupancy_without_exposing_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_combined_filters.test_combined_filters",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_exact_vehicle_types.test_exact_vehicle_types",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_inactive_slots_and_zones_excluded.test_inactive_slots_and_zones_excluded",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_invalid_filters_use_shared_error_contract.test_invalid_filters_use_shared_error_contract",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_public_access_does_not_open_management_routes.test_public_access_does_not_open_management_routes",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_public_read_does_not_depend_on_credentials.test_public_read_does_not_depend_on_credentials",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_read_only_even_for_admin.test_read_only_even_for_admin",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_response_and_validation_errors_disable_caching.test_response_and_validation_errors_disable_caching",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_serialization_has_no_per_slot_queries.test_serialization_has_no_per_slot_queries",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_unknown_zone_and_empty_facility_return_empty_array.test_unknown_zone_and_empty_facility_return_empty_array",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_unmapped_floor_preserved.test_unmapped_floor_preserved",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_availability.AvailabilityTests.test_zone_filter.test_zone_filter",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_active_record_blocks_destructive_changes_despite_available_status.test_active_record_blocks_destructive_changes_despite_available_status",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_completed_history_allows_soft_deactivation_and_is_retained.test_completed_history_allows_soft_deactivation_and_is_retained",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_failed_ticket_creation_rolls_back_real_check_in_and_slot.test_failed_ticket_creation_rolls_back_real_check_in_and_slot",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_incompatible_assignment_preserves_shared_field_errors.test_incompatible_assignment_preserves_shared_field_errors",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_maintenance_slot_rejected_by_real_check_in.test_maintenance_slot_rejected_by_real_check_in",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_manual_maintenance_cannot_override_active_record.test_manual_maintenance_cannot_override_active_record",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_operations_cannot_release_slot_while_record_is_active.test_operations_cannot_release_slot_while_record_is_active",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_stale_available_slot_cannot_be_allocated_twice.test_stale_available_slot_cannot_be_allocated_twice",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.ActiveRecordIntegrityTests.test_zone_deactivation_cannot_hide_an_active_record.test_zone_deactivation_cannot_hide_an_active_record",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_admin_cannot_bypass_state_guards.test_admin_cannot_bypass_state_guards",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_all_existing_vehicle_choices_supported.test_all_existing_vehicle_choices_supported",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_assign_real_floor_to_legacy_bay.test_assign_real_floor_to_legacy_bay",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_authentication_required.test_authentication_required",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_bad_filters_return_validation_envelope.test_bad_filters_return_validation_envelope",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_cannot_create_inactive_zone_slot.test_cannot_create_inactive_zone_slot",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_create_defaults_available.test_create_defaults_available",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_customer_cannot_read_or_write_management_api.test_customer_cannot_read_or_write_management_api",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_delete_unoccupied_retains_record.test_delete_unoccupied_retains_record",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_floor_and_type_required_for_new_bays.test_floor_and_type_required_for_new_bays",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_inactive_accounts_denied.test_inactive_accounts_denied",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_invalid_floor_and_type.test_invalid_floor_and_type",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_legacy_values_preserved_during_unrelated_edit.test_legacy_values_preserved_during_unrelated_edit",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_list_and_filters_preserve_native_contract.test_list_and_filters_preserve_native_contract",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_occupied_and_reserved_slot_protection_all_write_paths.test_occupied_and_reserved_slot_protection_all_write_paths",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_occupied_cannot_be_released_through_maintenance.test_occupied_cannot_be_released_through_maintenance",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_operator_can_manage.test_operator_can_manage",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_slot_can_be_reactivated.test_slot_can_be_reactivated",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_slot_number_accepts_pr64_thirty_character_limit.test_slot_number_accepts_pr64_thirty_character_limit",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_status_cannot_be_spoofed_on_create_or_update.test_status_cannot_be_spoofed_on_create_or_update",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_status_endpoint_only_manages_maintenance.test_status_endpoint_only_manages_maintenance",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_unique_number_per_zone_retained.test_unique_number_per_zone_retained",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_zone_deactivation_rejects_protected_children_without_partial_changes.test_zone_deactivation_rejects_protected_children_without_partial_changes",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.tests.ParkingAPITests.test_zone_delete_deactivates_children_and_retains_rows.test_zone_delete_deactivates_children_and_retains_rows",
+        "status": "passed"
+      },
+      {
+        "id": "rates.test_vehicle_multiplier.VehicleMultiplierAPITests.test_admin_can_configure_vehicle_multiplier.test_admin_can_configure_vehicle_multiplier",
+        "status": "passed"
+      },
+      {
+        "id": "rates.test_vehicle_multiplier.VehicleMultiplierAPITests.test_multiplier_defaults_to_one.test_multiplier_defaults_to_one",
+        "status": "passed"
+      },
+      {
+        "id": "rates.test_vehicle_multiplier.VehicleMultiplierAPITests.test_negative_vehicle_multiplier_is_rejected.test_negative_vehicle_multiplier_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_admin_can_list_rates.test_admin_can_list_rates",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_admin_can_update_rate.test_admin_can_update_rate",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_customer_cannot_update_rate.test_customer_cannot_update_rate",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_deactivated_customer_cannot_read_rates.test_deactivated_customer_cannot_read_rates",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_default_grace_period_is_15_minutes.test_default_grace_period_is_15_minutes",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_inactive_django_user_cannot_read_rates.test_inactive_django_user_cannot_read_rates",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_invalid_grace_period_is_rejected.test_invalid_grace_period_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_negative_hourly_rate_is_rejected.test_negative_hourly_rate_is_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_suspended_customer_cannot_read_rates.test_suspended_customer_cannot_read_rates",
+        "status": "passed"
+      },
+      {
+        "id": "rates.tests.ParkingRateAPITests.test_suspended_customer_using_session_login_cannot_read_rates.test_suspended_customer_using_session_login_cannot_read_rates",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_access_is_admin_only_with_shared_errors.test_access_is_admin_only_with_shared_errors",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_active_record_overrides_stale_flags_without_double_counting.test_active_record_overrides_stale_flags_without_double_counting",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_activity_boundaries_and_average_completed_stay.test_activity_boundaries_and_average_completed_stay",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_bearer_auth_read_only_privacy_and_fixed_query_count.test_bearer_auth_read_only_privacy_and_fixed_query_count",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_disabled_admins_are_denied.test_disabled_admins_are_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_distribution_excludes_inactive_inventory_and_reconciles.test_distribution_excludes_inactive_inventory_and_reconciles",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_empty_inventory_returns_zeroes_without_division_errors.test_empty_inventory_returns_zeroes_without_division_errors",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_large_receipt_totals_preserve_cents.test_large_receipt_totals_preserve_cents",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_next_hour_estimate_uses_recent_flow_and_capacity_bounds.test_next_hour_estimate_uses_recent_flow_and_capacity_bounds",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_refresh_reflects_real_checkin_checkout_and_payment.test_refresh_reflects_real_checkin_checkout_and_payment",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_revenue_estimate_waits_for_first_hour_and_handles_midnight.test_revenue_estimate_waits_for_first_hour_and_handles_midnight",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_revenue_uses_local_midnight_and_payment_time_not_checkout.test_revenue_uses_local_midnight_and_payment_time_not_checkout",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_three_slots_and_recent_net_arrivals_predict_two_occupied.test_three_slots_and_recent_net_arrivals_predict_two_occupied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_dashboard.DashboardTests.test_zero_duration_stay_is_reported_and_invalid_duration_is_excluded.test_zero_duration_stay_is_reported_and_invalid_duration_is_excluded",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_aggregate_csv_matches_existing_reports.test_aggregate_csv_matches_existing_reports",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_csv_headers_snapshots_quoting_and_formula_protection.test_csv_headers_snapshots_quoting_and_formula_protection",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_csv_rows_are_lazy_and_query_count_is_constant.test_csv_rows_are_lazy_and_query_count_is_constant",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_empty_csv_still_has_columns.test_empty_csv_still_has_columns",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_filters_and_half_open_time_range.test_filters_and_half_open_time_range",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_invalid_queries_fail_before_streaming.test_invalid_queries_fail_before_streaming",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_only_admin_can_download.test_only_admin_can_download",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_pdf_is_valid_and_empty_data_is_supported.test_pdf_is_valid_and_empty_data_is_supported",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_pdf_limit_is_error_not_truncation.test_pdf_limit_is_error_not_truncation",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_exports.ExportTests.test_vehicle_filter_prefers_snapshot_and_supports_legacy_rows.test_vehicle_filter_prefers_snapshot_and_supports_legacy_rows",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_anonymous_and_non_admins_are_denied.test_anonymous_and_non_admins_are_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_daily_periods_split_at_local_midnight.test_daily_periods_split_at_local_midnight",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_dates_are_required_and_366_day_limit_is_inclusive.test_dates_are_required_and_366_day_limit_is_inclusive",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_empty_and_unmatched_reports_return_zero_values.test_empty_and_unmatched_reports_return_zero_values",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_exact_cents_and_large_aggregate.test_exact_cents_and_large_aggregate",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_hourly_and_daily_totals_match.test_hourly_and_daily_totals_match",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_hourly_partial_periods_and_zero_buckets.test_hourly_partial_periods_and_zero_buckets",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_invalid_filters_use_shared_error_contract.test_invalid_filters_use_shared_error_contract",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_method_and_vehicle_filters_intersect.test_method_and_vehicle_filters_intersect",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_other_currencies_are_not_added_to_inr.test_other_currencies_are_not_added_to_inr",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_paid_receipts_and_breakdowns_reconcile_exactly.test_paid_receipts_and_breakdowns_reconcile_exactly",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_payment_time_instead_of_checkout_or_receipt_creation_time.test_payment_time_instead_of_checkout_or_receipt_creation_time",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_pending_waived_and_active_sessions_do_not_contribute.test_pending_waived_and_active_sessions_do_not_contribute",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_real_bearer_token_read_only_and_no_personal_data.test_real_bearer_token_read_only_and_no_personal_data",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_repeated_receipt_generation_and_settlement_count_once.test_repeated_receipt_generation_and_settlement_count_once",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_report_uses_one_data_query.test_report_uses_one_data_query",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_start_is_inclusive_and_end_is_exclusive.test_start_is_inclusive_and_end_is_exclusive",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_suspended_deactivated_and_inactive_admins_are_denied.test_suspended_deactivated_and_inactive_admins_are_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_utc_offsets_and_naive_dates_use_kolkata.test_utc_offsets_and_naive_dates_use_kolkata",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_vehicle_category_uses_receipt_snapshot.test_vehicle_category_uses_receipt_snapshot",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_write_methods_are_not_exposed.test_write_methods_are_not_exposed",
+        "status": "passed"
+      },
+      {
+        "id": "reports.test_revenue.RevenueReportTests.test_zero_fee_paid_receipt_counts_without_adding_revenue.test_zero_fee_paid_receipt_counts_without_adding_revenue",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_active_and_completed_sessions_stop_at_captured_now.test_active_and_completed_sessions_stop_at_captured_now",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_all_zones_include_empty_zone_without_n_plus_one_queries.test_all_zones_include_empty_zone_without_n_plus_one_queries",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_current_capacity_includes_inactive_and_maintenance_slots.test_current_capacity_includes_inactive_and_maintenance_slots",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_daily_grouping_splits_midnight_and_preserves_totals.test_daily_grouping_splits_midnight_and_preserves_totals",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_default_daily_report_reconciles_with_hourly_totals.test_default_daily_report_reconciles_with_hourly_totals",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_future_range_has_zero_observed_time.test_future_range_has_zero_observed_time",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_hourly_utilization_uses_slot_time_and_exposes_baseline.test_hourly_utilization_uses_slot_time_and_exposes_baseline",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_inactive_admin_is_denied.test_inactive_admin_is_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_inclusive_start_and_exclusive_end.test_inclusive_start_and_exclusive_end",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_invalid_filters_return_shared_validation_errors.test_invalid_filters_return_shared_validation_errors",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_partial_hours_use_actual_requested_duration.test_partial_hours_use_actual_requested_duration",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_peak_hours_accumulate_across_dates_and_include_ties.test_peak_hours_accumulate_across_dates_and_include_ties",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_real_bearer_token_and_read_only_response.test_real_bearer_token_and_read_only_response",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_required_date_filters.test_required_date_filters",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_result_limit_rejects_large_zone_period_products.test_result_limit_rejects_large_zone_period_products",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_sessions_are_clipped_to_requested_range.test_sessions_are_clipped_to_requested_range",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_unauthenticated_and_non_admin_access_is_denied.test_unauthenticated_and_non_admin_access_is_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_unknown_zone_returns_application_not_found.test_unknown_zone_returns_application_not_found",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_utc_offsets_convert_to_local_time.test_utc_offsets_convert_to_local_time",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_write_methods_are_not_exposed.test_write_methods_are_not_exposed",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_zero_activity_and_zero_capacity_return_zero_rows.test_zero_activity_and_zero_capacity_return_zero_rows",
+        "status": "passed"
+      },
+      {
+        "id": "reports.tests.OccupancyReportTests.test_zone_filter_and_current_zone_attribution.test_zone_filter_and_current_zone_attribution",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ReservationConflictBufferTests.test_cancelled_reservations_do_not_hold_buffered_window.test_cancelled_reservations_do_not_hold_buffered_window",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ReservationConflictBufferTests.test_reschedule_checks_buffer_for_slot_and_vehicle.test_reschedule_checks_buffer_for_slot_and_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ReservationConflictBufferTests.test_slot_buffer_rejects_both_sides_and_exact_boundary_succeeds.test_slot_buffer_rejects_both_sides_and_exact_boundary_succeeds",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ReservationConflictBufferTests.test_unrelated_vehicle_and_slot_can_share_time.test_unrelated_vehicle_and_slot_can_share_time",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ReservationConflictBufferTests.test_vehicle_buffer_applies_across_different_slots.test_vehicle_buffer_applies_across_different_slots",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_conflicts.ZeroReservationBufferTests.test_back_to_back_booking_is_allowed_by_default.test_back_to_back_booking_is_allowed_by_default",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_cancelled_reservation_cannot_be_cancelled_twice.test_cancelled_reservation_cannot_be_cancelled_twice",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_create_allows_adjacent_same_vehicle_booking_on_different_slot.test_create_allows_adjacent_same_vehicle_booking_on_different_slot",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_create_allows_same_window_for_different_vehicle_and_slot.test_create_allows_same_window_for_different_vehicle_and_slot",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_create_rejects_same_vehicle_overlap_on_different_slot.test_create_rejects_same_vehicle_overlap_on_different_slot",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_early_check_in_blocks_both_patch_and_delete.test_early_check_in_blocks_both_patch_and_delete",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_future_reservation_can_be_cancelled_while_slot_is_occupied.test_future_reservation_can_be_cancelled_while_slot_is_occupied",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_future_reservation_can_be_rescheduled_while_slot_is_occupied.test_future_reservation_can_be_rescheduled_while_slot_is_occupied",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_invalid_reschedule_returns_400.test_invalid_reschedule_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_operator_and_admin_can_cancel.test_operator_and_admin_can_cancel",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_other_vehicle_check_in_does_not_block_future_reservation.test_other_vehicle_check_in_does_not_block_future_reservation",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_overlapping_reschedule_returns_409_without_changes.test_overlapping_reschedule_returns_409_without_changes",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_owner_cancels_and_slot_can_be_rebooked.test_owner_cancels_and_slot_can_be_rebooked",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_reschedule_allows_adjacent_same_vehicle_booking.test_reschedule_allows_adjacent_same_vehicle_booking",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_reschedule_and_reuse_old_window.test_reschedule_and_reuse_old_window",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_reschedule_rejects_same_vehicle_booking_on_different_slot.test_reschedule_rejects_same_vehicle_booking_on_different_slot",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_started_reservation_cannot_be_cancelled_or_modified.test_started_reservation_cannot_be_cancelled_or_modified",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_started_reservation_on_occupied_slot_still_rejects_cancellation.test_started_reservation_on_occupied_slot_still_rejects_cancellation",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_unauthenticated_request_denied.test_unauthenticated_request_denied",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_modification.ReservationModificationTests.test_unrelated_customer_cannot_cancel_or_modify.test_unrelated_customer_cannot_cancel_or_modify",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_adjacent_windows_are_allowed.test_adjacent_windows_are_allowed",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_admin_cannot_create_reservations.test_admin_cannot_create_reservations",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_anonymous_cannot_reserve.test_anonymous_cannot_reserve",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_confirmed_creation_returns_201.test_confirmed_creation_returns_201",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_customer_cannot_reserve_other_customers_vehicle.test_customer_cannot_reserve_other_customers_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_inactive_and_maintenance_slot.test_inactive_and_maintenance_slot",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_inactive_zone_returns_400_without_creating_reservation.test_inactive_zone_returns_400_without_creating_reservation",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_invalid_times_and_duration_return_400.test_invalid_times_and_duration_return_400",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_occupied_slot_returns_409_without_creating_reservation.test_occupied_slot_returns_409_without_creating_reservation",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_operator_cannot_override_reservation_customer.test_operator_cannot_override_reservation_customer",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_operator_cannot_reserve_vehicle_for_noncustomer_owner.test_operator_cannot_reserve_vehicle_for_noncustomer_owner",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_operator_reserves_for_vehicle_owner.test_operator_reserves_for_vehicle_owner",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_overlapping_window_returns_409.test_overlapping_window_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.tests.ReservationCreateTests.test_vehicle_ownership_and_compatibility.test_vehicle_ownership_and_compatibility",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_admin_and_operator_roles_can_access_vehicle_by_id_and_plate.test_admin_and_operator_roles_can_access_vehicle_by_id_and_plate",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_get_vehicle_by_id_not_found.test_get_vehicle_by_id_not_found",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_get_vehicle_by_id_success.test_get_vehicle_by_id_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_get_vehicle_by_plate_not_found.test_get_vehicle_by_plate_not_found",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_get_vehicle_by_plate_success.test_get_vehicle_by_plate_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_invalid_payload_rejected_with_400_validation_error.test_invalid_payload_rejected_with_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_other_user_cannot_update_vehicle.test_other_user_cannot_update_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_other_user_cannot_update_vehicle_by_plate.test_other_user_cannot_update_vehicle_by_plate",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_other_user_cannot_view_vehicle.test_other_user_cannot_view_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_other_user_cannot_view_vehicle_by_plate.test_other_user_cannot_view_vehicle_by_plate",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_owner_field_cannot_be_tampered_via_update.test_owner_field_cannot_be_tampered_via_update",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_patch_omitting_plate_preserves_registration_number.test_patch_omitting_plate_preserves_registration_number",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_patch_partial_update_success.test_patch_partial_update_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_patch_with_same_plate_does_not_conflict.test_patch_with_same_plate_does_not_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_put_full_update_success.test_put_full_update_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_put_missing_all_required_fields_returns_400_validation_error.test_put_missing_all_required_fields_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_put_missing_registration_number_returns_400_validation_error.test_put_missing_registration_number_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_put_missing_vehicle_type_returns_400_validation_error.test_put_missing_vehicle_type_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_put_with_plate_number_alias_succeeds.test_put_with_plate_number_alias_succeeds",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_unauthenticated_requests_rejected.test_unauthenticated_requests_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_update_duplicate_plate_conflict_returns_409.test_update_duplicate_plate_conflict_returns_409",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileAPITests.test_update_non_existent_vehicle_returns_404.test_update_non_existent_vehicle_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_get_vehicle_by_id_returns_none_for_invalid.test_get_vehicle_by_id_returns_none_for_invalid",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_get_vehicle_by_id_returns_none_for_missing.test_get_vehicle_by_id_returns_none_for_missing",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_get_vehicle_by_id_returns_vehicle.test_get_vehicle_by_id_returns_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_update_vehicle_service_duplicate_plate_raises_conflict.test_update_vehicle_service_duplicate_plate_raises_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_update_vehicle_service_invalid_plate_raises_value_error.test_update_vehicle_service_invalid_plate_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_update_vehicle_service_invalid_type_raises_value_error.test_update_vehicle_service_invalid_type_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_update_vehicle_service_same_plate_succeeds.test_update_vehicle_service_same_plate_succeeds",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_profile.VehicleProfileServiceTests.test_update_vehicle_service_success.test_update_vehicle_service_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_blank_registration_number_returns_400.test_blank_registration_number_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_duplicate_registration_number_returns_409_conflict.test_duplicate_registration_number_returns_409_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_endpoint_accessible_via_both_v1_and_root_routes.test_endpoint_accessible_via_both_v1_and_root_routes",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_exact_canonical_duplicate_registration_returns_409_conflict.test_exact_canonical_duplicate_registration_returns_409_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_get_vehicles_returns_only_authenticated_user_vehicles.test_get_vehicles_returns_only_authenticated_user_vehicles",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_invalid_vehicle_type_returns_400_validation_error.test_invalid_vehicle_type_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_missing_registration_number_returns_400_validation_error.test_missing_registration_number_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_missing_vehicle_type_returns_400_validation_error.test_missing_vehicle_type_returns_400_validation_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_ownership_cannot_be_spoofed_via_request_payload.test_ownership_cannot_be_spoofed_via_request_payload",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_registration_number_exceeding_max_length_returns_400.test_registration_number_exceeding_max_length_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_unauthenticated_request_rejected_with_401.test_unauthenticated_request_rejected_with_401",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_valid_registration_via_plate_number_alias_key.test_valid_registration_via_plate_number_alias_key",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleAPITests.test_valid_vehicle_registration_returns_201_created.test_valid_vehicle_registration_returns_201_created",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_create_vehicle_persists_and_normalizes_plate.test_create_vehicle_persists_and_normalizes_plate",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_database_enforces_plate_uniqueness.test_database_enforces_plate_uniqueness",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_normalize_registration_number_trims_and_uppercases.test_normalize_registration_number_trims_and_uppercases",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_owner_can_register_multiple_distinct_vehicles.test_owner_can_register_multiple_distinct_vehicles",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_get_vehicle_by_plate_alias_for_member_3.test_service_get_vehicle_by_plate_alias_for_member_3",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_get_vehicle_by_registration_number_found_and_not_found.test_service_get_vehicle_by_registration_number_found_and_not_found",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_register_vehicle_duplicate_raises_conflict.test_service_register_vehicle_duplicate_raises_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_register_vehicle_invalid_type_raises_value_error.test_service_register_vehicle_invalid_type_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_register_vehicle_missing_owner_raises_value_error.test_service_register_vehicle_missing_owner_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_register_vehicle_plate_too_long_raises_value_error.test_service_register_vehicle_plate_too_long_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_registration.VehicleModelAndServiceTests.test_service_register_vehicle_success.test_service_register_vehicle_success",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.RegistrationNumberValidationTests.test_invalid_registration_formats_rejected.test_invalid_registration_formats_rejected",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.RegistrationNumberValidationTests.test_valid_bh_series_registration_formats.test_valid_bh_series_registration_formats",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.RegistrationNumberValidationTests.test_valid_standard_state_registration_formats.test_valid_standard_state_registration_formats",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_admin_can_search_any_customer_vehicle.test_admin_can_search_any_customer_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_backend_rejects_invalid_registration_format_on_create_and_update.test_backend_rejects_invalid_registration_format_on_create_and_update",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_by_plate_direct_lookup_with_include_status.test_by_plate_direct_lookup_with_include_status",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_customer_forbidden_from_other_vehicle_search.test_customer_forbidden_from_other_vehicle_search",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_operator_can_manage_customer_vehicle.test_operator_can_manage_customer_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_operator_can_search_any_customer_vehicle.test_operator_can_search_any_customer_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_owner_can_update_own_vehicle_put_and_patch.test_owner_can_update_own_vehicle_put_and_patch",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_partial_search_multiple_matches_returns_list.test_partial_search_multiple_matches_returns_list",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_missing_plate_param_returns_400.test_search_missing_plate_param_returns_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_nonexistent_plate_returns_404.test_search_nonexistent_plate_returns_404",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_own_vehicle_by_path_param.test_search_own_vehicle_by_path_param",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_own_vehicle_by_query_param.test_search_own_vehicle_by_query_param",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_own_vehicle_completed_session_returns_not_parked.test_search_own_vehicle_completed_session_returns_not_parked",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_own_vehicle_parked_live_status.test_search_own_vehicle_parked_live_status",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_performance_under_500ms.test_search_performance_under_500ms",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_search_unauthenticated_returns_401.test_search_unauthenticated_returns_401",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchAPITests.test_user_cannot_update_another_customers_vehicle.test_user_cannot_update_another_customers_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_admin_can_search_any_vehicle.test_admin_can_search_any_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_customer_searching_other_vehicle_raises_permission_denied.test_customer_searching_other_vehicle_raises_permission_denied",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_get_vehicle_parking_status_safely_handles_missing_slot.test_get_vehicle_parking_status_safely_handles_missing_slot",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_get_vehicle_parking_status_with_active_session_returns_parked.test_get_vehicle_parking_status_with_active_session_returns_parked",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_get_vehicle_parking_status_with_completed_session_returns_not_parked.test_get_vehicle_parking_status_with_completed_session_returns_not_parked",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_operator_can_search_any_vehicle.test_operator_can_search_any_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_partial_search_batches_owner_and_active_session_lookups.test_partial_search_batches_owner_and_active_session_lookups",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_partial_search_multiple_matches.test_partial_search_multiple_matches",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_partial_search_prefix_and_substring.test_partial_search_prefix_and_substring",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_by_plate_exact_match.test_search_vehicle_by_plate_exact_match",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_empty_query_raises_value_error.test_search_vehicle_empty_query_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_not_found_raises_404.test_search_vehicle_not_found_raises_404",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_plate_normalization.test_search_vehicle_plate_normalization",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_space_separator_normalization.test_search_vehicle_space_separator_normalization",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_search.VehicleSearchServiceTests.test_search_vehicle_too_short_raises_value_error.test_search_vehicle_too_short_raises_value_error",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_alias_is_validated_even_when_compact_identity_matches.test_alias_is_validated_even_when_compact_identity_matches",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_conflicting_plate_aliases_return_field_specific_400.test_conflicting_plate_aliases_return_field_specific_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_duplicate_normalized_plate_returns_structured_409_across_owners.test_duplicate_normalized_plate_returns_structured_409_across_owners",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_invalid_plate_payloads_return_field_specific_400.test_invalid_plate_payloads_return_field_specific_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_matching_plate_aliases_with_different_separators_are_accepted.test_matching_plate_aliases_with_different_separators_are_accepted",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_missing_blank_and_overlong_plate_return_400.test_missing_blank_and_overlong_plate_return_400",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_non_string_client_fields_return_400_instead_of_coercion.test_non_string_client_fields_return_400_instead_of_coercion",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_overlong_legacy_plate_alias_is_rejected_before_normalization.test_overlong_legacy_plate_alias_is_rejected_before_normalization",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_owner_fields_enforce_model_length_limits.test_owner_fields_enforce_model_length_limits",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_profile_update_rejects_malformed_and_duplicate_plates_without_mutation.test_profile_update_rejects_malformed_and_duplicate_plates_without_mutation",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_put_can_retain_its_own_plate_with_different_separators.test_put_can_retain_its_own_plate_with_different_separators",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_put_malformed_and_duplicate_plate_leave_record_unchanged.test_put_malformed_and_duplicate_plate_leave_record_unchanged",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_unknown_payload_fields_are_rejected_without_writing.test_unknown_payload_fields_are_rejected_without_writing",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationAPITests.test_valid_space_compact_and_bh_plates_are_sanitized_before_persistence.test_valid_space_compact_and_bh_plates_are_sanitized_before_persistence",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_invalid_characters_and_malformed_separators_are_not_sanitized.test_invalid_characters_and_malformed_separators_are_not_sanitized",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_migration_canonicalizes_legacy_separators_without_rewriting_compact_plates.test_migration_canonicalizes_legacy_separators_without_rewriting_compact_plates",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_non_string_values_are_not_coerced_into_registration_numbers.test_non_string_values_are_not_coerced_into_registration_numbers",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_only_registration_unique_constraint_is_classified_as_duplicate.test_only_registration_unique_constraint_is_classified_as_duplicate",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_separator_insensitive_key_and_database_constraint_prevent_compact_duplicates.test_separator_insensitive_key_and_database_constraint_prevent_compact_duplicates",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_supported_plate_formats_normalize_to_one_canonical_value.test_supported_plate_formats_normalize_to_one_canonical_value",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleValidationServiceTests.test_valid_supported_state_and_bh_formats.test_valid_supported_state_and_bh_formats",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.LogoutAtomicityTests.test_logout_atomic_rollback_when_blacklisting_fails.test_logout_atomic_rollback_when_blacklisting_fails",
+        "status": "passed"
+      },
+      {
+        "id": "accounts.tests.test_auth.LogoutAtomicityTests.test_logout_atomic_rollback_when_user_save_fails.test_logout_atomic_rollback_when_user_save_fails",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_boundary_violations.test_boundary_violations",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_chained_traceback_excludes_sensitive_context.test_chained_traceback_excludes_sensitive_context",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_conflict_has_public_message.test_conflict_has_public_message",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_default_conflict.test_default_conflict",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_invalid_credentials_are_safe.test_invalid_credentials_are_safe",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_invalid_type.test_invalid_type",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_list_validation.test_list_validation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_malformed_json_is_safe.test_malformed_json_is_safe",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_method_not_allowed_preserves_allow_header.test_method_not_allowed_preserves_allow_header",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_missing_fields.test_missing_fields",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_missing_resource_is_safe.test_missing_resource_is_safe",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_nested_list_validation.test_nested_list_validation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_no_challenge_preserves_drf_403.test_no_challenge_preserves_drf_403",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_non_field_validation.test_non_field_validation",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_permission_denied_is_safe.test_permission_denied_is_safe",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_success_and_valid_boundaries_are_unchanged.test_success_and_valid_boundaries_are_unchanged",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_throttle_preserves_retry_after.test_throttle_preserves_retry_after",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_unacceptable_response_format.test_unacceptable_response_format",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_unauthenticated_preserves_challenge.test_unauthenticated_preserves_challenge",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_unexpected_failures_are_safe_in_both_debug_modes.test_unexpected_failures_are_safe_in_both_debug_modes",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorContractTests.test_unsupported_media_type.test_unsupported_media_type",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_exceptions.ErrorRollbackTests.test_failed_requests_roll_back_writes.test_failed_requests_roll_back_writes",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_cors_and_csrf_trust_are_configured_independently.test_cors_and_csrf_trust_are_configured_independently",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_development_retains_http_and_local_vite_origins.test_development_retains_http_and_local_vite_origins",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_environment_key_signs_jwt.test_environment_key_signs_jwt",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_postgres_requires_an_environment_password.test_postgres_requires_an_environment_password",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_postgres_uses_environment_password.test_postgres_uses_environment_password",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_production_defaults_require_https_and_no_cross_origin_trust.test_production_defaults_require_https_and_no_cross_origin_trust",
+        "status": "passed"
+      },
+      {
+        "id": "common.tests.test_security.SecurityConfigurationTests.test_signing_key_is_required_in_both_modes.test_signing_key_is_required_in_both_modes",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutConcurrencyTests.test_checkout_and_new_allocation_preserve_record_slot_consistency.test_checkout_and_new_allocation_preserve_record_slot_consistency",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutConcurrencyTests.test_tariff_edit_is_not_blocked_and_checkout_keeps_its_read_snapshot.test_tariff_edit_is_not_blocked_and_checkout_keeps_its_read_snapshot",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutConcurrencyTests.test_two_checkouts_have_one_completion_and_one_not_found.test_two_checkouts_have_one_completion_and_one_not_found",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.CheckoutMigrationTests.test_existing_active_and_completed_records_survive_nullable_snapshot_migration.test_existing_active_and_completed_records_survive_nullable_snapshot_migration",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.ParkingFeeTests.test_configured_grace_and_decimal_tariff.test_configured_grace_and_decimal_tariff",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.ParkingFeeTests.test_grace_hour_and_multi_day_boundaries.test_grace_hour_and_multi_day_boundaries",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.ParkingFeeTests.test_invalid_tariffs_and_grace_are_conflicts.test_invalid_tariffs_and_grace_are_conflicts",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_checkout.ParkingFeeTests.test_negative_duration_and_amount_overflow_are_conflicts.test_negative_duration_and_amount_overflow_are_conflicts",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_us22_fee_acceptance.US22FeeAcceptanceTests.test_exact_hour_and_multi_day_rounding_is_deterministic.test_exact_hour_and_multi_day_rounding_is_deterministic",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_us22_fee_acceptance.US22FeeAcceptanceTests.test_exceeded_grace_uses_rounded_hours_and_vehicle_multiplier.test_exceeded_grace_uses_rounded_hours_and_vehicle_multiplier",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_us22_fee_acceptance.US22FeeAcceptanceTests.test_fractional_multiplier_rounds_currency_half_up.test_fractional_multiplier_rounds_currency_half_up",
+        "status": "passed"
+      },
+      {
+        "id": "operations.test_us22_fee_acceptance.US22FeeAcceptanceTests.test_session_within_grace_period_is_free.test_session_within_grace_period_is_free",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInConcurrencyTests.test_two_concurrent_check_ins_for_same_vehicle.test_two_concurrent_check_ins_for_same_vehicle",
+        "status": "passed"
+      },
+      {
+        "id": "operations.tests.CheckInConcurrencyTests.test_two_vehicles_competing_for_one_slot.test_two_vehicles_competing_for_one_slot",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.SlotConcurrencyTests.test_check_in_and_deactivation_cannot_both_succeed.test_check_in_and_deactivation_cannot_both_succeed",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.SlotConcurrencyTests.test_check_in_and_maintenance_cannot_both_succeed.test_check_in_and_maintenance_cannot_both_succeed",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.SlotConcurrencyTests.test_check_in_and_zone_deactivation_cannot_partially_commit.test_check_in_and_zone_deactivation_cannot_partially_commit",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_integrity.SlotConcurrencyTests.test_two_manual_allocations_have_exactly_one_winner.test_two_manual_allocations_have_exactly_one_winner",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_migrations.ExistingDataMigrationTests.test_pr64_rows_survive_additive_floor_migration.test_pr64_rows_survive_additive_floor_migration",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_checkin_and_checkout.test_checkin_and_checkout",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_failed_checkin_rolls_back_slot_and_other_writes.test_failed_checkin_rolls_back_slot_and_other_writes",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_failed_checkout_rolls_back_slot.test_failed_checkout_rolls_back_slot",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_inactive_slot_or_zone_cannot_be_allocated.test_inactive_slot_or_zone_cannot_be_allocated",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_maintenance_round_trip.test_maintenance_round_trip",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_operations_require_caller_transaction.test_operations_require_caller_transaction",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_release_requires_occupied.test_release_requires_occupied",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_repeated_maintenance_does_not_hide_a_stale_state.test_repeated_maintenance_does_not_hide_a_stale_state",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_second_allocation_conflicts.test_second_allocation_conflicts",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_unavailable_states_cannot_be_allocated.test_unavailable_states_cannot_be_allocated",
+        "status": "passed"
+      },
+      {
+        "id": "parking_slots.test_services.SlotStateTests.test_unknown_database_errors_are_not_misreported_as_duplicates.test_unknown_database_errors_are_not_misreported_as_duplicates",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_concurrency.PostgreSQLReservationConcurrencyTests.test_same_vehicle_different_slots_yields_one_201_one_409.test_same_vehicle_different_slots_yields_one_201_one_409",
+        "status": "passed"
+      },
+      {
+        "id": "reservations.test_concurrency.PostgreSQLReservationConcurrencyTests.test_two_overlapping_requests_yield_one_201_and_one_409.test_two_overlapping_requests_yield_one_201_and_one_409",
+        "status": "passed"
+      },
+      {
+        "id": "vehicles.tests.test_vehicle_validation.VehicleConcurrentRegistrationTests.test_concurrent_same_plate_creates_one_record_and_returns_one_conflict.test_concurrent_same_plate_creates_one_record_and_returns_one_conflict",
+        "status": "passed"
+      }
+    ]
+  },
+  "frontend": {
+    "node": "22.19.0",
+    "npm": "10.9.3",
+    "executed": 94,
+    "passed": 94,
+    "failed": 0,
+    "skipped": 0,
+    "lint": "passed",
+    "build": "passed"
+  },
+  "security": {
+    "tool": "Bandit",
+    "version": "1.9.4",
+    "command": "python -m bandit -r backend --severity-level high",
+    "high_severity_findings": 0,
+    "scanned_lines": 14151,
+    "scope": "High-severity source findings; full metrics retain lower-severity informational counts.",
+    "metrics": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 93,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 93,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 14151,
+      "nosec": 0,
+      "skipped_tests": 0
+    }
+  },
+  "system_check": "passed",
+  "migration_drift_check": "passed"
+}

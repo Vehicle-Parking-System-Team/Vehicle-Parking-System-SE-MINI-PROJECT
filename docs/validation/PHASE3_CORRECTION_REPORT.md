@@ -1,5 +1,6 @@
 # Phase 3 — Final Consistency Audit and Clean-State Correction Report
 
+Historical record. Current delivery and verification are indexed in [the documentation guide](../README.md).
 **Project:** Vehicle Parking System (SE Mini-Project)  
 **Repository:** `Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT`  
 **Execution Date:** 19 October 2026  

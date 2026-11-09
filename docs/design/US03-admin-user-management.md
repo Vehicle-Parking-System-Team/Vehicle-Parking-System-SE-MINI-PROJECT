@@ -1,5 +1,6 @@
 # US-03 Admin User Account Management Contract & Design
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#23 — Admin User Account Management](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/23)  
 Functional Owner: Member 1  
 Parent Epic: #2 (E1 – Identity & Access Management)  

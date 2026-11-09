@@ -1,5 +1,6 @@
 # US-04 User Profile & Password Management — Architecture & Integration Contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 **Document Version:** 1.0.0  
 **Effective Date:** 29 October 2026  
 **Traceability:** US-04 (#24, 2 SP), FR-18, E1: Identity & Access Management  

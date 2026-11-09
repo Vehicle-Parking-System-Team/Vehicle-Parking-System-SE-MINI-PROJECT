@@ -1,5 +1,6 @@
 # US-27 revenue report execution evidence
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Executed on 3 November 2026. Issue: [#47](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/47).
 Contract: [collected revenue API](../design/US27-revenue-reports.md).
 Implementation commit: `77d5b79`; main base: `286df4a`; US-29 comparison head:

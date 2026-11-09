@@ -1,5 +1,6 @@
 # US-32 shared security controls
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#52](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/52).
 This increment provides shared configuration and repeatable verification for
 NFR-SEC-01–07. It does not complete the story or implement other members' features.

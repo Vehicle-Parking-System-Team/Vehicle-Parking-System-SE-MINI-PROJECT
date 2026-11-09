@@ -1,5 +1,6 @@
 # US-08 — Vehicle Validation and Duplicate Handling
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 - **User Story:** [US-08 (#28)](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/28)
 - **Parent Epic:** E2 — Vehicle Management (#15)
 - **Owner:** Member 1

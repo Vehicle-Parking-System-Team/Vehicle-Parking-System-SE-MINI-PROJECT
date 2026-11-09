@@ -1,0 +1,32 @@
+@startuml
+!pragma layout smetana
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam packageStyle rectangle
+skinparam ArrowColor #475569
+skinparam usecaseBackgroundColor #F1F5F9
+skinparam usecaseBorderColor #334155
+title Vehicle Parking System\nCustomer Use Cases
+actor Customer as C
+rectangle "Vehicle Parking System" {
+  package "Identity and vehicles" {
+    usecase "Authenticate and manage profile\nFR15 FR16 FR18" as auth
+    usecase "Register and update vehicle\nFR01 FR02 FR13" as vehicle
+    usecase "Search vehicle and status\nFR11" as search
+  }
+  package "Facility and reservations" {
+    usecase "View parking availability\nFR10" as available
+    usecase "Create modify or cancel reservation\nFR19 FR20 FR21 FR22" as reserve
+  }
+  usecase "Read own receipt\nFR25" as receipt
+}
+C -- auth
+C -- vehicle
+C -- search
+C -- available
+C -- reserve
+C -- receipt
+@enduml

@@ -1,0 +1,54 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+autonumber
+title Check Out and Receipt Settlement
+actor Operator
+boundary "REST endpoints" as API
+control "Operations and billing services" as S
+database PostgreSQL as DB
+Operator -> API : POST /api/parking/check-out/\nregistration_number
+API -> API : Authenticate and validate operator request
+API -> S : check_out_vehicle(...)
+activate S
+group Checkout atomic transaction
+ S -> DB : Lock vehicle active record and slot
+ alt No active session
+  S --> API : 404 Not Found
+ else Active session
+  S -> DB : Read vehicle class tariff
+  S -> S : Apply inclusive grace and hourly rounding\nUse Decimal arithmetic
+  S -> DB : Save fee and tariff snapshots\nComplete record and release slot
+  alt Persistence or release error
+   DB --> S : Roll back all checkout changes
+  else Successful commit
+   DB --> S : Completed record
+  end
+ end
+end
+S --> API : Completed record or structured error
+deactivate S
+API --> Operator : 200 fee details or error status
+opt Checkout completed
+Operator -> API : POST /api/parking/receipts/\nrecord_id
+API -> S : Generate or retrieve receipt
+S -> DB : Read completed fee snapshots\nCreate unique receipt if absent
+DB --> S : Receipt and payment status
+S --> API : Receipt
+API --> Operator : 201 Created or 200 existing
+Operator -> API : POST /api/parking/receipts/{uuid}/payment/\nstatus method amount
+group Settlement atomic transaction
+ API -> S : Validate role amount and transition
+ S -> DB : Lock receipt and completed session\nUpdate payment mirrors and audit
+ DB --> S : Commit settlement together
+end
+S --> API : Updated receipt
+API --> Operator : 200 payment confirmation
+end
+note over Operator, DB
+Checkout receipt generation and settlement are separate API operations.
+Repeating the same receipt or settlement request is idempotent.
+end note
+@enduml

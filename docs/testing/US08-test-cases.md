@@ -1,5 +1,6 @@
 # US-08 Test Case Supplement — UC-02 Vehicle Management
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 This supplement extends the representative cases in the master [Software Test Plan](Vehicle_Parking_System_Test_Plan.pdf). The original UC-02 identifiers remain reserved and unchanged: `TC-UC02-UNIT-001` (baseline registration validation), `TC-UC02-API-001` (valid registration), and `TC-UC02-API-002` (duplicate registration). New US-08 cases use the dedicated `TC-UC02-US08-*` namespace already established in SAD §3.4.3, avoiding collisions with the baseline and other vehicle stories.
 
 | Test ID | Level | Scenario / test data | Expected result | Automation / status |

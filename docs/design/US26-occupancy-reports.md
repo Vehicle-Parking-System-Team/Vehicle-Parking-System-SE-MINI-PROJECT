@@ -1,5 +1,6 @@
 # US-26 occupancy and usage report contract
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Issue: [#46](https://github.com/Vehicle-Parking-System-Team/Vehicle-Parking-System-SE-MINI-PROJECT/issues/46).
 This increment provides a read-only administrator API, tests and documentation.
 It does not add a report screen, exports, revenue calculations or database models.

@@ -1,0 +1,104 @@
+@startuml
+!pragma layout smetana
+hide circle
+hide methods
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 15
+skinparam linetype ortho
+title Vehicle Parking System\nImplemented Relational Model
+entity User {
+ * id : bigint <<PK>>
+ --
+ username : unique
+ role : Admin Operator Customer
+ status : AccountState
+ token_version : integer
+}
+entity Vehicle {
+ * id : bigint <<PK>>
+ * owner_id : bigint <<FK>>
+ --
+ registration_number : unique
+ vehicle_type : category
+}
+entity ParkingZone {
+ * id : bigint <<PK>>
+ --
+ name : unique
+ is_active : boolean
+}
+entity ParkingSlot {
+ * id : bigint <<PK>>
+ * zone_id : bigint <<FK>>
+ --
+ slot_number : zone unique
+ vehicle_type : category or any
+ status : SlotState
+}
+entity Reservation {
+ * id : bigint <<PK>>
+ * customer_id : bigint <<FK>>
+ * vehicle_id : bigint <<FK>>
+ * slot_id : bigint <<FK>>
+ --
+ start_time end_time : timestamp
+ status : ReservationState
+}
+entity ParkingRecord {
+ * id : bigint <<PK>>
+ * vehicle_id slot_id : bigint <<FK>>
+ operator_id reservation_id : nullable FK
+ --
+ status : SessionState
+ check_in_time check_out_time : timestamp
+ fee and identity snapshots
+ ticket_qr_token : signed
+}
+entity ParkingRate {
+ * id : bigint <<PK>>
+ --
+ vehicle_type : unique category
+ hourly_rate : decimal
+ vehicle_multiplier : decimal
+ grace_period_minutes : integer
+}
+entity BillingReceipt {
+ * id : bigint <<PK>>
+ * parking_record_id : unique FK
+ --
+ receipt_number : unique UUID
+ payment_status : PaymentState
+ payment_method : PaymentMethod
+}
+entity AuditEvent {
+ * id : bigint <<PK>>
+ actor_id : string snapshot
+ --
+ event_type resource time
+}
+entity Notification {
+ * id : bigint <<PK>>
+ * recipient_id : bigint <<FK>>
+ --
+ kind event_key read_at
+}
+User ||--o{ Vehicle : owns
+ParkingZone ||--o{ ParkingSlot : contains
+Vehicle ||--o{ Reservation : schedules
+ParkingSlot ||--o{ Reservation : books
+User ||--o{ Reservation : customer
+Vehicle ||--o{ ParkingRecord : records
+User |o--o{ ParkingRecord : operates
+ParkingSlot ||--o{ ParkingRecord : hosts
+Reservation |o--o{ ParkingRecord : links
+ParkingRecord ||--o| BillingReceipt : settles
+User .. AuditEvent : actor identity snapshot
+User ||--o{ Notification : recipient
+ParkingRate .. ParkingRecord : vehicle type lookup and snapshots
+note bottom of ParkingRecord
+Conditional unique constraints allow at most one
+ACTIVE record per vehicle and per slot.
+end note
+@enduml

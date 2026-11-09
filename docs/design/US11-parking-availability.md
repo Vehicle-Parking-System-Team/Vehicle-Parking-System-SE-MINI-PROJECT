@@ -1,5 +1,6 @@
 # US-11 public parking availability
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 US-11 (#31) implements FR-10 and SAD §3.4.4 using the existing
 `parking_slots` domain and facility layout. It exposes current slot states,
 not historical utilization or the US-25 administrative revenue dashboard.

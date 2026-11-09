@@ -1,5 +1,6 @@
 # US-12 slot integrity and US-10 state integration
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 US-12 (#32) protects active parking records even when the retained slot status
 is inconsistent. It uses the existing `parking_slots` service boundary,
 `operations.ParkingRecord`, shared errors and database constraints. No new

@@ -1,5 +1,6 @@
 # US-25 — Dashboard verification
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Executed 3 November 2026 against the merged US-27 and US-29 baseline on
 `feature/US-25-admin-dashboard-metrics`. Contract:
 [admin dashboard metrics](../design/US25-admin-dashboard.md).

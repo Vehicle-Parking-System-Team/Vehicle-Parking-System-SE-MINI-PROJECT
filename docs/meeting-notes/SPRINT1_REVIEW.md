@@ -1,5 +1,6 @@
 # Sprint 1 delivery review
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 Recorded 27 October 2026 against application commit `c98346e7a219114a03f84a53cb2a0d017deb3315` and live GitHub issues/milestones. Planned sprint window: 19–25 October 2026. All displayed closure times use Asia/Kolkata (IST).
 
 The original six-story commitment is closed. The current milestone contains 13 stories (49 SP): 10 closed (38 SP), three open (11 SP). This is a delivery record, not a claim that the whole application or every NFR has been accepted. Formal team sign-off and disposition of the three open stories are not recorded.

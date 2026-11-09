@@ -1,5 +1,6 @@
 # US-10 atomic checkout and slot release
 
+Current integrated delivery: [documentation index](../README.md) and [final verification](../testing/FINAL_VERIFICATION_REPORT.md). The dated scope below records this story or sprint increment.
 This contract reconciles the existing US-19 checkout with the fee integration
 required by US-10 (#30)
 alongside US-12 (#32). It reuses ParkingRecord, the configured ParkingRate and

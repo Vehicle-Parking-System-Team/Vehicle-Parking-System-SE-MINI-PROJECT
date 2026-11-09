@@ -270,14 +270,17 @@ def get_vehicle_parking_status(vehicle: Vehicle) -> dict:
 
     from operations.models import ParkingRecord
 
-    active_record = (
-        ParkingRecord.objects.filter(
-            vehicle=vehicle,
-            status=ParkingRecord.Status.ACTIVE,
+    if hasattr(vehicle, '_active_parking_records'):
+        active_record = next(iter(vehicle._active_parking_records), None)
+    else:
+        active_record = (
+            ParkingRecord.objects.filter(
+                vehicle=vehicle,
+                status=ParkingRecord.Status.ACTIVE,
+            )
+            .select_related('slot', 'slot__zone')
+            .first()
         )
-        .select_related('slot', 'slot__zone')
-        .first()
-    )
 
     if active_record and getattr(active_record, 'slot', None):
         slot = active_record.slot
@@ -344,7 +347,7 @@ def search_vehicles(search_query: str, requesting_user=None) -> list[tuple[Vehic
 
     # Check if exact match exists anywhere in the database
     exact_key = registration_number_comparison_key(normalized_exact)
-    exact_match = Vehicle.objects.annotate(
+    exact_match = Vehicle.objects.select_related('owner').annotate(
         _registration_key=Replace(
             Replace(Upper('registration_number'), Value('-'), Value('')),
             Value(' '),
@@ -374,7 +377,20 @@ def search_vehicles(search_query: str, requesting_user=None) -> list[tuple[Vehic
     else:
         qs = Vehicle.objects.filter(query_filter, owner=requesting_user).order_by('registration_number')
 
-    results = list(qs[:50])
+    from django.db.models import Prefetch
+    from operations.models import ParkingRecord
+
+    # Resolve owners and active sessions in batches for the entire result page.
+    # This keeps the number of queries constant as the page grows to 50 vehicles.
+    results = list(qs.select_related('owner').prefetch_related(
+        Prefetch(
+            'parking_records',
+            queryset=ParkingRecord.objects.filter(
+                status=ParkingRecord.Status.ACTIVE,
+            ).select_related('slot', 'slot__zone'),
+            to_attr='_active_parking_records',
+        ),
+    )[:50])
     if not results:
         raise NotFound(f'No vehicle found with registration number "{normalized_exact}".')
 
