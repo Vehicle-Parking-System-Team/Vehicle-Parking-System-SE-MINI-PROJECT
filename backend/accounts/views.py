@@ -89,6 +89,13 @@ class LogoutView(APIView):
         except TokenError:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
+        # When an access token was supplied, it must identify the same account
+        # as the refresh token. Refresh-only logout remains supported after the
+        # access token expires, but an authenticated caller cannot revoke another
+        # account's session.
+        if request.user.is_authenticated and str(request.user.pk) != str(token.get(api_settings.USER_ID_CLAIM)):
+            raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
+
         # The refresh token is the logout credential. Do not require an access
         # token: logout must still work after the short-lived access token expires.
         token_user_id = token.get(api_settings.USER_ID_CLAIM)
