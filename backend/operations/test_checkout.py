@@ -100,6 +100,40 @@ class CheckoutAPITests(TestCase):
         self.assertIsNone(self.record.vehicle_type_snapshot)
         self.assertEqual(self.slot.status, 'occupied')
 
+    def test_checkout_preview_by_bay_or_formatted_plate_is_read_only(self):
+        for query in ({'slot_number': 'a-01'}, {'registration_number': 'KA-01-AB-1234'}):
+            with self.subTest(query=query):
+                with patch('operations.views.timezone.now', return_value=self.exit_time):
+                    response = self.client.get(URL, query)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.data['id'], self.record.pk)
+                self.assertEqual(response.data['duration_seconds'], 3660)
+                self.assertEqual(response.data['billable_hours'], 2)
+                self.assertEqual(response.data['fee_amount'], '80.00')
+                self.assert_still_parked()
+        self.assertEqual(self.checkout(expected_record_id=self.record.pk + 1).status_code, 409)
+        self.assert_still_parked()
+        self.assertEqual(self.checkout(expected_record_id=self.record.pk).status_code, 200)
+
+    def test_operations_match_compact_spaced_and_hyphenated_plate(self):
+        self.assertEqual(self.checkout().status_code, 200)
+        self.vehicle.registration_number = 'KA-01-AB-1234'
+        self.vehicle.save(update_fields=['registration_number'])
+
+        response = self.client.post('/api/parking/check-in/', {
+            'registration_number': 'KA01AB1234',
+            'slot_id': self.slot.pk,
+        }, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['registration_number'], 'KA-01-AB-1234')
+        self.assertTrue(response.data['ticket_qr_token'])
+
+        response = self.client.post(URL, {'registration_number': 'KA 01 AB 1234'}, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['receipt']['registration_number'], 'KA-01-AB-1234')
+        history = self.client.get('/api/parking/history/', {'registration_number': 'KA01AB1234'})
+        self.assertEqual(history.data['count'], 2)
+
     def test_real_check_in_fee_checkout_and_public_availability(self):
         before = self.client.get('/api/parking/availability/').data
         self.assertEqual(before[0]['status'], 'occupied')

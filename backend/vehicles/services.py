@@ -66,10 +66,24 @@ def is_registration_number_unique_violation(error: IntegrityError) -> bool:
 
 
 def registration_number_comparison_key(registration_number: str) -> str:
-    """Return a separator-insensitive key used only for duplicate identity checks."""
+    """Return a separator-insensitive key used for registration identity checks."""
     if not isinstance(registration_number, str):
         return ''
     return re.sub(r'[- ]', '', registration_number.strip().upper())
+
+
+def filter_by_registration_number(queryset, registration_number, field='registration_number'):
+    """Match the same case- and separator-insensitive identity as the unique constraint."""
+    key = registration_number_comparison_key(registration_number)
+    if not key:
+        return queryset.none()
+    return queryset.alias(
+        _registration_key=Replace(
+            Replace(Upper(field), Value('-'), Value('')),
+            Value(' '),
+            Value(''),
+        )
+    ).filter(_registration_key=key)
 
 
 def vehicle_registration_exists(registration_number: str, exclude_vehicle_id=None) -> bool:
@@ -79,17 +93,7 @@ def vehicle_registration_exists(registration_number: str, exclude_vehicle_id=Non
     This preflight query mirrors the database expression unique constraint so
     alternate display formats are treated as the same physical registration.
     """
-    key = registration_number_comparison_key(registration_number)
-    if not key:
-        return False
-
-    queryset = Vehicle.objects.annotate(
-        _registration_key=Replace(
-            Replace(Upper('registration_number'), Value('-'), Value('')),
-            Value(' '),
-            Value(''),
-        )
-    ).filter(_registration_key=key)
+    queryset = filter_by_registration_number(Vehicle.objects.all(), registration_number)
 
     if exclude_vehicle_id is not None:
         queryset = queryset.exclude(pk=exclude_vehicle_id)
@@ -121,15 +125,8 @@ def get_vehicle_by_registration_number(registration_number: str) -> Vehicle | No
     normalized = normalize_registration_number(registration_number)
     if not normalized or not is_valid_registration_number(normalized):
         return None
-    key = registration_number_comparison_key(normalized)
     try:
-        return Vehicle.objects.annotate(
-            _registration_key=Replace(
-                Replace(Upper('registration_number'), Value('-'), Value('')),
-                Value(' '),
-                Value(''),
-            )
-        ).get(_registration_key=key)
+        return filter_by_registration_number(Vehicle.objects.all(), normalized).get()
     except Vehicle.DoesNotExist:
         return None
 

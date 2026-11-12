@@ -1,0 +1,75 @@
+.parking-operations {
+  display: grid;
+  gap: 1rem;
+}
+.parking-form,
+.parking-result {
+  padding: 1rem;
+  border: 1px solid currentColor;
+  border-radius: .75rem;
+}
+.parking-form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: .75rem;
+  padding: 0;
+  border: 0;
+}
+.parking-form label {
+  display: grid;
+  gap: .3rem;
+}
+.parking-operations input,
+.parking-operations select,
+.parking-operations button {
+  padding: .55rem .7rem;
+  font: inherit;
+}
+.parking-operations button:disabled {
+  cursor: default;
+  opacity: .55;
+}
+.parking-result code {
+  overflow-wrap: anywhere;
+}
+.parking-entry-ticket img {
+  display: block;
+  margin-bottom: .75rem;
+}
+.parking-history {
+  overflow-x: auto;
+}
+.parking-history table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.parking-history th,
+.parking-history td {
+  padding: .55rem;
+  border-bottom: 1px solid currentColor;
+}
+.parking-history nav {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+@media print {
+  body:has(.parking-entry-ticket) * {
+    visibility: hidden;
+  }
+  .parking-entry-ticket,
+  .parking-entry-ticket * {
+    visibility: visible !important;
+  }
+  .parking-entry-ticket {
+    position: absolute;
+    inset: 0 auto auto 0;
+    color: #000;
+  }
+  .parking-entry-ticket button {
+    display: none;
+  }
+}
