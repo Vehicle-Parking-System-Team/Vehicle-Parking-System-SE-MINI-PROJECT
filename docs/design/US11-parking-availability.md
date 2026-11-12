@@ -35,6 +35,12 @@ and Maintenance states remain visible. A NULL historical floor remains
 or ticket is serialized. This public projection intentionally excludes vehicle
 identities described in the broader FR-10 architecture illustration.
 
+Issue #102 adds `reservation_protected` and `walk_in_available` booleans. A
+physically vacant bay protected by a confirmed reservation is projected as
+`status: "reserved"`, so it is excluded from walk-in vacancy counts. See
+[reservation eligibility, staff refresh and workspace links](ISSUE102-live-facility.md)
+for buffer semantics, management-state preservation and future booking behavior.
+
 Optional API filters:
 
 | Parameter | Meaning |
