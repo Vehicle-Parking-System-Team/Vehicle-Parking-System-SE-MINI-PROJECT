@@ -120,7 +120,6 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async () => {
     setIsLoading(true)
     const currentRefresh = refreshToken
-    const currentAccess = accessToken
 
     try {
       if (currentRefresh) {
@@ -138,7 +137,7 @@ export function AuthProvider({ children }) {
       clearSession()
       setIsLoading(false)
     }
-  }, [accessToken, refreshToken, clearSession])
+  }, [refreshToken, clearSession])
 
   // Refresh access token using current refresh token
   const refreshTokens = useCallback(async () => {
