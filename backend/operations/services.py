@@ -1,8 +1,4 @@
 import json
-from datetime import timedelta
-
-from django.conf import settings
-
 from django.core.signing import Signer
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -21,6 +17,7 @@ from vehicles.services import filter_by_registration_number, normalize_registrat
 from .models import ParkingRecord
 from notifications.services import schedule_parking_notification
 from reservations.models import Reservation
+from reservations.queries import walk_in_reservations
 
 
 TICKET_SIGNING_SALT = "vehicle-parking.entry-ticket.v1"
@@ -239,12 +236,8 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
                 # including its configured turnover buffer. This check runs
                 # after occupy_slot locks the slot, matching reservation
                 # creation's slot lock and preventing a booking/allocation race.
-                if reservation is None and Reservation.objects.filter(
+                if reservation is None and walk_in_reservations().filter(
                     slot_id=slot.pk,
-                    status=Reservation.Status.CONFIRMED,
-                    end_time__gt=timezone.now() - timedelta(
-                        minutes=settings.RESERVATION_BUFFER_MINUTES,
-                    ),
                 ).exclude(vehicle_id=vehicle.pk).exists():
                     raise Conflict("This slot is protected for a confirmed reservation.")
 
