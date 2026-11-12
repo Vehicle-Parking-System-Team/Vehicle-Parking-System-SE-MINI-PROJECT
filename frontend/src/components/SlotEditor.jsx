@@ -3,8 +3,9 @@ import { useAuth } from '../context/useAuth'
 import { VEHICLE_TYPES } from '../utils/vehicles'
 import { requestSlots, requestZones } from '../utils/slots'
 import BayIcon from './BayIcon'
+import { changedZoneFields, reconcileBayZone } from '../utils/zoneLifecycle'
 
-export default function SlotEditor({ slot, onClose, onSaved }) {
+export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
   const { fetchWithAuth } = useAuth()
   const dialogRef = useRef(null)
   const [form, setForm] = useState({
@@ -16,7 +17,11 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
   })
   const [zones, setZones] = useState([])
   const [zoneName, setZoneName] = useState('')
+  const [selectedZone, setSelectedZone] = useState('')
+  const [originalZone, setOriginalZone] = useState(null)
+  const [zoneForm, setZoneForm] = useState({ name: '', description: '', is_active: true })
   const [error, setError] = useState(null)
+  const [zoneNotice, setZoneNotice] = useState('')
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     const dialog = dialogRef.current
@@ -39,10 +44,53 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
     }
   }, [fetchWithAuth])
 
+  function chooseZone(id) {
+    setSelectedZone(id)
+    setZoneNotice('')
+    const zone = zones.find(item => String(item.id) === id)
+    setOriginalZone(zone || null)
+    if (zone) setZoneForm({
+      name: zone.name, description: zone.description || '', is_active: zone.is_active,
+    })
+  }
+
+  async function updateZone(event) {
+    event.preventDefault()
+    if (!selectedZone || !originalZone || saving) return
+    const changes = changedZoneFields(originalZone, zoneForm)
+    if (Object.keys(changes).length === 0) return
+    setSaving(true)
+    setError(null)
+    try {
+      const saved = await requestZones(fetchWithAuth, `${selectedZone}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(changes),
+      })
+      setZones(current => current.map(zone => zone.id === saved.id ? saved : zone))
+      const selection = reconcileBayZone(form.zone, saved)
+      if (selection.invalidated) {
+        setForm(current => ({ ...current, zone: '' }))
+        setZoneNotice('Zone deactivated. Select an active zone for this bay before saving. Your other bay details are preserved.')
+      } else {
+        setZoneNotice('Zone changes saved. Your unsaved bay details are preserved.')
+      }
+      setOriginalZone(saved)
+      setZoneForm({ name: saved.name, description: saved.description || '', is_active: saved.is_active })
+      // Zone deactivation also deactivates its bays. Refresh the facility view.
+      if (onZoneSaved) onZoneSaved()
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function createZone() {
     if (!zoneName.trim() || saving) return
     setSaving(true)
     setError(null)
+    setZoneNotice('')
     try {
       const zone = await requestZones(fetchWithAuth, '', {
         method: 'POST',
@@ -138,6 +186,7 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
           ].join(' ')}
         </div>
       )}
+      {zoneNotice && <p className="bay-success" role="status">{zoneNotice}</p>}
       <form onSubmit={submit}>
         <fieldset disabled={saving}>
           <div className="bay-field-pair">
@@ -274,6 +323,35 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
           </div>
         </fieldset>
       </form>
+          <form className="bay-zone-management" aria-label="Zone lifecycle" onSubmit={updateZone}>
+            <h3>Manage a zone</h3>
+            <label className="bay-field" htmlFor="manage-zone-select">Select zone
+              <select id="manage-zone-select" value={selectedZone} onChange={event => chooseZone(event.target.value)}>
+                <option value="">Choose a zone to edit</option>
+                {zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}{zone.is_active ? '' : ' (inactive)'}</option>)}
+              </select>
+            </label>
+            {selectedZone && <>
+              <label className="bay-field" htmlFor="manage-zone-name">Zone name
+                <input id="manage-zone-name" required maxLength={100} value={zoneForm.name}
+                  onChange={event => setZoneForm(current => ({ ...current, name: event.target.value }))} />
+              </label>
+              <label className="bay-field" htmlFor="manage-zone-description">Description
+                <textarea id="manage-zone-description" value={zoneForm.description}
+                  onChange={event => setZoneForm(current => ({ ...current, description: event.target.value }))} />
+              </label>
+              <label className="bay-reactivate">
+                <input type="checkbox" checked={zoneForm.is_active}
+                  onChange={event => setZoneForm(current => ({ ...current, is_active: event.target.checked }))} />
+                Zone active
+              </label>
+              <p className="bay-muted">Deactivating a zone disables its bays. Reactivating the zone does not automatically reactivate bays. Confirmed bookings prevent deactivation.</p>
+              <button type="submit" className="bay-button bay-button-quiet"
+                disabled={saving || !zoneForm.name.trim() || !originalZone || Object.keys(changedZoneFields(originalZone, zoneForm)).length === 0}>
+                Save zone changes
+              </button>
+            </>}
+          </form>
     </dialog>
   )
 }

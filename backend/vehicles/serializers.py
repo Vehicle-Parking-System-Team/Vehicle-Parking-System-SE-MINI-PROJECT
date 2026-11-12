@@ -1,5 +1,8 @@
 from collections.abc import Mapping
 
+from django.db import transaction
+from django.utils import timezone
+
 from rest_framework import serializers
 
 from common.exceptions import Conflict
@@ -185,9 +188,23 @@ class VehicleSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        # Ownership and server-managed fields are immutable through profile updates.
+        # Serialize vehicle class updates with reservation creation, which locks
+        # the vehicle before the bay. Never rely on the pre-lock instance value.
+        from reservations.models import Reservation
+
         validated_data.pop('owner', None)
-        return super().update(instance, validated_data)
+        with transaction.atomic():
+            locked = Vehicle.objects.select_for_update().get(pk=instance.pk)
+            new_type = validated_data.get('vehicle_type', locked.vehicle_type)
+            if new_type != locked.vehicle_type:
+                incompatible = Reservation.objects.filter(
+                    vehicle_id=locked.pk,
+                    status=Reservation.Status.CONFIRMED,
+                    end_time__gt=timezone.now(),
+                ).exclude(slot__vehicle_type__in=('any', new_type))
+                if incompatible.exists():
+                    raise Conflict('Vehicle type cannot change while confirmed reservations require the current type.')
+            return super().update(locked, validated_data)
 
 
 class VehicleParkingStatusSerializer(serializers.Serializer):

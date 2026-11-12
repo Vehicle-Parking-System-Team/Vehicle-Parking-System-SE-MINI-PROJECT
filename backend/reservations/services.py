@@ -38,7 +38,7 @@ def _conflicts_with_confirmed_reservation(*, start_time, end_time, vehicle_id=No
 def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
     # Lock vehicle BEFORE slot for every reservation writer. Concurrent requests
     # for the same vehicle on different slots must serialize on PostgreSQL.
-    Vehicle.objects.select_for_update().get(pk=vehicle.pk)
+    locked_vehicle = Vehicle.objects.select_for_update().get(pk=vehicle.pk)
     locked_slot = ParkingSlot.objects.select_for_update().select_related('zone').get(pk=slot.pk)
     if start_time <= timezone.now() or end_time <= start_time:
         raise serializers.ValidationError({
@@ -48,7 +48,7 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
         raise Conflict('The selected slot is unavailable.')
     if locked_slot.status in (ParkingSlot.Status.MAINTENANCE, ParkingSlot.Status.OCCUPIED):
         raise Conflict('The selected slot is unavailable.')
-    if locked_slot.vehicle_type not in ('any', vehicle.vehicle_type):
+    if locked_slot.vehicle_type not in ('any', locked_vehicle.vehicle_type):
         raise serializers.ValidationError({'slot': 'Incompatible vehicle type.'})
     if actor.role not in ('Customer', 'Operator'):
         raise serializers.ValidationError({'actor': 'Only customers or operators can create reservations.'})
@@ -56,10 +56,10 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
         raise serializers.ValidationError({'customer': 'Customers may only reserve for themselves.'})
     if customer.role != 'Customer' or not customer.is_active or customer.status != 'active':
         raise serializers.ValidationError({'customer': 'Reservation owner must be an active customer.'})
-    if vehicle.owner_id != customer.pk:
+    if locked_vehicle.owner_id != customer.pk:
         raise serializers.ValidationError({'vehicle': 'Vehicle does not belong to this customer.'})
     if _conflicts_with_confirmed_reservation(
-        vehicle_id=vehicle.pk, start_time=start_time, end_time=end_time,
+        vehicle_id=locked_vehicle.pk, start_time=start_time, end_time=end_time,
     ):
         raise Conflict('The vehicle already has a reservation for this time window.')
     if _conflicts_with_confirmed_reservation(
@@ -67,7 +67,7 @@ def create_reservation(*, actor, customer, vehicle, slot, start_time, end_time):
     ):
         raise Conflict('The selected slot is already reserved for this time window.')
     return Reservation.objects.create(
-        customer=customer, vehicle=vehicle, slot=locked_slot,
+        customer=customer, vehicle=locked_vehicle, slot=locked_slot,
         start_time=start_time, end_time=end_time,
         status=Reservation.Status.CONFIRMED,
     )
