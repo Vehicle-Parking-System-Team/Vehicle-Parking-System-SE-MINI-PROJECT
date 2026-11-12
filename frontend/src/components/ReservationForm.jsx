@@ -3,11 +3,17 @@ import { useAuth } from '../context/useAuth'
 import { requestReservations } from '../utils/reservations'
 import { parseApiError } from '../utils/apiErrors'
 
+function localDateTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
 export default function ReservationForm({ slot, reservation, onClose, onSaved }) {
   const { fetchWithAuth } = useAuth()
   const [vehicles, setVehicles] = useState([])
   const [vehicle, setVehicle] = useState('')
-  const [start, setStart] = useState(reservation ? new Date(reservation.start_time).toISOString().slice(0, 16) : '')
+  const [start, setStart] = useState(reservation ? localDateTime(reservation.start_time) : '')
   const [duration, setDuration] = useState(reservation ? Math.round((new Date(reservation.end_time) - new Date(reservation.start_time)) / 60000) : 60)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -53,7 +59,7 @@ export default function ReservationForm({ slot, reservation, onClose, onSaved })
 
   return (
     <div className="bay-dialog-backdrop">
-      <dialog open className="bay-dialog" aria-labelledby="reservation-form-title" onCancel={onClose}>
+      <dialog open className="bay-dialog" aria-modal="true" aria-labelledby="reservation-form-title" onCancel={onClose}>
         <h2 id="reservation-form-title">{reservation ? 'Reschedule reservation' : `Book bay ${slot.slot_number}`}</h2>
         {error && <p className="bay-alert" role="alert">{error}</p>}
         <form onSubmit={submit}>
