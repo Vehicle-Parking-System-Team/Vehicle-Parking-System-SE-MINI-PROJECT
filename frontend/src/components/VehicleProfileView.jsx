@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
 import { VEHICLE_TYPES, normalizePlate, validateVehicleUpdateInput } from '../utils/vehicles'
 
-export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onVehicleUpdated }) {
+export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onVehicleUpdated, onSelectVehicle }) {
   const { fetchWithAuth, user } = useAuth()
   const [vehicles, setVehicles] = useState([])
   const [selectedId, setSelectedId] = useState(initialVehicleId || null)
@@ -291,7 +291,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
                     aria-selected={isCurrent}
                     className={`selector-item ${isCurrent ? 'selected' : ''}`}
                     id={`selector-vehicle-${v.id}`}
-                    onClick={() => setSelectedId(v.id)}
+                    onClick={() => { setSelectedId(v.id); onSelectVehicle?.(v.id) }}
                   >
                     <div className="selector-plate font-mono">{v.registration_number}</div>
                     <div className="selector-meta">

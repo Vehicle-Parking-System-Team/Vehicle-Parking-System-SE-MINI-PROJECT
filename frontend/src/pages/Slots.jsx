@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/useAuth'
 import ReservationForm from '../components/ReservationForm'
 import { requestSlots } from '../utils/slots'
+import { startPolling } from '../utils/polling'
 import {
   AVAILABILITY_REFRESH_MS,
   filterAvailability,
@@ -57,42 +58,25 @@ export default function SlotsPage({ availability = false }) {
   const [vehicleType, setVehicleType] = useState('')
 
   useEffect(() => {
-    let ignore = false
-    let pending = false
-    const controller = new AbortController()
-    function load() {
-      if (pending) return
-      pending = true
-      setLoading(true)
-      const request = availability
-        ? requestAvailability(controller.signal)
-        : requestSlots(fetchWithAuth, '', { signal: controller.signal })
-      request
-        .then((data) => {
-          if (!Array.isArray(data))
-            throw new Error('The slot list could not be read.')
-          if (!ignore) {
-            setLiveSlots(data)
-            setLoadedAt(new Date())
-            setError(null)
-          }
-        })
-        .catch((failure) => {
-          if (!ignore) setError(failure)
-        })
-        .finally(() => {
-          pending = false
-          if (!ignore) setLoading(false)
-        })
-    }
-    load()
-    const timer = availability ? setInterval(load, AVAILABILITY_REFRESH_MS) : null
-    return () => {
-      ignore = true
-      controller.abort()
-      clearInterval(timer)
-    }
-  }, [availability, fetchWithAuth, revision])
+    if (demo) return
+    return startPolling({
+      interval: AVAILABILITY_REFRESH_MS,
+      load: async (signal) => {
+        const data = availability
+          ? await requestAvailability(signal)
+          : await requestSlots(fetchWithAuth, '', { signal })
+        if (!Array.isArray(data)) throw new Error('The slot list could not be read.')
+        return data
+      },
+      onData: (data) => {
+        setLiveSlots(data)
+        setLoadedAt(new Date())
+        setError(null)
+      },
+      onError: setError,
+      onLoading: setLoading,
+    })
+  }, [availability, demo, fetchWithAuth, revision])
 
   const { floors, activeFloor, floorSlots, layout, stats } = useMemo(() => {
     const source = availability
@@ -131,7 +115,6 @@ export default function SlotsPage({ availability = false }) {
 
   function refresh() {
     setLoading(true)
-    if (!availability) setError(null)
     setMessage('')
     setRevision((value) => value + 1)
   }
@@ -242,18 +225,17 @@ export default function SlotsPage({ availability = false }) {
       {error && !demo && (
         <div className="bay-alert" role="alert">
           {error.message || 'Unable to reach the slot service.'}
-          {availability && (
-            <span>
+          <span>
               {' '}{loadedAt
                 ? 'Showing the last successful snapshot; it may be out of date.'
-                : 'No availability snapshot loaded.'}
-            </span>
-          )}
+                : 'No facility snapshot loaded.'}
+          </span>
           <button type="button" onClick={refresh} disabled={loading}>
             Try again
           </button>
         </div>
       )}
+      {!availability && !demo && <p className="bay-muted">Refreshes every 30 seconds while visible. Reserved bays are protected for confirmed arrivals.</p>}
       {availability && (
         <div className="bay-availability-filters">
           <div className="bay-availability-field">
@@ -293,9 +275,9 @@ export default function SlotsPage({ availability = false }) {
         {[
           ['Total spaces', stats.total, 'Across this floor', 'layers'],
           [
-            'Available now',
+            'Walk-in available',
             stats.AVAILABLE,
-            'Room for your next arrival',
+            'Vacant and clear of confirmed reservations',
             'arrow',
           ],
           [
@@ -549,7 +531,10 @@ export default function SlotsPage({ availability = false }) {
                   </dd>
                 </div>
               </dl>
-              {availability && user?.role === 'Customer' && selected.is_active && selected.status === 'available' && (
+              {selected.reservation_protected && (
+                <p className="bay-inspector-hint">Protected for a confirmed arrival. Unavailable to general walk-ins; future bookings are checked against their requested time window.</p>
+              )}
+              {availability && user?.role === 'Customer' && selected.is_active && ['available', 'reserved'].includes(selected.status) && (
                 <button type="button" className="bay-button bay-button-primary" onClick={() => setBookingSlot(selected)}>
                   Book this bay
                 </button>

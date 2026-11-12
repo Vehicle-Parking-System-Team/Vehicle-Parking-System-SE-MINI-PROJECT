@@ -2,6 +2,24 @@ from rest_framework import serializers
 from .models import ParkingSlot, ParkingZone
 from . import services
 from vehicles.models import Vehicle
+from reservations.queries import walk_in_reservations
+
+
+class SlotEligibilitySerializer(serializers.ModelSerializer):
+    reservation_protected = serializers.SerializerMethodField()
+    walk_in_available = serializers.SerializerMethodField()
+
+    def get_reservation_protected(self, slot):
+        if hasattr(slot, 'reservation_protected'):
+            return slot.reservation_protected
+        return walk_in_reservations().filter(slot_id=slot.pk).exists()
+
+    def get_walk_in_available(self, slot):
+        return (
+            slot.is_active and slot.zone.is_active
+            and slot.status == ParkingSlot.Status.AVAILABLE
+            and not self.get_reservation_protected(slot)
+        )
 
 
 class ParkingZoneSerializer(serializers.ModelSerializer):
@@ -25,7 +43,7 @@ class ParkingZoneSerializer(serializers.ModelSerializer):
         )
 
 
-class ParkingSlotSerializer(serializers.ModelSerializer):
+class ParkingSlotSerializer(SlotEligibilitySerializer):
     zone_name = serializers.CharField(source='zone.name', read_only=True)
     zone_is_active = serializers.BooleanField(source='zone.is_active', read_only=True)
     floor = serializers.IntegerField(required=False, min_value=-2147483648, max_value=2147483647)
@@ -41,6 +59,8 @@ class ParkingSlotSerializer(serializers.ModelSerializer):
             'slot_number',
             'floor',
             'status',
+            'reservation_protected',
+            'walk_in_available',
             'vehicle_type',
             'is_active',
             'created_at',

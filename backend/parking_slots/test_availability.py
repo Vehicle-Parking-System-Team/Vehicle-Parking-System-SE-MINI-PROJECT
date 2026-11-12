@@ -30,6 +30,7 @@ class AvailabilityTests(TestCase):
         self.assertEqual(set(response.data[0]), {
             'id', 'zone', 'zone_name', 'zone_is_active', 'slot_number',
             'floor', 'status', 'vehicle_type', 'is_active',
+            'reservation_protected', 'walk_in_available',
         })
 
     def test_all_roles_can_read(self):

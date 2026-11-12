@@ -8,7 +8,7 @@ export const STATUS = {
 
 export function slotState(slot) {
   return slot.is_active && slot.zone_is_active !== false
-    ? slot.status.toUpperCase()
+    ? slot.status === 'available' && slot.reservation_protected ? 'RESERVED' : slot.status.toUpperCase()
     : 'INACTIVE'
 }
 

@@ -5,6 +5,7 @@ from .models import ParkingSlot, ParkingZone
 from .permissions import CanManageParking
 from .serializers import ParkingSlotSerializer, ParkingZoneSerializer
 from . import services
+from .eligibility import with_reservation_eligibility
 
 
 class ParkingZoneListCreateView(generics.ListCreateAPIView):
@@ -43,13 +44,14 @@ class ParkingSlotListCreateView(generics.ListCreateAPIView):
             if slot_status not in ParkingSlot.Status.values:
                 raise serializers.ValidationError({'status': 'Choose a valid slot status.'})
             queryset = queryset.filter(status=slot_status)
-        return queryset
+        return with_reservation_eligibility(queryset)
 
 
 class ParkingSlotDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ParkingSlotSerializer
     permission_classes = [CanManageParking]
-    queryset = ParkingSlot.objects.select_related('zone').all()
+    def get_queryset(self):
+        return with_reservation_eligibility(ParkingSlot.objects.select_related('zone').all())
 
     def perform_destroy(self, instance):
         services.update_slot(instance.pk, {'is_active': False})
