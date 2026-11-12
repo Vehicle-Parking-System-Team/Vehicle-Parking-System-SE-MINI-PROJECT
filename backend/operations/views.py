@@ -1,4 +1,9 @@
 from django.db import transaction
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, ValidationError
+
+from rates.calculations import billable_hours
+from vehicles.services import filter_by_registration_number, normalize_registration_number
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -13,13 +18,14 @@ from .models import ParkingRecord
 
 from .serializers import (
     CheckInRequestSerializer,
+    CheckoutPreviewQuerySerializer,
     CheckOutRequestSerializer,
     CheckOutRecordSerializer,
     ParkingHistoryQuerySerializer,
     ParkingHistoryRecordSerializer,
     ParkingRecordSerializer,
 )
-from .services import check_in_vehicle, check_out_vehicle
+from .services import check_in_vehicle, check_out_vehicle, quote_checkout
 
 
 class VehicleCheckInView(APIView):
@@ -51,6 +57,45 @@ class VehicleCheckOutView(APIView):
 
     permission_classes = [IsAuthenticated, CanManageParking]
 
+    def get(self, request):
+        query = CheckoutPreviewQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        records = ParkingRecord.objects.select_related('vehicle', 'slot').filter(
+            status=ParkingRecord.Status.ACTIVE, check_out_time__isnull=True,
+        )
+        plate = query.validated_data.get('registration_number')
+        if plate:
+            records = filter_by_registration_number(
+                records, normalize_registration_number(plate), 'vehicle__registration_number',
+            )
+        else:
+            records = records.filter(slot__slot_number__iexact=query.validated_data['slot_number'])
+
+        matches = list(records[:2])
+        if not matches:
+            raise NotFound('No active parking session matches that plate or bay.')
+        if len(matches) > 1:
+            raise ValidationError({'slot_number': 'Multiple zones use this bay number. Search by plate instead.'})
+
+        record = matches[0]
+        now = timezone.now()
+        amount, rate, _ = quote_checkout(record, record.vehicle, now)
+        duration = now - record.check_in_time
+        return Response({
+            'id': record.pk,
+            'registration_number': record.vehicle.registration_number,
+            'slot_number': record.slot_number_snapshot,
+            'zone_name': record.zone_name_snapshot,
+            'check_in_time': record.check_in_time,
+            'duration_seconds': int(duration.total_seconds()),
+            'billable_hours': billable_hours(duration, rate.grace_period_minutes),
+            'hourly_rate': str(rate.hourly_rate),
+            'vehicle_multiplier': str(rate.vehicle_multiplier),
+            'grace_period_minutes': rate.grace_period_minutes,
+            'fee_amount': str(amount),
+            'currency': 'INR',
+        })
+
     def post(self, request):
         request_serializer = CheckOutRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
@@ -62,6 +107,7 @@ class VehicleCheckOutView(APIView):
                     request_serializer.validated_data["registration_number"]
                 ),
                 operator=request.user,
+                expected_record_id=request_serializer.validated_data.get("expected_record_id"),
             )
             receipt, _ = generate_receipt(record)
             response_data = CheckOutRecordSerializer(record).data
@@ -104,8 +150,8 @@ class ParkingHistoryView(APIView):
 
         registration_number = filters.get("registration_number")
         if registration_number:
-            records = records.filter(
-                registration_number_snapshot=registration_number
+            records = filter_by_registration_number(
+                records, registration_number, 'registration_number_snapshot',
             )
 
         vehicle_id = filters.get("vehicle_id")

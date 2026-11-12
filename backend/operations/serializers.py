@@ -36,6 +36,7 @@ class CheckInRequestSerializer(serializers.Serializer):
 
 
 class CheckOutRequestSerializer(serializers.Serializer):
+    expected_record_id = serializers.IntegerField(required=False, min_value=1)
     registration_number = serializers.CharField(
         max_length=20,
         trim_whitespace=True,
@@ -52,11 +53,21 @@ class CheckOutRequestSerializer(serializers.Serializer):
         return plate
 
     def validate(self, attrs):
-        extra_fields = set(self.initial_data) - {'registration_number'}
+        extra_fields = set(self.initial_data) - set(self.fields)
         if extra_fields:
             raise serializers.ValidationError({
                 field: 'This field is not accepted.' for field in extra_fields
             })
+        return attrs
+
+
+class CheckoutPreviewQuerySerializer(serializers.Serializer):
+    registration_number = serializers.CharField(required=False, max_length=20)
+    slot_number = serializers.CharField(required=False, max_length=30)
+
+    def validate(self, attrs):
+        if len(attrs) != 1:
+            raise serializers.ValidationError('Enter either a plate or a bay number.')
         return attrs
 
 

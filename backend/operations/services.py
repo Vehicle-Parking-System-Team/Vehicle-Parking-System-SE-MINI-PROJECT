@@ -16,7 +16,7 @@ from parking_slots.permissions import can_manage_parking
 from rates.calculations import calculate_parking_fee
 from rates.models import ParkingRate
 from vehicles.models import Vehicle
-from vehicles.services import normalize_registration_number
+from vehicles.services import filter_by_registration_number, normalize_registration_number
 
 from .models import ParkingRecord
 from notifications.services import schedule_parking_notification
@@ -149,11 +149,9 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
 
     # Lock the vehicle row to serialize same-vehicle check-ins on
     # databases that support SELECT FOR UPDATE.
-    vehicle = (
-        Vehicle.objects.select_for_update()
-        .filter(registration_number=plate)
-        .first()
-    )
+    vehicle = filter_by_registration_number(
+        Vehicle.objects.select_for_update(), plate,
+    ).first()
 
     if vehicle is None:
         raise NotFound(
@@ -358,8 +356,25 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
     )
 
 
+def quote_checkout(record, vehicle, exit_time):
+    """Calculate a charge using the current tariff for the check-in vehicle class."""
+    session_vehicle_type = (
+        record.vehicle_type_at_checkin_snapshot or vehicle.vehicle_type
+    )
+    rate = ParkingRate.objects.filter(vehicle_type=session_vehicle_type).first()
+    if rate is None:
+        raise Conflict('Configure a parking rate for this vehicle type before checkout.')
+    amount = calculate_parking_fee(
+        exit_time - record.check_in_time,
+        rate.hourly_rate,
+        rate.grace_period_minutes,
+        rate.vehicle_multiplier,
+    )
+    return amount, rate, session_vehicle_type
+
+
 @transaction.atomic
-def check_out_vehicle(registration_number, operator):
+def check_out_vehicle(registration_number, operator, expected_record_id=None):
     if not can_manage_parking(operator):
         raise PermissionDenied('An active Admin or Operator account is required.')
     plate = normalize_registration_number(registration_number)
@@ -367,7 +382,9 @@ def check_out_vehicle(registration_number, operator):
         raise ValidationError({'registration_number': 'Use a valid registration number.'})
 
     # Match check-in's vehicle-first order. Never lock a slot before its zone.
-    vehicle = Vehicle.objects.select_for_update().filter(registration_number=plate).first()
+    vehicle = filter_by_registration_number(
+        Vehicle.objects.select_for_update(), plate,
+    ).first()
     if vehicle is None:
         raise NotFound('No active parking record was found for this vehicle.')
     record = ParkingRecord.objects.select_for_update().filter(
@@ -378,23 +395,11 @@ def check_out_vehicle(registration_number, operator):
     if record.check_out_time is not None:
         raise Conflict('The active parking record already has a checkout timestamp.')
 
-    # One read captures the tariff tuple; snapshots preserve it if the admin edits later.
-    # Tariff writers need not wait for checkout to finish.
-    session_vehicle_type = (
-        record.vehicle_type_at_checkin_snapshot or vehicle.vehicle_type
-    )
-    rate = ParkingRate.objects.filter(
-        vehicle_type=session_vehicle_type
-    ).first()
-    if rate is None:
-        raise Conflict('Configure a parking rate for this vehicle type before checkout.')
+    if expected_record_id is not None and record.pk != expected_record_id:
+        raise Conflict('The active session has changed. Look it up again before checking out.')
+
     exit_time = timezone.now()
-    amount = calculate_parking_fee(
-        exit_time - record.check_in_time,
-        rate.hourly_rate,
-        rate.grace_period_minutes,
-        rate.vehicle_multiplier,
-    )
+    amount, rate, session_vehicle_type = quote_checkout(record, vehicle, exit_time)
     record.fee_amount = amount
     record.hourly_rate_snapshot = rate.hourly_rate
     record.vehicle_multiplier_snapshot = rate.vehicle_multiplier
