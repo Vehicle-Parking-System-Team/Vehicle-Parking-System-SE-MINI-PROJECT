@@ -28,6 +28,18 @@ test('summary reconciles to filtered rows and handles empty results', () => {
   assert.equal(all.total, all.AVAILABLE + all.OCCUPIED + all.RESERVED + all.MAINTENANCE)
 })
 
+test('management reservation protection counts as reserved while preserving physical occupancy', () => {
+  const summary = summarizeSlots([
+    { ...slots[0], reservation_protected: true, walk_in_available: false },
+    { ...slots[1], reservation_protected: true, walk_in_available: false },
+    slots[3],
+  ])
+  assert.equal(summary.AVAILABLE, 0)
+  assert.equal(summary.RESERVED, 1)
+  assert.equal(summary.OCCUPIED, 1)
+  assert.equal(summary.MAINTENANCE, 1)
+})
+
 test('public request omits credentials, bypasses cache and accepts cancellation', async (t) => {
   const controller = new AbortController()
   t.mock.method(globalThis, 'fetch', async (url, options) => {

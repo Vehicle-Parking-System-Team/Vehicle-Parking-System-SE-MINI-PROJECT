@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useWorkspaceNavigation } from '../hooks/useWorkspaceNavigation'
 import { useAuth } from '../context/useAuth'
 import { VehicleRegistrationForm } from './VehicleRegistrationForm'
 import { VehicleProfileView } from './VehicleProfileView'
@@ -18,10 +18,6 @@ export function AuthenticatedView() {
   const { user, logout, isLoading } = useAuth()
   const canManage = isRoleAuthorized(user?.role, [ROLES.ADMIN, ROLES.OPERATOR])
   const isAdmin = isRoleAuthorized(user?.role, [ROLES.ADMIN])
-  const [page, setPage] = useState(isAdmin ? 'dashboard' : canManage ? 'facility' : 'vehicles')
-  const [selectedVehicleId, setSelectedVehicleId] = useState(null)
-
-  const activePage = page === 'facility' && !canManage ? 'vehicles' : page
   const navigation = [
     ...(isAdmin ? [['dashboard', 'Admin dashboard', 'layers']] : []),
     ['availability', 'Parking availability', 'map'],
@@ -39,9 +35,12 @@ export function AuthenticatedView() {
     ['account', 'Account', 'user'],
   ]
 
+  const { page: activePage, vehicleId: selectedVehicleId, navigate: setPage } = useWorkspaceNavigation(
+    navigation, isAdmin ? 'dashboard' : canManage ? 'facility' : 'vehicles',
+  )
+
   const handleNavigateToProfile = (vehicleId) => {
-    setSelectedVehicleId(vehicleId)
-    setPage('profiles')
+    setPage('profiles', vehicleId)
   }
 
   return (
@@ -182,7 +181,9 @@ export function AuthenticatedView() {
           ) : activePage === 'profiles' ? (
             <section className="bay-legacy-page" id="vehicle-profile-section">
               <VehicleProfileView
+                key={selectedVehicleId ?? 'own-vehicles'}
                 initialVehicleId={selectedVehicleId}
+                onSelectVehicle={handleNavigateToProfile}
                 onBackToRegistration={() => setPage('vehicles')}
               />
             </section>
