@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { AuthContext } from './authContextDef'
 import { clearStoredAuthSession } from '../utils/authSession'
+import { createTokenRefreshCoordinator } from '../utils/tokenRefresh'
 
 const API_BASE = '/api/auth'
 const TOKEN_KEY = 'vps_access_token'
 const REFRESH_KEY = 'vps_refresh_token'
 const USER_KEY = 'vps_user'
-
-// A single refresh operation is shared by all requests that receive 401 together.
-let refreshPromise = null
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -21,12 +19,18 @@ export function AuthProvider({ children }) {
   })
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem(TOKEN_KEY) || null)
   const [refreshToken, setRefreshToken] = useState(() => localStorage.getItem(REFRESH_KEY) || null)
+  // Refs are the source of truth for requests that outlive the render/callback
+  // that created them. This prevents delayed 401s from reusing rotated tokens.
+  const accessTokenRef = useRef(accessToken)
+  const refreshTokenRef = useRef(refreshToken)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
 
   // Clear all credentials from state and storage
   const clearSession = useCallback(() => {
     setUser(null)
+    accessTokenRef.current = null
+    refreshTokenRef.current = null
     setAccessToken(null)
     setRefreshToken(null)
     setError(null)
@@ -35,6 +39,8 @@ export function AuthProvider({ children }) {
 
   // Save credentials to state and storage
   const saveSession = useCallback((tokens, userData) => {
+    accessTokenRef.current = tokens.access
+    refreshTokenRef.current = tokens.refresh
     setAccessToken(tokens.access)
     setRefreshToken(tokens.refresh)
     setUser(userData)
@@ -119,7 +125,7 @@ export function AuthProvider({ children }) {
   // Secure logout invalidating tokens on server (US-01 / FR-15 / FR-17)
   const logout = useCallback(async () => {
     setIsLoading(true)
-    const currentRefresh = refreshToken
+    const currentRefresh = refreshTokenRef.current
 
     try {
       if (currentRefresh) {
@@ -137,57 +143,64 @@ export function AuthProvider({ children }) {
       clearSession()
       setIsLoading(false)
     }
-  }, [refreshToken, clearSession])
+  }, [clearSession])
 
-  // Refresh access token using current refresh token
-  const refreshTokens = useCallback(async () => {
-    if (refreshPromise) return refreshPromise
+  // The coordinator deduplicates overlapping refreshes and, importantly,
+  // recognizes delayed 401s whose request used an already-rotated access token.
+  const refreshCoordinatorRef = useRef(null)
+  if (!refreshCoordinatorRef.current) {
+    refreshCoordinatorRef.current = createTokenRefreshCoordinator({
+      getAccessToken: () => accessTokenRef.current,
+      getRefreshToken: () => refreshTokenRef.current,
+      clearSession,
+      refresh: async (refreshCredential) => {
+        try {
+          const response = await fetch(`${API_BASE}/token/refresh/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh: refreshCredential }),
+          })
+          const data = await response.json().catch(() => ({}))
 
-    if (!refreshToken) {
-      clearSession()
-      return null
-    }
+          // A login/logout may have replaced the session while this request
+          // was in flight. Never overwrite the newer session with stale tokens.
+          if (refreshTokenRef.current !== refreshCredential) {
+            return accessTokenRef.current
+          }
 
-    refreshPromise = (async () => {
-      try {
-        const response = await fetch(`${API_BASE}/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
-        })
+          if (!response.ok || !data.access) {
+            clearSession()
+            return null
+          }
 
-        const data = await response.json().catch(() => ({}))
+          accessTokenRef.current = data.access
+          setAccessToken(data.access)
+          localStorage.setItem(TOKEN_KEY, data.access)
 
-        if (!response.ok) {
-          clearSession()
+          if (data.refresh) {
+            refreshTokenRef.current = data.refresh
+            setRefreshToken(data.refresh)
+            localStorage.setItem(REFRESH_KEY, data.refresh)
+          }
+
+          return data.access
+        } catch {
+          if (refreshTokenRef.current === refreshCredential) clearSession()
           return null
         }
+      },
+    })
+  }
 
-        setAccessToken(data.access)
-        localStorage.setItem(TOKEN_KEY, data.access)
-
-        if (data.refresh) {
-          setRefreshToken(data.refresh)
-          localStorage.setItem(REFRESH_KEY, data.refresh)
-        }
-
-        return data.access
-      } catch {
-        clearSession()
-        return null
-      }
-    })()
-
-    try {
-      return await refreshPromise
-    } finally {
-      refreshPromise = null
-    }
-  }, [refreshToken, clearSession])
+  const refreshTokens = useCallback(
+    (failedAccessToken = accessTokenRef.current) =>
+      refreshCoordinatorRef.current(failedAccessToken),
+    [],
+  )
 
   // Authenticated fetch wrapper automatically injecting Bearer header and refreshing if 401
   const fetchWithAuth = useCallback(async (url, options = {}) => {
-    let token = accessToken
+    let token = accessTokenRef.current
     if (!token) throw new Error('No authentication token available.')
 
     const headers = {
@@ -197,8 +210,10 @@ export function AuthProvider({ children }) {
 
     let response = await fetch(url, { ...options, headers })
 
-    if (response.status === 401 && refreshToken) {
-      token = await refreshTokens()
+    if (response.status === 401 && refreshTokenRef.current) {
+      // If another request already rotated the token, retry with that newer
+      // access token instead of submitting the old refresh token a second time.
+      token = await refreshTokens(token)
       if (token) {
         headers.Authorization = `Bearer ${token}`
         response = await fetch(url, { ...options, headers })
@@ -206,7 +221,7 @@ export function AuthProvider({ children }) {
     }
 
     return response
-  }, [accessToken, refreshToken, refreshTokens])
+  }, [refreshTokens])
 
   const clearError = useCallback(() => setError(null), [])
 
