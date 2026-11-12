@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { AuthContext } from './authContextDef'
 import { clearStoredAuthSession } from '../utils/authSession'
 import { createTokenRefreshCoordinator } from '../utils/tokenRefresh'
