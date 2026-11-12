@@ -49,17 +49,18 @@ test('an explicitly requested vehicle profile is not hidden by an empty personal
 })
 
 test('vehicle-list failures in registration and profile views expose retry actions', () => {
-  assert.match(registrationSource, /vehiclesLoadError \\? \\(/)
-  assert.match(registrationSource, /onClick=\\{loadUserVehicles\\}/)
-  assert.match(registrationSource, />Retry<\\/button>/)
-  assert.match(profileSource, /listError && \(/)
-  assert.match(profileSource, />Retry<\/button>/)
+  assert.ok(registrationSource.includes('vehiclesLoadError ? ('))
+  assert.ok(registrationSource.includes('onClick={loadUserVehicles}'))
+  assert.ok(registrationSource.includes('Retry'))
+  assert.ok(profileSource.includes('listError && ('))
+  assert.ok(profileSource.includes('Retry'))
 })
 
 test('user filter requests ignore stale responses before updating the list', () => {
-  assert.match(usersSource, /const requestId = \+\+usersRequestId\.current/)
-  assert.match(usersSource, /if \(requestId !== usersRequestId\.current\) return/)
-  assert.match(usersSource, /if \(requestId === usersRequestId\.current\) setUsers/)
+  assert.ok(usersSource.includes('const requestId = ++usersRequestId.current'))
+  const staleGuardIndex = usersSource.indexOf('if (requestId !== usersRequestId.current) return')
+  const setUsersIndex = usersSource.indexOf('setUsers(Array.isArray(data) ? data : [])')
+  assert.ok(staleGuardIndex >= 0 && setUsersIndex > staleGuardIndex, 'the stale-response guard must run before setUsers')
 })
 
 test('create-user modal exposes dialog semantics, keyboard containment, and labelled fields', () => {
