@@ -76,7 +76,7 @@ class LogoutView(APIView):
     US-01 / FR-15 / FR-17.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = LogoutSerializer(data=request.data)
@@ -89,14 +89,16 @@ class LogoutView(APIView):
         except TokenError:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        # Verify token ownership: the token must belong to request.user
+        # The refresh token is the logout credential. Do not require an access
+        # token: logout must still work after the short-lived access token expires.
         token_user_id = token.get(api_settings.USER_ID_CLAIM)
-        if str(token_user_id) != str(request.user.pk):
+        try:
+            user = User.objects.get(pk=token_user_id)
+        except (User.DoesNotExist, TypeError, ValueError):
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
-        # Verify token version: token must have a valid int token_version matching user.token_version
         token_version = token.get('token_version')
-        if type(token_version) is not int or token_version != request.user.token_version:
+        if type(token_version) is not int or token_version != user.token_version:
             raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
         with transaction.atomic():
@@ -106,7 +108,6 @@ class LogoutView(APIView):
                 raise exceptions.AuthenticationFailed('Invalid or already revoked token.')
 
             # Revoke existing access tokens immediately by incrementing token_version
-            user = request.user
             user.token_version += 1
             user.save(update_fields=['token_version'])
             record_audit_event(
@@ -288,7 +289,14 @@ class AdminUserDetailView(APIView):
                     user.token_version += 1
                 user.is_active = new_status == 'active'
             if role_changed:
+                was_admin = user.role == 'Admin'
                 user.role = new_role
+                if was_admin and new_role != 'Admin':
+                    # Domain-role demotion must also remove Django's independent
+                    # staff/superuser privileges and revoke every issued token.
+                    user.is_staff = False
+                    user.is_superuser = False
+                    user.token_version += 1
             if status_changed or role_changed:
                 user.save()
                 record_audit_event(
