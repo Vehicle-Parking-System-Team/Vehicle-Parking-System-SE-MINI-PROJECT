@@ -49,8 +49,9 @@ test('an explicitly requested vehicle profile is not hidden by an empty personal
 })
 
 test('vehicle-list failures in registration and profile views expose retry actions', () => {
-  assert.match(registrationSource, /vehiclesLoadError && \(/)
-  assert.match(registrationSource, /onClick=\{loadUserVehicles\}>Retry<\/button>/)
+  assert.match(registrationSource, /vehiclesLoadError \\? \\(/)
+  assert.match(registrationSource, /onClick=\\{loadUserVehicles\\}/)
+  assert.match(registrationSource, />Retry<\\/button>/)
   assert.match(profileSource, /listError && \(/)
   assert.match(profileSource, />Retry<\/button>/)
 })
