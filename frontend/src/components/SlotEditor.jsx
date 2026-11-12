@@ -4,7 +4,7 @@ import { VEHICLE_TYPES } from '../utils/vehicles'
 import { requestSlots, requestZones } from '../utils/slots'
 import BayIcon from './BayIcon'
 
-export default function SlotEditor({ slot, onClose, onSaved }) {
+export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
   const { fetchWithAuth } = useAuth()
   const dialogRef = useRef(null)
   const [form, setForm] = useState({
@@ -16,6 +16,8 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
   })
   const [zones, setZones] = useState([])
   const [zoneName, setZoneName] = useState('')
+  const [selectedZone, setSelectedZone] = useState('')
+  const [zoneForm, setZoneForm] = useState({ name: '', description: '', is_active: true })
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   useEffect(() => {
@@ -38,6 +40,35 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
       ignore = true
     }
   }, [fetchWithAuth])
+
+  function chooseZone(id) {
+    setSelectedZone(id)
+    const zone = zones.find(item => String(item.id) === id)
+    if (zone) setZoneForm({
+      name: zone.name, description: zone.description || '', is_active: zone.is_active,
+    })
+  }
+
+  async function updateZone(event) {
+    event.preventDefault()
+    if (!selectedZone || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const saved = await requestZones(fetchWithAuth, `${selectedZone}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(zoneForm),
+      })
+      setZones(current => current.map(zone => zone.id === saved.id ? saved : zone))
+      // Zone deactivation also deactivates its bays. Refresh the facility view.
+      if (onZoneSaved) onZoneSaved()
+    } catch (failure) {
+      setError(failure)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   async function createZone() {
     if (!zoneName.trim() || saving) return
@@ -243,6 +274,35 @@ export default function SlotEditor({ slot, onClose, onSaved }) {
           >
             Create zone
           </button>
+          <section className="bay-zone-management" aria-label="Zone lifecycle">
+            <h3>Manage a zone</h3>
+            <label className="bay-field" htmlFor="manage-zone-select">Select zone
+              <select id="manage-zone-select" value={selectedZone} onChange={event => chooseZone(event.target.value)}>
+                <option value="">Choose a zone to edit</option>
+                {zones.map(zone => <option key={zone.id} value={zone.id}>{zone.name}{zone.is_active ? '' : ' (inactive)'}</option>)}
+              </select>
+            </label>
+            {selectedZone && <>
+              <label className="bay-field" htmlFor="manage-zone-name">Zone name
+                <input id="manage-zone-name" required maxLength={100} value={zoneForm.name}
+                  onChange={event => setZoneForm(current => ({ ...current, name: event.target.value }))} />
+              </label>
+              <label className="bay-field" htmlFor="manage-zone-description">Description
+                <textarea id="manage-zone-description" value={zoneForm.description}
+                  onChange={event => setZoneForm(current => ({ ...current, description: event.target.value }))} />
+              </label>
+              <label className="bay-reactivate">
+                <input type="checkbox" checked={zoneForm.is_active}
+                  onChange={event => setZoneForm(current => ({ ...current, is_active: event.target.checked }))} />
+                Zone active
+              </label>
+              <p className="bay-muted">Deactivating a zone disables its bays. Reactivating the zone does not automatically reactivate bays. Confirmed bookings prevent deactivation.</p>
+              <button type="button" className="bay-button bay-button-quiet"
+                disabled={saving || !zoneForm.name.trim()} onClick={updateZone}>
+                Save zone changes
+              </button>
+            </>}
+          </section>
           {slot && !slot.is_active && (
             <label className="bay-reactivate">
               <input

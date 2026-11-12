@@ -23,6 +23,19 @@ def _has_active_records(slot_ids):
     ).exists()
 
 
+def _has_future_confirmed_reservations(slot_ids):
+    """Future windows only; expired, cancelled and fulfilled bookings do not block."""
+    if not slot_ids:
+        return False
+    from reservations.models import Reservation
+
+    return Reservation.objects.filter(
+        slot_id__in=slot_ids,
+        status=Reservation.Status.CONFIRMED,
+        end_time__gt=timezone.now(),
+    ).exists()
+
+
 def _lock_slot(slot_id, new_zone_id=None):
     # Lock parents before children, also when a zone is deactivated or a bay moved.
     zone_id = get_object_or_404(ParkingSlot, pk=slot_id).zone_id
@@ -72,6 +85,8 @@ def update_slot(slot_id, values):
     slot, zones = _lock_slot(slot_id, target_zone.pk if target_zone else None)
     changed = any(getattr(slot, key) != value for key, value in values.items())
     protected = slot.status in PROTECTED_STATES or _has_active_records([slot.pk])
+    if changed and _has_future_confirmed_reservations([slot.pk]):
+        raise Conflict('This bay has a confirmed reservation and cannot be changed or deactivated.')
     if protected and (changed or values.get('is_active') is False):
         raise Conflict('A bay with an active record or occupied/reserved state cannot be changed or deactivated.')
     zone = zones[target_zone.pk] if target_zone else slot.zone
@@ -89,6 +104,8 @@ def update_zone(zone_id, values, actor=None, request=None):
     affected_slot_count = 0
     if values.get('is_active') is False:
         children = list(zone.slots.select_for_update().order_by('pk'))
+        if _has_future_confirmed_reservations([slot.pk for slot in children]):
+            raise Conflict('A zone with confirmed reservations cannot be deactivated.')
         if any(slot.status in PROTECTED_STATES for slot in children) or _has_active_records(
             [slot.pk for slot in children]
         ):
@@ -117,6 +134,8 @@ def set_maintenance(slot_id, enabled, actor=None, request=None):
     slot, _ = _lock_slot(slot_id)
     expected = ParkingSlot.Status.AVAILABLE if enabled else ParkingSlot.Status.MAINTENANCE
     target = ParkingSlot.Status.MAINTENANCE if enabled else ParkingSlot.Status.AVAILABLE
+    if enabled and _has_future_confirmed_reservations([slot.pk]):
+        raise Conflict('A bay with confirmed reservations cannot enter maintenance.')
     slot = _transition(slot, expected, target)
     record_audit_event(
         'parking_slot.maintenance_changed', actor=actor, request=request,
