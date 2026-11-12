@@ -7,6 +7,7 @@ import SlotsPage from '../pages/Slots'
 import SearchPage from '../pages/Search'
 import ProfilePage from '../pages/Profile'
 import UsersPage from '../pages/Users'
+import ParkingOperations from '../pages/ParkingOperations'
 import AdminDashboard from '../pages/AdminDashboard'
 import Notifications from './Notifications'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
@@ -23,7 +24,12 @@ export function AuthenticatedView() {
   const navigation = [
     ...(isAdmin ? [['dashboard', 'Admin dashboard', 'layers']] : []),
     ['availability', 'Parking availability', 'map'],
-    ...(canManage ? [['facility', 'Facility overview', 'map']] : []),
+    ...(canManage ? [
+      ['facility', 'Facility overview', 'map'],
+      ['check-in', 'Staff check-in', 'car'],
+      ['check-out', 'Staff checkout', 'exit'],
+      ['parking-history', 'Parking session history', 'layers'],
+    ] : []),
     ...(isAdmin ? [['users', 'User management', 'user']] : []),
     ['vehicles', 'My vehicles', 'car'],
     ['profiles', 'Vehicle profiles', 'edit'],
@@ -147,6 +153,10 @@ export function AuthenticatedView() {
           ) : activePage === 'facility' ? (
             <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
               <SlotsPage key="management" />
+            </ProtectedRoute>
+          ) : ['check-in', 'check-out', 'parking-history'].includes(activePage) ? (
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
+              <ParkingOperations page={activePage} />
             </ProtectedRoute>
           ) : activePage === 'vehicles' ? (
             <section className="bay-legacy-page" id="authenticated-container">
