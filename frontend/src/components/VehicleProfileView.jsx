@@ -259,7 +259,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
           <div className="btn-spinner" aria-hidden="true"></div>
           <p>Loading registered fleet records...</p>
         </div>
-      ) : vehicles.length === 0 && !initialVehicleId ? (
+      ) : vehicles.length === 0 && !initialVehicleId && !listError ? (
         <div className="profile-empty-card" id="profile-empty-state">
           <div className="empty-icon">🚗</div>
           <h3>No Vehicles Registered</h3>
