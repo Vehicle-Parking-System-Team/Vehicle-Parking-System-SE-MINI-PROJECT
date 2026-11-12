@@ -8,6 +8,7 @@ import SearchPage from '../pages/Search'
 import ProfilePage from '../pages/Profile'
 import UsersPage from '../pages/Users'
 import ParkingOperations from '../pages/ParkingOperations'
+import { ReceiptsPage, TariffsPage } from '../pages/Billing'
 import AdminDashboard from '../pages/AdminDashboard'
 import Notifications from './Notifications'
 import AuditLog from '../pages/AuditLog'
@@ -29,6 +30,8 @@ export function AuthenticatedView() {
       ['check-out', 'Staff checkout', 'exit'],
       ['parking-history', 'Parking session history', 'layers'],
     ] : []),
+    ...(isAdmin ? [['tariffs', 'Tariff configuration', 'layers']] : []),
+    ['receipts', 'Receipts', 'layers'],
     ...(isAdmin ? [['users', 'User management', 'user']] : []),
     ['vehicles', 'My vehicles', 'car'],
     ['reservations', 'My reservations', 'layers'],
@@ -161,6 +164,10 @@ export function AuthenticatedView() {
             <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
               <ParkingOperations page={activePage} />
             </ProtectedRoute>
+          ) : activePage === 'tariffs' ? (
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}><TariffsPage /></ProtectedRoute>
+          ) : activePage === 'receipts' ? (
+            <ReceiptsPage />
           ) : activePage === 'reservations' ? (
             <ReservationsPage />
           ) : activePage === 'vehicles' ? (

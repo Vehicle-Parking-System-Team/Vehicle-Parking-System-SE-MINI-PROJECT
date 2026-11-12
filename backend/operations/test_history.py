@@ -10,6 +10,7 @@ from operations.models import ParkingRecord
 from operations.services import check_in_vehicle
 from parking_slots.models import ParkingSlot, ParkingZone
 from vehicles.models import Vehicle
+from rates.models import ParkingRate
 
 
 User = get_user_model()
@@ -45,6 +46,7 @@ class ParkingHistoryAPITests(TestCase):
             vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT,
             owner=self.operator,
         )
+        ParkingRate.objects.create(vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, hourly_rate='40.00')
         self.url = "/api/parking/history/"
 
     def create_completed_record(

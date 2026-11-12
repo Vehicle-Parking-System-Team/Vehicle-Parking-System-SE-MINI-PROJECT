@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from parking_slots.models import ParkingSlot, ParkingZone
 from operations.models import ParkingRecord
+from rates.models import ParkingRate
 from vehicles.models import Vehicle
 from .models import Reservation
 
@@ -119,6 +120,7 @@ class ReservationModificationTests(TestCase):
         self.assertEqual(self.reservation.status, Reservation.Status.CONFIRMED)
 
     def test_early_check_in_blocks_both_patch_and_delete(self):
+        ParkingRate.objects.create(vehicle_type='Compact', hourly_rate='40.00')
         # The booked window is still two days away when check-in occurs.
         self.client.force_authenticate(user=self.operator)
         response = self.client.post('/api/parking/check-in/', {

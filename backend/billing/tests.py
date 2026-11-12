@@ -85,6 +85,22 @@ class BillingReceiptAPITests(TestCase):
             payload = {'record_id': self.record.pk}
         return self.client.post(RECEIPTS_URL, payload, format='json')
 
+    def test_receipt_list_is_scoped_to_customer_and_paginated(self):
+        self.assertEqual(self.generate().status_code, 201)
+        own = self.client.get(RECEIPTS_URL)
+        self.assertEqual(own.status_code, 200)
+        self.assertEqual(own.data['count'], 1)
+        self.assertEqual(own.data['results'][0]['parking_record_id'], self.record.pk)
+
+        self.client.force_authenticate(user=self.other_customer)
+        other = self.client.get(RECEIPTS_URL)
+        self.assertEqual(other.status_code, 200)
+        self.assertEqual(other.data['count'], 0)
+
+        self.client.force_authenticate(user=self.operator)
+        staff = self.client.get(RECEIPTS_URL)
+        self.assertEqual(staff.data['count'], 1)
+
     def test_checkout_api_generates_receipt_atomically(self):
         active = check_in_vehicle(
             self.vehicle.registration_number,

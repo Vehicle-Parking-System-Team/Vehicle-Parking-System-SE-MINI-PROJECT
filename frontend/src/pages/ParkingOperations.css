@@ -56,6 +56,20 @@
   gap: .75rem;
   margin-top: 1rem;
 }
+.billing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgb(0 0 0 / 65%);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+.billing-dialog {
+  width: min(100%, 32rem);
+  max-height: 90vh;
+  overflow: auto;
+}
 @media print {
   body:has(.parking-entry-ticket) * {
     visibility: hidden;

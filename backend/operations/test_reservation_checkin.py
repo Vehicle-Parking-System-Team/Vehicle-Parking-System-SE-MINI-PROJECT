@@ -9,6 +9,7 @@ from operations.models import ParkingRecord
 from parking_slots.models import ParkingSlot, ParkingZone
 from reservations.models import Reservation
 from vehicles.models import Vehicle
+from rates.models import ParkingRate
 
 
 User = get_user_model()
@@ -35,6 +36,7 @@ class ReservationCheckInTests(TestCase):
             registration_number="KA-01-AB-9001",
             vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, owner=self.customer,
         )
+        ParkingRate.objects.create(vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, hourly_rate='40.00')
         now = timezone.now()
         self.reservation = Reservation.objects.create(
             customer=self.customer, vehicle=self.vehicle, slot=self.slot,

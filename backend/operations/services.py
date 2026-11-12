@@ -158,6 +158,11 @@ def check_in_vehicle(registration_number, operator, slot_id=None, reservation_co
     # 4. Reject a duplicate check-in and return existing session details.
     _raise_duplicate_active_record_conflict(vehicle)
 
+    if not ParkingRate.objects.filter(vehicle_type=vehicle.vehicle_type).exists():
+        raise Conflict(
+            'Configure a parking rate for this vehicle type before check-in.'
+        )
+
     reservation = None
     if reservation_code is not None:
         # Reservation codes are exposed as RES-<id> in reservation details.

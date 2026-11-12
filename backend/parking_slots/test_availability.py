@@ -3,6 +3,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from operations.services import check_in_vehicle
+from rates.models import ParkingRate
 from vehicles.models import Vehicle
 from .models import ParkingSlot, ParkingZone
 
@@ -102,6 +103,7 @@ class AvailabilityTests(TestCase):
         self.assertIsNone(self.client.get(URL, {'zone': self.zone.pk}).data[0]['floor'])
 
     def test_check_in_refreshes_occupancy_without_exposing_vehicle(self):
+        ParkingRate.objects.create(vehicle_type='Compact', hourly_rate='40.00')
         operator = get_user_model().objects.create_user(username='operator', role='Operator')
         vehicle = Vehicle.objects.create(
             registration_number='KA01AB1234', vehicle_type='Compact', owner=operator,

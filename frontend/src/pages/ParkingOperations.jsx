@@ -3,6 +3,7 @@ import QRCode from 'qrcode'
 import { useAuth } from '../context/useAuth'
 import { parseApiError } from '../utils/apiErrors'
 import { requestSlots } from '../utils/slots'
+import { ReceiptCard } from './Billing'
 import './ParkingOperations.css'
 
 async function request(fetchWithAuth, path, body) {
@@ -227,7 +228,7 @@ function Checkout({ fetchWithAuth }) {
         </article>
       )}
       {receipt && (
-        <article className="parking-result">
+        <><article className="parking-result">
           <h2>Checkout complete · Receipt {receipt.invoice_number}</h2>
           <p>Bay {receipt.slot_number} released · {receipt.registration_number}</p>
           <p>Receipt reference <code>{receipt.receipt_id}</code></p>
@@ -240,6 +241,7 @@ function Checkout({ fetchWithAuth }) {
             <dt>Payment status</dt><dd>{receipt.payment_status}</dd>
           </dl>
         </article>
+        <ReceiptCard receipt={receipt} fetchWithAuth={fetchWithAuth} canManage onSaved={setReceipt} /></>
       )}
     </>
   )

@@ -593,6 +593,9 @@ class CheckInConcurrencyTests(TransactionTestCase):
     reset_sequences = True
 
     def setUp(self):
+        ParkingRate.objects.create(
+            vehicle_type=Vehicle.VEHICLE_TYPE_COMPACT, hourly_rate="40.00",
+        )
         self.operator = User.objects.create_user(
             username="concurrent-operator",
             password="test-password-123",
