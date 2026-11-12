@@ -7,6 +7,9 @@ const TOKEN_KEY = 'vps_access_token'
 const REFRESH_KEY = 'vps_refresh_token'
 const USER_KEY = 'vps_user'
 
+// A single refresh operation is shared by all requests that receive 401 together.
+let refreshPromise = null
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     try {
@@ -120,12 +123,11 @@ export function AuthProvider({ children }) {
     const currentAccess = accessToken
 
     try {
-      if (currentRefresh && currentAccess) {
+      if (currentRefresh) {
         await fetch(`${API_BASE}/logout/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${currentAccess}`,
           },
           body: JSON.stringify({ refresh: currentRefresh }),
         })
@@ -140,37 +142,47 @@ export function AuthProvider({ children }) {
 
   // Refresh access token using current refresh token
   const refreshTokens = useCallback(async () => {
+    if (refreshPromise) return refreshPromise
+
     if (!refreshToken) {
       clearSession()
       return null
     }
 
-    try {
-      const response = await fetch(`${API_BASE}/token/refresh/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh: refreshToken }),
-      })
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        })
 
-      const data = await response.json().catch(() => ({}))
+        const data = await response.json().catch(() => ({}))
 
-      if (!response.ok) {
+        if (!response.ok) {
+          clearSession()
+          return null
+        }
+
+        setAccessToken(data.access)
+        localStorage.setItem(TOKEN_KEY, data.access)
+
+        if (data.refresh) {
+          setRefreshToken(data.refresh)
+          localStorage.setItem(REFRESH_KEY, data.refresh)
+        }
+
+        return data.access
+      } catch {
         clearSession()
         return null
       }
+    })()
 
-      setAccessToken(data.access)
-      localStorage.setItem(TOKEN_KEY, data.access)
-
-      if (data.refresh) {
-        setRefreshToken(data.refresh)
-        localStorage.setItem(REFRESH_KEY, data.refresh)
-      }
-
-      return data.access
-    } catch {
-      clearSession()
-      return null
+    try {
+      return await refreshPromise
+    } finally {
+      refreshPromise = null
     }
   }, [refreshToken, clearSession])
 
