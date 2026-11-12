@@ -67,6 +67,7 @@ export function VehicleSearchView({
         if (!isCurrentRequest()) return
         if (response.ok) {
           const data = await response.json()
+          if (!isCurrentRequest()) return
           if (Array.isArray(data) && data.length === 0) {
             setErrorCode('NOT_FOUND')
             setSearchError(`No vehicle found with registration number "${plateToQuery}".`)
@@ -86,6 +87,7 @@ export function VehicleSearchView({
           setSearchResult(null)
         } else {
           const errData = await response.json().catch(() => null)
+          if (!isCurrentRequest()) return
           const parsed = parseApiError(errData)
           setErrorCode(response.status)
           setSearchError(parsed.message || 'An error occurred while searching for the vehicle.')
