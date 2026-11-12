@@ -269,6 +269,8 @@ class AdminUserDetailView(APIView):
             serializer.is_valid(raise_exception=True)
             new_status = serializer.validated_data.get('status')
             new_role = serializer.validated_data.get('role')
+            if new_role == 'Admin' and user.role != 'Admin':
+                raise exceptions.ValidationError({'role': 'Administrator privileges must be provisioned through the approved superuser process.'})
             if not new_status and not new_role:
                 return Response(AdminUserListSerializer(user).data, status=status.HTTP_200_OK)
             if user.pk == request.user.pk:
