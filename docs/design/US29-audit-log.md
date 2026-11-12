@@ -9,7 +9,10 @@ explicit server values; request bodies, headers, passwords and tokens are never 
 
 `GET /api/audit/` is restricted to active administrators and returns entries in
 newest-first chronological order using bounded page-number pagination. Optional
-`event_type` and `actor_id` query parameters narrow the result. Other roles get
+`event_type` and `actor_id` query parameters narrow the result. Issue #103 adds
+`actor` snapshot search, `resource_type`, inclusive `start` and exclusive `end`
+timestamp filters plus the [Admin audit browser](ISSUE103-audit-browser.md).
+Other roles get
 HTTP 403 for all read/write methods; anonymous requests get HTTP 401. Administrators
 get HTTP 405 for write methods. Default page size is 50, capped at 100. Model saves,
 deletes, queryset updates/deletes, base-manager writes, bulk updates and conflict
@@ -59,8 +62,8 @@ including records older than the SAD's 90-day retention target; automated archiv
 is not configured. No existing application data is rewritten by the additive
 `common.0001_initial` migration. Run `python manage.py migrate` during deployment.
 
-The story's API criteria are implemented. This does not establish a frontend audit
-screen, production deployment, load acceptance or coverage of every possible future
+The story's API criteria and the issue #103 frontend audit browser are implemented.
+This does not establish production deployment, load acceptance or coverage of every possible future
 privileged action. New business flows must explicitly use the recorder.
 
 See [execution evidence](../testing/US29-test-evidence.md) for checks and limits.
