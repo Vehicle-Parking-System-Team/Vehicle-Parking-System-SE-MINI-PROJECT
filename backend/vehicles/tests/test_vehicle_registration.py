@@ -375,3 +375,100 @@ class VehicleAPITests(TestCase):
         self.assertEqual(res2.status_code, status.HTTP_200_OK)
         plates = [v['registration_number'] for v in res2.json()]
         self.assertIn('KA-ROOT-1111', plates)
+
+
+    def test_staff_can_register_vehicle_for_selected_customer_and_default_owner_name(self):
+        customer = User.objects.create_user(
+            username='assisted_customer',
+            email='assisted@parking.local',
+            password='Password123!',
+            role='Customer',
+            status='active',
+            first_name='Alex',
+            last_name='Customer',
+        )
+        operator = User.objects.create_user(
+            username='front_desk_operator',
+            email='operator@parking.local',
+            password='Password123!',
+            role='Operator',
+            status='active',
+        )
+        token = AccessToken.for_user(operator)
+        token['token_version'] = operator.token_version
+        token['username'] = operator.username
+        token['role'] = operator.role
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token)}')
+
+        response = self.client.post(self.endpoint_v1, {
+            'registration_number': 'KA-97-AC-0001',
+            'vehicle_type': 'Compact',
+            'customer_id': customer.id,
+            'owner_name': '',
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.assertEqual(response.data['owner'], customer.id)
+        self.assertEqual(response.data['owner_name'], 'Alex Customer')
+        saved = Vehicle.objects.get(registration_number='KA-97-AC-0001')
+        self.assertEqual(saved.owner, customer)
+
+    def test_customer_cannot_assign_vehicle_to_another_customer(self):
+        other_customer = User.objects.create_user(
+            username='other_customer',
+            email='other_customer@parking.local',
+            password='Password123!',
+            role='Customer',
+            status='active',
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+        response = self.client.post(self.endpoint_v1, {
+            'registration_number': 'KA-97-AC-0002',
+            'vehicle_type': 'Compact',
+            'customer_id': other_customer.id,
+        })
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('customer_id', response.data['details'])
+        self.assertFalse(Vehicle.objects.filter(registration_number='KA-97-AC-0002').exists())
+
+    def test_active_customer_options_are_staff_only_and_exclude_inactive_accounts(self):
+        active_customer = User.objects.create_user(
+            username='active_option_customer',
+            email='active_option@parking.local',
+            password='Password123!',
+            role='Customer',
+            status='active',
+        )
+        User.objects.create_user(
+            username='inactive_option_customer',
+            email='inactive_option@parking.local',
+            password='Password123!',
+            role='Customer',
+            status='inactive',
+        )
+        operator = User.objects.create_user(
+            username='options_operator',
+            email='options_operator@parking.local',
+            password='Password123!',
+            role='Operator',
+            status='active',
+        )
+        token = AccessToken.for_user(operator)
+        token['token_version'] = operator.token_version
+        token['username'] = operator.username
+        token['role'] = operator.role
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {str(token)}')
+
+        response = self.client.get('/api/v1/vehicles/customers/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = {customer['id'] for customer in response.data}
+        self.assertIn(active_customer.id, returned_ids)
+        self.assertNotIn(
+            User.objects.get(username='inactive_option_customer').id,
+            returned_ids,
+        )
+
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.token}')
+        forbidden = self.client.get('/api/v1/vehicles/customers/')
+        self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)

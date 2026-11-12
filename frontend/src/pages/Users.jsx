@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
 import BayIcon from '../components/BayIcon'
 
@@ -26,8 +26,12 @@ export default function UsersPage() {
   })
   const [formError, setFormError] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const usersRequestId = useRef(0)
+  const modalRef = useRef(null)
+  const previouslyFocusedElement = useRef(null)
 
   const fetchUsers = useCallback(async () => {
+    const requestId = ++usersRequestId.current
     setLoading(true)
     setError(null)
     try {
@@ -45,20 +49,29 @@ export default function UsersPage() {
       })
 
       const data = await response.json().catch(() => [])
+      if (requestId !== usersRequestId.current) return
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch user accounts.')
       }
       setUsers(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err.message)
+      if (requestId === usersRequestId.current) setError(err.message)
     } finally {
-      setLoading(false)
+      if (requestId === usersRequestId.current) setLoading(false)
     }
   }, [search, roleFilter, statusFilter, accessToken])
 
   useEffect(() => {
     fetchUsers()
+    return () => { usersRequestId.current += 1 }
   }, [fetchUsers])
+
+  useEffect(() => {
+    if (!isModalOpen) return undefined
+    previouslyFocusedElement.current = document.activeElement
+    modalRef.current?.querySelector('input, select, button')?.focus()
+    return () => previouslyFocusedElement.current?.focus?.()
+  }, [isModalOpen])
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
@@ -332,6 +345,7 @@ export default function UsersPage() {
       {/* Modal for Creating User */}
       {isModalOpen && (
         <div
+          onMouseDown={(event) => { if (event.target === event.currentTarget) setIsModalOpen(false) }}
           style={{
             position: 'fixed',
             top: 0,
@@ -345,8 +359,17 @@ export default function UsersPage() {
             zIndex: 1000,
           }}
         >
-          <div style={{ background: '#fff', borderRadius: '8px', padding: '24px', width: '100%', maxWidth: '440px' }}>
-            <h2 style={{ marginTop: 0, fontSize: '20px' }}>Create User Account</h2>
+          <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="create-user-title" onKeyDown={(event) => {
+            if (event.key === 'Escape') { event.preventDefault(); setIsModalOpen(false); return }
+            if (event.key === 'Tab') {
+              const items = modalRef.current?.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')
+              if (!items?.length) return
+              const first = items[0], last = items[items.length - 1]
+              if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+            }
+          }} style={{ background: '#fff', borderRadius: '8px', padding: '24px', width: '100%', maxWidth: '440px' }}>
+            <h2 id="create-user-title" style={{ marginTop: 0, fontSize: '20px' }}>Create User Account</h2>
 
             {formError && (
               <div style={{ padding: '10px 14px', background: '#fce8e6', color: '#c5221f', borderRadius: '6px', marginBottom: '14px', fontSize: '13px' }}>
@@ -356,8 +379,9 @@ export default function UsersPage() {
 
             <form onSubmit={handleCreateSubmit}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Username</label>
+                <label htmlFor="create-user-username" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Username</label>
                 <input
+                  id="create-user-username"
                   type="text"
                   required
                   value={createForm.username}
@@ -367,8 +391,9 @@ export default function UsersPage() {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Email</label>
+                <label htmlFor="create-user-email" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Email</label>
                 <input
+                  id="create-user-email"
                   type="email"
                   required
                   value={createForm.email}
@@ -378,8 +403,9 @@ export default function UsersPage() {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Password</label>
+                <label htmlFor="create-user-password" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Password</label>
                 <input
+                  id="create-user-password"
                   type="password"
                   required
                   value={createForm.password}
@@ -390,8 +416,9 @@ export default function UsersPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Role</label>
+                <label htmlFor="create-user-role" style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '4px' }}>Role</label>
                 <select
+                  id="create-user-role"
                   value={createForm.role}
                   onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}

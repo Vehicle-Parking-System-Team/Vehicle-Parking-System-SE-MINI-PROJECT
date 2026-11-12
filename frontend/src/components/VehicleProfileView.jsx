@@ -19,6 +19,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
   })
   const [fieldErrors, setFieldErrors] = useState({})
   const [formError, setFormError] = useState(null)
+  const [listError, setListError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -33,12 +34,16 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
           const data = await response.json()
           const list = Array.isArray(data) ? data : []
           setVehicles(list)
+          setListError(null)
           if (list.length > 0) {
             setSelectedId((prev) => prev || list[0].id)
           }
+        } else if (!ignore) {
+          const errData = await response.json().catch(() => null)
+          setListError(parseApiError(errData).message || 'Could not load your vehicle list. Retry to try again.')
         }
       } catch {
-        // Safe fallback
+        if (!ignore) setListError('Could not load your vehicle list because of a network error. Retry to try again.')
       } finally {
         if (!ignore) {
           setIsLoadingList(false)
@@ -227,6 +232,21 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
         </div>
       )}
 
+      {listError && (
+        <div className="alert alert-error" role="alert">
+          <span className="alert-text">{listError}</span>
+          <button type="button" className="btn btn-secondary" onClick={() => {
+            setListError(null)
+            setIsLoadingList(true)
+            fetchWithAuth('/api/v1/vehicles/').then(async (response) => {
+              if (!response.ok) throw new Error('Vehicle list request failed.')
+              const data = await response.json()
+              setVehicles(Array.isArray(data) ? data : [])
+            }).catch((error) => setListError(error.message || 'Unable to reload vehicle list.'))
+              .finally(() => setIsLoadingList(false))
+          }}>Retry</button>
+        </div>
+      )}
       {formError && (
         <div className="alert alert-error" id="profile-error-alert" role="alert">
           <span className="alert-icon">✗</span>
@@ -239,7 +259,7 @@ export function VehicleProfileView({ initialVehicleId, onBackToRegistration, onV
           <div className="btn-spinner" aria-hidden="true"></div>
           <p>Loading registered fleet records...</p>
         </div>
-      ) : vehicles.length === 0 ? (
+      ) : vehicles.length === 0 && !initialVehicleId && !listError ? (
         <div className="profile-empty-card" id="profile-empty-state">
           <div className="empty-icon">🚗</div>
           <h3>No Vehicles Registered</h3>

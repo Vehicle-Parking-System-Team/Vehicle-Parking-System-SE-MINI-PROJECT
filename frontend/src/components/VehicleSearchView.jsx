@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../context/useAuth'
 import { validateSearchPlateInput } from '../utils/vehicles'
 import { parseApiError } from '../utils/apiErrors'
@@ -17,6 +17,7 @@ export function VehicleSearchView({
   const [searchError, setSearchError] = useState(null)
   const [errorCode, setErrorCode] = useState(null)
   const [userVehicles, setUserVehicles] = useState([])
+  const searchRequestId = useRef(0)
 
   // Fetch user's registered vehicles for quick search shortcuts
   useEffect(() => {
@@ -50,6 +51,8 @@ export function VehicleSearchView({
         return
       }
 
+      const requestId = ++searchRequestId.current
+      const isCurrentRequest = () => requestId === searchRequestId.current
       const plateToQuery = validation.normalized
       setSearchedPlate(plateToQuery)
       setIsSearching(true)
@@ -61,8 +64,10 @@ export function VehicleSearchView({
         const encoded = encodeURIComponent(plateToQuery)
         const response = await fetchWithAuth(`/api/v1/vehicles/search/?plate=${encoded}`)
 
+        if (!isCurrentRequest()) return
         if (response.ok) {
           const data = await response.json()
+          if (!isCurrentRequest()) return
           if (Array.isArray(data) && data.length === 0) {
             setErrorCode('NOT_FOUND')
             setSearchError(`No vehicle found with registration number "${plateToQuery}".`)
@@ -82,17 +87,19 @@ export function VehicleSearchView({
           setSearchResult(null)
         } else {
           const errData = await response.json().catch(() => null)
+          if (!isCurrentRequest()) return
           const parsed = parseApiError(errData)
           setErrorCode(response.status)
           setSearchError(parsed.message || 'An error occurred while searching for the vehicle.')
           setSearchResult(null)
         }
       } catch {
+        if (!isCurrentRequest()) return
         setErrorCode('NETWORK_ERROR')
         setSearchError('Network error occurred while executing vehicle search. Please verify connection.')
         setSearchResult(null)
       } finally {
-        setIsSearching(false)
+        if (isCurrentRequest()) setIsSearching(false)
       }
     },
     [fetchWithAuth]
@@ -124,6 +131,8 @@ export function VehicleSearchView({
   }
 
   const handleClear = () => {
+    searchRequestId.current += 1
+    setIsSearching(false)
     setSearchInput('')
     setSearchResult(null)
     setSearchError(null)
@@ -175,7 +184,6 @@ export function VehicleSearchView({
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck="false"
-              disabled={isSearching}
               aria-label="Search by license plate"
             />
             {searchInput && (
