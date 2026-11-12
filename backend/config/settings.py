@@ -162,7 +162,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'accounts.authentication.RevocableJWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'accounts.authentication.ActiveAccountSessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
