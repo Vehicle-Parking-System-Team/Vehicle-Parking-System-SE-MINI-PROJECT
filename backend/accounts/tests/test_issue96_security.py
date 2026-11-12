@@ -77,7 +77,7 @@ class Issue96SecurityRegressionTests(TestCase):
                     password='SecurePassword123!',
                     role='Customer',
                     status=account_status,
-                    is_active=False,
+                    is_active=True,
                 )
                 client = APIClient()
                 client.force_login(user)
