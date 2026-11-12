@@ -10,6 +10,7 @@ import UsersPage from '../pages/Users'
 import ParkingOperations from '../pages/ParkingOperations'
 import AdminDashboard from '../pages/AdminDashboard'
 import Notifications from './Notifications'
+import ReservationsPage from '../pages/Reservations'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
 
@@ -32,6 +33,7 @@ export function AuthenticatedView() {
     ] : []),
     ...(isAdmin ? [['users', 'User management', 'user']] : []),
     ['vehicles', 'My vehicles', 'car'],
+    ['reservations', 'My reservations', 'layers'],
     ['profiles', 'Vehicle profiles', 'edit'],
     ['search', 'Vehicle search', 'search'],
     ['account', 'Account', 'user'],
@@ -158,6 +160,8 @@ export function AuthenticatedView() {
             <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.OPERATOR]}>
               <ParkingOperations page={activePage} />
             </ProtectedRoute>
+          ) : activePage === 'reservations' ? (
+            <ReservationsPage />
           ) : activePage === 'vehicles' ? (
             <section className="bay-legacy-page" id="authenticated-container">
               <div className="bay-page-heading">

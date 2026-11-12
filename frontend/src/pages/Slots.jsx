@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/useAuth'
+import ReservationForm from '../components/ReservationForm'
 import { requestSlots } from '../utils/slots'
 import {
   AVAILABILITY_REFRESH_MS,
@@ -34,7 +35,8 @@ function StatusBadge({ slot }) {
 }
 
 export default function SlotsPage({ availability = false }) {
-  const { fetchWithAuth } = useAuth()
+  const { fetchWithAuth, user } = useAuth()
+  const [bookingSlot, setBookingSlot] = useState(null)
   const [liveSlots, setLiveSlots] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -547,6 +549,11 @@ export default function SlotsPage({ availability = false }) {
                   </dd>
                 </div>
               </dl>
+              {availability && user?.role === 'Customer' && selected.is_active && selected.status === 'available' && (
+                <button type="button" className="bay-button bay-button-primary" onClick={() => setBookingSlot(selected)}>
+                  Book this bay
+                </button>
+              )}
               {demo || availability ? (
                 <p className="bay-inspector-hint">
                   {availability ? 'Public availability is read only.' : 'Design preview. Sample bays cannot be edited.'}
@@ -711,6 +718,10 @@ export default function SlotsPage({ availability = false }) {
           </button>
         )}
       </section>
+      {bookingSlot && (
+        <ReservationForm slot={bookingSlot} onClose={() => setBookingSlot(null)}
+          onSaved={() => { setBookingSlot(null); setMessage('Reservation confirmed. View it in My reservations.'); refresh() }} />
+      )}
       {editor && !demo && !availability && (
         <SlotEditor
           slot={editor.slot}
