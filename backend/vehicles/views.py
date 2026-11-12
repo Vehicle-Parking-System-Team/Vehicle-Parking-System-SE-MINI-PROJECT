@@ -31,7 +31,7 @@ class VehicleRegistrationView(APIView):
 
         try:
             with transaction.atomic():
-                vehicle = serializer.save(owner=request.user)
+                vehicle = serializer.save()
         except IntegrityError as exc:
             if is_registration_number_unique_violation(exc):
                 raise Conflict('A vehicle with this registration number already exists.') from exc
