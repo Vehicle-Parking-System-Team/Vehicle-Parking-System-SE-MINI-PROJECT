@@ -18,6 +18,22 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
   const [vehicles, setVehicles] = useState([])
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false)
   const [vehiclesLoadError, setVehiclesLoadError] = useState(null)
+  const [customerOptions, setCustomerOptions] = useState([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const isStaff = user?.role === 'Admin' || user?.role === 'Operator'
+
+  useEffect(() => {
+    if (!isStaff) return
+    let ignore = false
+    fetchWithAuth('/api/v1/vehicles/customers/')
+      .then(async (response) => {
+        const data = await response.json().catch(() => [])
+        if (!response.ok) throw new Error(parseApiError(data).message || 'Unable to load active customers.')
+        if (!ignore) setCustomerOptions(Array.isArray(data) ? data : [])
+      })
+      .catch((error) => { if (!ignore) setFormError(error.message || 'Unable to load active customers.') })
+    return () => { ignore = true }
+  }, [fetchWithAuth, isStaff])
 
   // Edit vehicle profile state (US-06 / FR-02)
   const [editingVehicleId, setEditingVehicleId] = useState(null)
@@ -102,6 +118,11 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
     }
     const trimmedPlate = normalizePlate(formData.registration_number)
 
+    if (isStaff && !selectedCustomerId) {
+      setFormError('Select an active customer account before registering this vehicle.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const payload = {
@@ -109,6 +130,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
         vehicle_type: formData.vehicle_type,
         owner_name: formData.owner_name.trim() || user?.username,
         owner_phone: formData.owner_phone.trim(),
+        ...(isStaff ? { customer_id: Number(selectedCustomerId) } : {}),
       }
 
       const response = await fetchWithAuth('/api/v1/vehicles/', {
@@ -256,6 +278,15 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
       )}
 
       <form onSubmit={handleSubmit} className="vehicle-form" noValidate>
+        {isStaff && (
+          <div className="form-group">
+            <label htmlFor="vehicle-customer-id">Registering for customer <span className="required">*</span></label>
+            <select id="vehicle-customer-id" name="customer_id" className="form-input" value={selectedCustomerId} onChange={(event) => setSelectedCustomerId(event.target.value)} disabled={isSubmitting} required>
+              <option value="">Select an active customer</option>
+              {customerOptions.map((customer) => <option key={customer.id} value={customer.id}>{customer.username} ({customer.email})</option>)}
+            </select>
+          </div>
+        )}
         <div className="form-group">
           <label htmlFor="registration_number">
             Registration Number / License Plate <span className="required">*</span>
