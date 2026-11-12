@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from common.exceptions import Conflict
 from vehicles.services import is_registration_number_unique_violation
 from vehicles.models import Vehicle
+from accounts.models import User
 from vehicles.serializers import VehicleSearchResultSerializer, VehicleSerializer
 
 
@@ -169,3 +170,21 @@ class VehicleSearchView(APIView):
             vehicle, parking_status = result
             serializer = VehicleSearchResultSerializer(vehicle, context={'parking_status': parking_status})
             return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ActiveCustomerOptionsView(APIView):
+    """Return active customer accounts for staff-assisted vehicle registration."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not (
+            getattr(request.user, 'role', None) in ('Admin', 'Operator')
+            or getattr(request.user, 'is_staff', False)
+            or getattr(request.user, 'is_superuser', False)
+        ):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only Admins and Operators can select a customer account.')
+        customers = User.objects.filter(
+            role='Customer', status='active', is_active=True
+        ).order_by('username').values('id', 'username', 'email')
+        return Response(list(customers), status=status.HTTP_200_OK)
