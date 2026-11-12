@@ -1,10 +1,13 @@
+from django.db.models import Q
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
 from accounts.permissions import IsAdmin
 from .models import AuditEvent
-from .serializers import AuditEventSerializer
+from .serializers import AuditEventFilterSerializer, AuditEventSerializer
 
 
 class AuditEventPagination(PageNumberPagination):
@@ -13,6 +16,7 @@ class AuditEventPagination(PageNumberPagination):
     max_page_size = 100
 
 
+@method_decorator(never_cache, name='dispatch')
 class AuditEventListView(APIView):
     """Admin-only, chronological, read-only access to the audit trail."""
 
@@ -21,12 +25,18 @@ class AuditEventListView(APIView):
 
     def get(self, request):
         events = AuditEvent.objects.all()
-        event_type = request.query_params.get('event_type')
-        actor_id = request.query_params.get('actor_id')
-        if event_type:
-            events = events.filter(event_type=event_type)
-        if actor_id:
-            events = events.filter(actor_id=actor_id)
+        filters = AuditEventFilterSerializer(data=request.query_params)
+        filters.is_valid(raise_exception=True)
+        values = filters.validated_data
+        for field in ('event_type', 'actor_id', 'resource_type'):
+            if field in values:
+                events = events.filter(**{field: values[field]})
+        if 'actor' in values:
+            events = events.filter(Q(actor_username__icontains=values['actor']) | Q(actor_id=values['actor']))
+        if 'start' in values:
+            events = events.filter(occurred_at__gte=values['start'])
+        if 'end' in values:
+            events = events.filter(occurred_at__lt=values['end'])
 
         paginator = AuditEventPagination()
         page = paginator.paginate_queryset(events, request, view=self)

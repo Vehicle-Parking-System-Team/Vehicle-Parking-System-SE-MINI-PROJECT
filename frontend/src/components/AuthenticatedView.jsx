@@ -10,6 +10,7 @@ import UsersPage from '../pages/Users'
 import ParkingOperations from '../pages/ParkingOperations'
 import AdminDashboard from '../pages/AdminDashboard'
 import Notifications from './Notifications'
+import AuditLog from '../pages/AuditLog'
 import ReservationsPage from '../pages/Reservations'
 import { ProtectedRoute } from '../routes/ProtectedRoute'
 import { ROLES, isRoleAuthorized } from '../utils/rbac'
@@ -20,6 +21,7 @@ export function AuthenticatedView() {
   const isAdmin = isRoleAuthorized(user?.role, [ROLES.ADMIN])
   const navigation = [
     ...(isAdmin ? [['dashboard', 'Admin dashboard', 'layers']] : []),
+    ...(isAdmin ? [['audit', 'Audit log', 'layers']] : []),
     ['availability', 'Parking availability', 'map'],
     ...(canManage ? [
       ['facility', 'Facility overview', 'map'],
@@ -194,6 +196,10 @@ export function AuthenticatedView() {
                 onNavigateToRegister={() => setPage('vehicles')}
               />
             </section>
+          ) : activePage === 'audit' ? (
+            <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <AuditLog />
+            </ProtectedRoute>
           ) : activePage === 'users' ? (
             <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
               <UsersPage />
