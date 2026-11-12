@@ -128,7 +128,7 @@ export function VehicleRegistrationForm({ onVehicleRegistered, onNavigateToProfi
       const payload = {
         registration_number: trimmedPlate,
         vehicle_type: formData.vehicle_type,
-        owner_name: formData.owner_name.trim() || user?.username,
+        owner_name: formData.owner_name.trim(),
         owner_phone: formData.owner_phone.trim(),
         ...(isStaff ? { customer_id: Number(selectedCustomerId) } : {}),
       }
