@@ -66,6 +66,13 @@ export default function UsersPage() {
     return () => { usersRequestId.current += 1 }
   }, [fetchUsers])
 
+  useEffect(() => {
+    if (!isModalOpen) return undefined
+    previouslyFocusedElement.current = document.activeElement
+    modalRef.current?.querySelector('input, select, button')?.focus()
+    return () => previouslyFocusedElement.current?.focus?.()
+  }, [isModalOpen])
+
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
     setFormError(null)
