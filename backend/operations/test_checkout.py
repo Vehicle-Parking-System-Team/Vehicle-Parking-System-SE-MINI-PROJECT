@@ -85,6 +85,13 @@ class CheckoutAPITests(TestCase):
         self.record = check_in_vehicle(self.vehicle.registration_number, self.operator, self.slot.pk)
         self.exit_time = self.record.check_in_time + timedelta(minutes=61)
 
+    def test_missing_tariff_prevents_check_in_before_occupying_slot(self):
+        self.rate.delete()
+        self.record.delete()
+        with self.assertRaisesMessage(Conflict, 'before check-in'):
+            check_in_vehicle(self.vehicle.registration_number, self.operator, self.slot.pk)
+        self.assertFalse(ParkingRecord.objects.filter(vehicle=self.vehicle, check_out_time__isnull=True).exists())
+
     def checkout(self, **extra):
         with patch('operations.services.timezone.now', return_value=self.exit_time):
             return self.client.post(URL, {'registration_number': self.vehicle.registration_number, **extra}, format='json')

@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 
 from operations.models import ParkingRecord
 from parking_slots.permissions import CanManageParking
@@ -55,6 +56,23 @@ class ReceiptCollectionView(APIView):
     """Generate (or idempotently return) a receipt for a completed session."""
 
     permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not getattr(request.user, 'is_account_active', False):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('An active account is required.')
+        receipts = BillingReceipt.objects.select_related('parking_record').all()
+        if getattr(request.user, 'role', None) == 'Customer':
+            receipts = receipts.filter(parking_record__vehicle__owner=request.user)
+        elif getattr(request.user, 'role', None) not in ('Admin', 'Operator'):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not have access to receipts.')
+        paginator = PageNumberPagination()
+        paginator.page_size = 20
+        page = paginator.paginate_queryset(receipts, request, view=self)
+        return paginator.get_paginated_response(
+            BillingReceiptSerializer(page, many=True, context={'request': request}).data
+        )
 
     def post(self, request):
         request_serializer = GenerateReceiptRequestSerializer(data=request.data)
