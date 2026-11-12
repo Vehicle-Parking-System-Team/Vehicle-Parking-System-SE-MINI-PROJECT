@@ -145,7 +145,7 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
     status = serializers.ChoiceField(choices=User.STATUS_CHOICES, required=False)
     # Privileged Admin accounts are provisioned outside this API.
-    role = serializers.ChoiceField(choices=[('Operator', 'Operator'), ('Customer', 'Customer')], required=False)
+    role = serializers.ChoiceField(choices=User.ROLE_CHOICES, required=False)
 
     class Meta:
         model = User

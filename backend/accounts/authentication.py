@@ -1,4 +1,5 @@
 from rest_framework import exceptions
+from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
@@ -25,3 +26,16 @@ class RevocableJWTAuthentication(JWTAuthentication):
             )
 
         return user
+
+
+class ActiveAccountSessionAuthentication(SessionAuthentication):
+    """Apply domain account lifecycle checks to Django session-authenticated requests."""
+
+    def authenticate(self, request):
+        result = super().authenticate(request)
+        if result is None:
+            return None
+        user, auth = result
+        if not user.is_active or user.status != 'active':
+            raise exceptions.PermissionDenied('This account is suspended or deactivated.')
+        return user, auth

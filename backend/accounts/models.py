@@ -1,7 +1,17 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
+
+
+class AccountUserManager(UserManager):
+    """Keep Django's createsuperuser command aligned with domain RBAC."""
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('role', 'Admin')
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return super().create_superuser(username, email, password, **extra_fields)
 
 
 class User(AbstractUser):
@@ -37,6 +47,8 @@ class User(AbstractUser):
     )
 
     phone_number = models.CharField(max_length=20, blank=True, default='', db_default='', help_text='User contact phone number.')
+
+    objects = AccountUserManager()
 
     class Meta:
         db_table = 'users'
