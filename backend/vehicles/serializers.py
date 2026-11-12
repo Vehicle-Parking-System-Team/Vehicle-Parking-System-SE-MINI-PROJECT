@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from rest_framework import serializers
 
 from common.exceptions import Conflict
+from accounts.models import User
 from vehicles.models import Vehicle
 from vehicles.services import (
     normalize_registration_number,
@@ -37,6 +38,11 @@ class VehicleSerializer(serializers.ModelSerializer):
         help_text='Alternative key for registration_number.',
     )
     owner = serializers.PrimaryKeyRelatedField(read_only=True)
+    customer_id = serializers.PrimaryKeyRelatedField(
+        source='owner', queryset=User.objects.filter(role='Customer', status='active', is_active=True),
+        write_only=True, required=False,
+        help_text='Active customer account to own a staff-registered vehicle.',
+    )
     owner_username = serializers.CharField(source='owner.username', read_only=True)
 
     class Meta:
@@ -48,6 +54,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             'vehicle_type',
             'owner',
             'owner_username',
+            'customer_id',
             'owner_name',
             'owner_phone',
             'created_at',
@@ -145,6 +152,20 @@ class VehicleSerializer(serializers.ModelSerializer):
 
         attrs.pop('plate_number', None)
 
+        request = self.context.get('request')
+        requester = getattr(request, 'user', None)
+        is_staff = bool(requester and requester.is_authenticated and (
+            getattr(requester, 'role', None) in ('Admin', 'Operator')
+            or getattr(requester, 'is_staff', False)
+            or getattr(requester, 'is_superuser', False)
+        ))
+        if self.instance is None and is_staff and not attrs.get('owner'):
+            raise serializers.ValidationError({
+                'customer_id': ['Select an active customer account for this staff-assisted registration.']
+            })
+        if self.instance is None and not is_staff and attrs.get('owner'):
+            raise serializers.ValidationError({'customer_id': ['Customers can only register vehicles to their own account.']})
+
         if 'owner_name' in attrs:
             attrs['owner_name'] = attrs['owner_name'].strip()
         if 'owner_phone' in attrs:
@@ -156,9 +177,10 @@ class VehicleSerializer(serializers.ModelSerializer):
         # Ownership always comes from the authenticated principal, never payload.
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            validated_data['owner'] = request.user
+            if not validated_data.get('owner'):
+                validated_data['owner'] = request.user
             if not validated_data.get('owner_name'):
-                validated_data['owner_name'] = request.user.get_full_name() or request.user.username
+                validated_data['owner_name'] = validated_data['owner'].get_full_name() or validated_data['owner'].username
 
         return super().create(validated_data)
 

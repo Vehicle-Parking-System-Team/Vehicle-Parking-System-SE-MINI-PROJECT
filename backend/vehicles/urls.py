@@ -1,9 +1,10 @@
 from django.urls import path
-from vehicles.views import VehicleDetailView, VehicleRegistrationView, VehicleSearchView
+from vehicles.views import ActiveCustomerOptionsView, VehicleDetailView, VehicleRegistrationView, VehicleSearchView
 
 app_name = 'vehicles'
 
 urlpatterns = [
+    path('customers/', ActiveCustomerOptionsView.as_view(), name='active_customer_options'),
     path('', VehicleRegistrationView.as_view(), name='vehicle_list_create'),
     path('search/', VehicleSearchView.as_view(), name='vehicle_search'),
     path('search/<str:plate>/', VehicleSearchView.as_view(), name='vehicle_search_by_plate'),

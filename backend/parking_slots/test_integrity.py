@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 from common.exceptions import Conflict
 from operations.models import ParkingRecord
 from operations.services import check_in_vehicle
+from rates.models import ParkingRate
 from vehicles.models import Vehicle
 from .models import ParkingSlot, ParkingZone
 from . import services
@@ -17,6 +18,7 @@ from . import services
 
 class ActiveRecordIntegrityTests(TestCase):
     def setUp(self):
+        ParkingRate.objects.create(vehicle_type='Compact', hourly_rate='40.00')
         self.operator = get_user_model().objects.create_user(username='operator', role='Operator')
         self.client = APIClient()
         self.client.force_authenticate(user=self.operator)
@@ -112,6 +114,7 @@ class ActiveRecordIntegrityTests(TestCase):
         self.assertFalse(ParkingRecord.objects.exists())
 
     def test_incompatible_assignment_preserves_shared_field_errors(self):
+        ParkingRate.objects.create(vehicle_type='SUV', hourly_rate='40.00')
         self.record.delete()
         self.vehicle.vehicle_type = 'SUV'
         self.vehicle.save(update_fields=['vehicle_type'])
@@ -127,6 +130,7 @@ class ActiveRecordIntegrityTests(TestCase):
 @skipUnlessDBFeature('has_select_for_update')
 class SlotConcurrencyTests(TransactionTestCase):
     def setUp(self):
+        ParkingRate.objects.create(vehicle_type='Compact', hourly_rate='40.00')
         self.operator = get_user_model().objects.create_user(username='operator', role='Operator')
         self.zone = ParkingZone.objects.create(name='Zone A')
         self.slot = ParkingSlot.objects.create(
