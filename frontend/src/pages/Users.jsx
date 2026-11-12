@@ -5,7 +5,7 @@ import BayIcon from '../components/BayIcon'
 const API_BASE = '/api/auth/users'
 
 export default function UsersPage() {
-  const { user: currentUser, accessToken } = useAuth()
+  const { user: currentUser, fetchWithAuth } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -40,12 +40,8 @@ export default function UsersPage() {
       if (roleFilter) params.append('role', roleFilter)
       if (statusFilter) params.append('status', statusFilter)
 
-      const token = accessToken || localStorage.getItem('vps_access_token')
-      const response = await fetch(`${API_BASE}/?${params.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await fetchWithAuth(`${API_BASE}/?${params.toString()}`, {
+        headers: { 'Content-Type': 'application/json' },
       })
 
       const data = await response.json().catch(() => [])
@@ -59,7 +55,7 @@ export default function UsersPage() {
     } finally {
       if (requestId === usersRequestId.current) setLoading(false)
     }
-  }, [search, roleFilter, statusFilter, accessToken])
+  }, [search, roleFilter, statusFilter, fetchWithAuth])
 
   useEffect(() => {
     fetchUsers()
@@ -79,13 +75,9 @@ export default function UsersPage() {
     setIsSubmitting(true)
 
     try {
-      const token = accessToken || localStorage.getItem('vps_access_token')
-      const response = await fetch(`${API_BASE}/`, {
+      const response = await fetchWithAuth(`${API_BASE}/`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(createForm),
       })
 
@@ -128,10 +120,9 @@ export default function UsersPage() {
     setError(null)
     setSuccessMessage(null)
     try {
-      const token = accessToken || localStorage.getItem('vps_access_token')
-      const response = await fetch(`${API_BASE}/${targetUser.id}/`, {
+      const response = await fetchWithAuth(`${API_BASE}/${targetUser.id}/`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: nextRole }),
       })
       const data = await response.json().catch(() => ({}))
@@ -146,24 +137,20 @@ export default function UsersPage() {
     }
   }
 
-  const handleStatusToggle = async (targetUser) => {
+  const handleStatusChange = async (targetUser, nextStatus) => {
     if (targetUser.id === currentUser?.id) {
       setError('Administrators cannot suspend or deactivate their own account.')
       return
     }
 
-    const nextStatus = targetUser.status === 'active' ? 'suspended' : 'active'
+    if (nextStatus === targetUser.status) return
     setError(null)
     setSuccessMessage(null)
 
     try {
-      const token = accessToken || localStorage.getItem('vps_access_token')
-      const response = await fetch(`${API_BASE}/${targetUser.id}/`, {
+      const response = await fetchWithAuth(`${API_BASE}/${targetUser.id}/`, {
         method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus }),
       })
 
@@ -317,21 +304,16 @@ export default function UsersPage() {
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       {!isSelf && (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusToggle(u)}
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '12px',
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            border: '1px solid #d8dee8',
-                            background: u.status === 'active' ? '#fff5f5' : '#f0fff4',
-                            color: u.status === 'active' ? '#c5221f' : '#137333',
-                          }}
+                        <select
+                          aria-label={`Change status for ${u.username}`}
+                          value={u.status}
+                          onChange={(e) => handleStatusChange(u, e.target.value)}
+                          style={{ padding: '5px 8px', borderRadius: '4px', border: '1px solid #d8dee8' }}
                         >
-                          {u.status === 'active' ? 'Suspend' : 'Activate'}
-                        </button>
+                          <option value="active">Active</option>
+                          <option value="suspended">Suspended</option>
+                          <option value="deactivated">Deactivated</option>
+                        </select>
                       )}
                     </td>
                   </tr>
