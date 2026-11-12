@@ -127,13 +127,25 @@ export function TariffsPage() {
   const { fetchWithAuth } = useAuth()
   const [rates, setRates] = useState([])
   const [selected, setSelected] = useState('Two-Wheeler')
+  const selectedRef = useRef('Two-Wheeler')
   const [form, setForm] = useState({ hourly_rate: '', vehicle_multiplier: '1.00', grace_period_minutes: '15', penalty_fee: '0.00' })
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const load = useCallback(async () => { try { setRates(await api(fetchWithAuth, '/api/v1/rates/')); setError('') } catch (e) { setError(e.message) } }, [fetchWithAuth])
+  const load = useCallback(async () => {
+    try {
+      const loaded = await api(fetchWithAuth, '/api/v1/rates/')
+      setRates(loaded)
+      setForm((current) => {
+        const pristine = current.hourly_rate === '' && current.vehicle_multiplier === '1.00' &&
+          current.grace_period_minutes === '15' && current.penalty_fee === '0.00'
+        return pristine ? (loaded.find((rate) => rate.vehicle_type === selectedRef.current) || current) : current
+      })
+      setError('')
+    } catch (e) { setError(e.message) }
+  }, [fetchWithAuth])
   useEffect(() => { load() }, [load])
   const existing = rates.find((r) => r.vehicle_type === selected)
-  function choose(type) { setSelected(type); const rate = rates.find((r) => r.vehicle_type === type); setForm(rate || { hourly_rate: '', vehicle_multiplier: '1.00', grace_period_minutes: '15', penalty_fee: '0.00' }) }
+  function choose(type) { selectedRef.current = type; setSelected(type); const rate = rates.find((r) => r.vehicle_type === type); setForm(rate || { hourly_rate: '', vehicle_multiplier: '1.00', grace_period_minutes: '15', penalty_fee: '0.00' }) }
   async function save(e) {
     e.preventDefault(); setBusy(true); setError('')
     try {
