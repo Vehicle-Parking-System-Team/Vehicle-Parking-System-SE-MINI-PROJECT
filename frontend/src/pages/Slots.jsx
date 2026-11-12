@@ -727,7 +727,7 @@ export default function SlotsPage({ availability = false }) {
           slot={editor.slot}
           onClose={() => setEditor(null)}
           onSaved={savedSlot}
-          onZoneSaved={() => { setEditor(null); refresh() }}
+          onZoneSaved={refresh}
         />
       )}
     </div>

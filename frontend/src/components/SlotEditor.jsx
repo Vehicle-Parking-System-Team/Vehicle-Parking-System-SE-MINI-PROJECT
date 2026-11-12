@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth'
 import { VEHICLE_TYPES } from '../utils/vehicles'
 import { requestSlots, requestZones } from '../utils/slots'
 import BayIcon from './BayIcon'
-import { changedZoneFields } from '../utils/zoneLifecycle'
+import { changedZoneFields, reconcileBayZone } from '../utils/zoneLifecycle'
 
 export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
   const { fetchWithAuth } = useAuth()
@@ -21,6 +21,7 @@ export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
   const [originalZone, setOriginalZone] = useState(null)
   const [zoneForm, setZoneForm] = useState({ name: '', description: '', is_active: true })
   const [error, setError] = useState(null)
+  const [zoneNotice, setZoneNotice] = useState('')
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     const dialog = dialogRef.current
@@ -45,6 +46,7 @@ export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
 
   function chooseZone(id) {
     setSelectedZone(id)
+    setZoneNotice('')
     const zone = zones.find(item => String(item.id) === id)
     setOriginalZone(zone || null)
     if (zone) setZoneForm({
@@ -66,6 +68,13 @@ export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
         body: JSON.stringify(changes),
       })
       setZones(current => current.map(zone => zone.id === saved.id ? saved : zone))
+      const selection = reconcileBayZone(form.zone, saved)
+      if (selection.invalidated) {
+        setForm(current => ({ ...current, zone: '' }))
+        setZoneNotice('Zone deactivated. Select an active zone for this bay before saving. Your other bay details are preserved.')
+      } else {
+        setZoneNotice('Zone changes saved. Your unsaved bay details are preserved.')
+      }
       setOriginalZone(saved)
       setZoneForm({ name: saved.name, description: saved.description || '', is_active: saved.is_active })
       // Zone deactivation also deactivates its bays. Refresh the facility view.
@@ -81,6 +90,7 @@ export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
     if (!zoneName.trim() || saving) return
     setSaving(true)
     setError(null)
+    setZoneNotice('')
     try {
       const zone = await requestZones(fetchWithAuth, '', {
         method: 'POST',
@@ -176,6 +186,7 @@ export default function SlotEditor({ slot, onClose, onSaved, onZoneSaved }) {
           ].join(' ')}
         </div>
       )}
+      {zoneNotice && <p className="bay-success" role="status">{zoneNotice}</p>}
       <form onSubmit={submit}>
         <fieldset disabled={saving}>
           <div className="bay-field-pair">

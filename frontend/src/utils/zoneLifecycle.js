@@ -7,3 +7,9 @@ export function changedZoneFields(original, current) {
   }
   return changes
 }
+
+/** Clear only an invalidated bay zone; keep every other draft field intact. */
+export function reconcileBayZone(selectedZoneId, savedZone) {
+  const invalidated = !savedZone.is_active && String(selectedZoneId) === String(savedZone.id)
+  return { invalidated, zone: invalidated ? '' : selectedZoneId }
+}
